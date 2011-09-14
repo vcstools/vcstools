@@ -72,17 +72,17 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/rospkg.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/vcstools.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/rospkg.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/vcstools.qhc"
 
 devhelp:
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/rospkg"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/rospkg"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/vcstools"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/vcstools"
 	@echo "# devhelp"
 
 epub:

@@ -38,7 +38,7 @@ Install test dependencies
     pip install mock
 
 
-rospkg uses `Python nose
+vcstools uses `Python nose
 <http://readthedocs.org/docs/nose/en/latest/>`_ for testing, which is
 a fairly simple and straightfoward test framework.  The vcstools
 mainly use :mod:`unittest` to construct test fixtures, but with nose
