@@ -47,4 +47,4 @@ testsetup:
 	echo "running tests"
 
 test: testsetup
-	nosetests --with-coverage --cover-package=vcstools
+	nosetests --with-coverage --cover-package=vcstools --with-xunit
