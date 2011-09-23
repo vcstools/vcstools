@@ -78,18 +78,18 @@ class BzrClient(VcsClientBase):
             cmd = "bzr branch -r %s %s %s"%(version, url, self._path)
         else:
             cmd = "bzr branch %s %s"%(url, self._path)
-        if subprocess.check_call(cmd, shell=True) == 0:
+        if subprocess.call(cmd, shell=True) == 0:
             return True
         return False
 
     def update(self, version=''):
         if not self.detect_presence():
             return False
-        if not subprocess.check_call("bzr pull", cwd=self._path, shell=True) == 0:
+        if not subprocess.call("bzr pull", cwd=self._path, shell=True) == 0:
             return False
         if version != '':
-            cmd = "bzr uncommit %s --force"%(version)
-            if subprocess.check_call(cmd, cwd=self._path, shell=True) == 0:
+            cmd = "bzr update -r %s"%(version)
+            if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return True
         return False
 
@@ -114,7 +114,7 @@ class BzrClient(VcsClientBase):
                     if len(matches) == 1:
                         return matches[0].split()[1]
             else:
-                output = subprocess.Popen(['bzr', 'revno'], cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+                output = subprocess.Popen(['bzr', 'revno', '--tree'], cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
                 return output.strip()
 
     def get_diff(self, basepath=None):

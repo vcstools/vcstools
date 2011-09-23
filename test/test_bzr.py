@@ -110,6 +110,30 @@ class BzrClientTest(BzrClientTestSetups):
         client = BzrClient(local_path)
         self.assertEqual(client.get_vcs_type_name(), 'bzr')
 
+    def test_checkout_invalid(self):
+        "makes sure failed checkout results in False, not Exception"
+        from vcstools.bzr import BzrClient
+        directory = tempfile.mkdtemp()
+        self.directories["checkout_test"] = directory
+        local_path = os.path.join(directory, "ros")
+        url = self.readonly_url + "foobar"
+        client = BzrClient(local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertFalse(client.checkout(url))
+
+    def test_checkout_invalid_update(self):
+        "makes sure no exception happens on invalid update"
+        from vcstools.bzr import BzrClient
+        directory = tempfile.mkdtemp()
+        self.directories["checkout_test"] = directory
+        local_path = os.path.join(directory, "ros")
+        url = self.readonly_url
+        client = BzrClient(local_path)
+        self.assertTrue(client.checkout(url))
+        new_version = 'foobar'
+        self.assertFalse(client.update(new_version))
+
     def test_checkout(self):
         from vcstools.bzr import BzrClient
         directory = tempfile.mkdtemp()
@@ -118,7 +142,6 @@ class BzrClientTest(BzrClientTestSetups):
         url = self.readonly_url
         client = BzrClient(local_path)
         self.assertFalse(client.path_exists())
-        self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
@@ -140,7 +163,6 @@ class BzrClientTest(BzrClientTestSetups):
         version = "1"
         client = BzrClient(local_path)
         self.assertFalse(client.path_exists())
-        self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url, version))
         self.assertTrue(client.path_exists())
