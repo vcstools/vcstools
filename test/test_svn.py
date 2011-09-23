@@ -95,6 +95,8 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_url(), self.readonly_url)
         #self.assertEqual(client.get_version(), self.readonly_version)
+        self.assertEqual(client.get_version("PREV"), "-r2")
+        self.assertEqual(client.get_version("2"), "-r2")
 
     def test_get_type_name(self):
         from vcstools.svn import SvnClient
@@ -143,10 +145,12 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), url)
-        #self.assertEqual(client.get_version(), version)
+        self.assertEqual(client.get_version(), version)
         
         new_version = '-r2'
         self.assertTrue(client.update(new_version))
+        self.assertEqual(client.get_version(), new_version)
+        self.assertEqual(client.get_version("PREV"), "-r1")
 
 
 class SvnDiffStatClientTest(SvnClientTestSetups):

@@ -53,10 +53,12 @@ class HGClientTestSetups(unittest.TestCase):
         subprocess.check_call(["touch", "fixed.txt"], cwd=remote_path)
         subprocess.check_call(["hg", "add", "fixed.txt"], cwd=remote_path)
         subprocess.check_call(["hg", "commit", "-m", "initial"], cwd=remote_path)
-        subprocess.check_call(["hg", "tag", "test_tag"], cwd=remote_path)
         
         po = subprocess.Popen(["hg", "log", "--template", "'{node|short}'", "-l1"], cwd=remote_path, stdout=subprocess.PIPE)
         self.readonly_version_init = po.stdout.read().rstrip("'").lstrip("'")
+        # in hg, tagging creates an own changeset, so we need to fetch version before tagging
+        subprocess.check_call(["hg", "tag", "test_tag"], cwd=remote_path)
+
         
         # files to be modified in "local" repo
         subprocess.check_call(["touch", "modified.txt"], cwd=remote_path)
@@ -92,6 +94,8 @@ class HGClientTest(HGClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_url(), self.readonly_url)
         self.assertEqual(client.get_version(), self.readonly_version)
+        self.assertEqual(client.get_version(self.readonly_version_init[0:6]), self.readonly_version_init+'+')
+        self.assertEqual(client.get_version("test_tag"), self.readonly_version_init+'+')
 
     def test_get_url_nonexistant(self):
         from vcstools.hg import HgClient

@@ -44,6 +44,11 @@ class BzrClientTestSetups(unittest.TestCase):
 
     def setUp(self):
         from vcstools.bzr import BzrClient
+
+        try:
+            subprocess.check_call(["bzr", "whoami"])
+        except subprocess.CalledProcessError as e:
+            subprocess.check_call(["bzr", "whoami", '"ros ros@ros.org"'])
         
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
@@ -90,7 +95,9 @@ class BzrClientTest(BzrClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_url(), self.readonly_url)
         self.assertEqual(client.get_version(), self.readonly_version)
-
+        self.assertEqual(client.get_version(self.readonly_version_init[0:6]), self.readonly_version_init)
+        self.assertEqual(client.get_version("test_tag"), self.readonly_version_init)
+        
     def test_get_url_nonexistant(self):
         from vcstools.bzr import BzrClient
         local_path = "/tmp/dummy"

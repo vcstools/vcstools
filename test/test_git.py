@@ -79,8 +79,8 @@ class GitClientTestSetups(unittest.TestCase):
         self.readonly_version = po.stdout.read().rstrip('"').lstrip('"')
         self.readonly_path = os.path.join(directory, "readonly")
         self.readonly_url = remote_path
-        gitc = GitClient(self.readonly_path)
-        self.assertTrue(gitc.checkout(remote_path, self.readonly_version))
+        client = GitClient(self.readonly_path)
+        self.assertTrue(client.checkout(remote_path, self.readonly_version))
 
     def tearDown(self):
         for d in self.directories:
@@ -93,13 +93,13 @@ class GitClientTest(GitClientTestSetups):
     def test_get_url_by_reading(self):
         from vcstools.git import GitClient
 
-        gitc = GitClient(self.readonly_path)
-        self.assertTrue(gitc.path_exists())
-        self.assertTrue(gitc.detect_presence())
-        self.assertEqual(gitc.get_url(), self.readonly_url)
-        self.assertEqual(gitc.get_version(), self.readonly_version)
-        self.assertEqual(gitc.get_version(self.readonly_version_init[0:6]), self.readonly_version_init)
-        self.assertEqual(gitc.get_version("test_tag"), self.readonly_version_init)
+        client = GitClient(self.readonly_path)
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_url(), self.readonly_url)
+        self.assertEqual(client.get_version(), self.readonly_version)
+        self.assertEqual(client.get_version(self.readonly_version_init[0:6]), self.readonly_version_init)
+        self.assertEqual(client.get_version("test_tag"), self.readonly_version_init)
 
     def test_get_url_nonexistant(self):
         from vcstools.git import GitClient
@@ -110,8 +110,8 @@ class GitClientTest(GitClientTestSetups):
     def test_get_type_name(self):
         from vcstools.git import GitClient
         local_path = "/tmp/dummy"
-        gitc = GitClient(local_path)
-        self.assertEqual(gitc.get_vcs_type_name(), 'git')
+        client = GitClient(local_path)
+        self.assertEqual(client.get_vcs_type_name(), 'git')
 
     def test_checkout(self):
         from vcstools.git import GitClient
@@ -119,18 +119,18 @@ class GitClientTest(GitClientTestSetups):
         self.directories["checkout_test"] = directory
         local_path = os.path.join(directory, "ros")
         url = self.readonly_url
-        gitc = GitClient(local_path)
-        self.assertFalse(gitc.path_exists())
-        self.assertFalse(gitc.detect_presence())
-        self.assertFalse(gitc.detect_presence())
-        self.assertTrue(gitc.checkout(url))
-        self.assertTrue(gitc.path_exists())
-        self.assertTrue(gitc.detect_presence())
-        self.assertEqual(gitc.get_path(), local_path)
-        self.assertEqual(gitc.get_url(), url)
-        self.assertEqual(gitc.get_branch(), "master")
-        self.assertEqual(gitc.get_branch_parent(), "master")
-        #self.assertEqual(gitc.get_version(), '-r*')
+        client = GitClient(local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_url(), url)
+        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client.get_branch_parent(), "master")
+        #self.assertEqual(client.get_version(), '-r*')
 
         shutil.rmtree(directory)
         self.directories.pop("checkout_test")
@@ -143,19 +143,19 @@ class GitClientTest(GitClientTestSetups):
         local_path = os.path.join(directory, "ros")
         url = self.readonly_url
         version = self.readonly_version
-        gitc = GitClient(local_path)
-        self.assertFalse(gitc.path_exists())
-        self.assertFalse(gitc.detect_presence())
-        self.assertTrue(gitc.checkout(url, version))
-        self.assertTrue(gitc.path_exists())
-        self.assertTrue(gitc.detect_presence())
-        self.assertEqual(gitc.get_path(), local_path)
-        self.assertEqual(gitc.get_url(), url)
-        self.assertEqual(gitc.get_version(), version)
+        client = GitClient(local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, version))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_url(), url)
+        self.assertEqual(client.get_version(), version)
         
         new_version = self.readonly_version_second
-        self.assertTrue(gitc.update(new_version))
-        self.assertEqual(gitc.get_version(), new_version)
+        self.assertTrue(client.update(new_version))
+        self.assertEqual(client.get_version(), new_version)
         
         shutil.rmtree(directory)
         self.directories.pop(subdir)
@@ -168,19 +168,19 @@ class GitClientTest(GitClientTestSetups):
         local_path = os.path.join(directory, "ros")
         url = self.readonly_url
         branch = "master"
-        gitc = GitClient(local_path)
-        self.assertFalse(gitc.path_exists())
-        self.assertFalse(gitc.detect_presence())
-        self.assertTrue(gitc.checkout(url, branch))
-        self.assertTrue(gitc.path_exists())
-        self.assertTrue(gitc.detect_presence())
-        self.assertEqual(gitc.get_path(), local_path)
-        self.assertEqual(gitc.get_url(), url)
-        self.assertEqual(gitc.get_branch_parent(), branch)
+        client = GitClient(local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, branch))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_url(), url)
+        self.assertEqual(client.get_branch_parent(), branch)
         
         new_branch = 'master'
-        self.assertTrue(gitc.update(new_branch))
-        self.assertEqual(gitc.get_branch_parent(), new_branch)
+        self.assertTrue(client.update(new_branch))
+        self.assertEqual(client.get_branch_parent(), new_branch)
         
         shutil.rmtree(directory)
         self.directories.pop(subdir)
