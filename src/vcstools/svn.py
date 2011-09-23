@@ -79,7 +79,9 @@ class SvnClient(VcsClientBase):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-            
+        if version != None and version != '':
+            if not version.startswith("-r"):
+                version = "-r" + version
         cmd = "svn co %s %s %s"%(version, url, self._path)
         if subprocess.call(cmd, shell=True) == 0:
             return True
@@ -88,6 +90,9 @@ class SvnClient(VcsClientBase):
     def update(self, version=''):
         if not self.detect_presence():
             return False
+        if version != None and version != '':
+            if not version.startswith("-r"):
+                version = "-r" + version
         cmd = "svn up %s %s"%(version, self._path)
         if subprocess.call(cmd, shell=True) == 0:
             return True
@@ -118,7 +123,10 @@ class SvnClient(VcsClientBase):
                     # so if we know revision exist, just return the
                     # number, avoid the long call to svn server
                     return '-r'+spec
-            command.append('-r' + spec)
+            if spec.startswith("-r"):
+                command.append(spec)
+            else:
+                command.append('-r' + spec)
         command.append(self._path)
         # #3305: parsing not robust to non-US locales
         output = subprocess.Popen(command, env={"LANG":"en_US.UTF-8"}, stdout=subprocess.PIPE).communicate()[0]
