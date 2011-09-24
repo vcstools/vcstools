@@ -173,6 +173,33 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch_parent(), new_branch)
 
 
+    def test_checkout_specific_tag_and_update(self):
+        from vcstools.git import GitClient
+        local_path = os.path.join(self.root_directory, "ros")
+        url = self.remote_path
+        tag = "last_tag"
+        client = GitClient(local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, tag))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_url(), url)
+        self.assertEqual(client.get_branch_parent(), None)
+        tag = "test_tag"
+        self.assertTrue(client.update(tag))
+        self.assertEqual(client.get_branch_parent(), None)
+        
+        new_branch = 'master'
+        self.assertTrue(client.update(new_branch))
+        self.assertEqual(client.get_branch_parent(), new_branch)
+        tag = "test_tag"
+        # so far, once we track a branch, we cannot move off it
+        self.assertFalse(client.update(tag))
+
+
+
 class GitDiffStatClientTest(GitClientTestSetups):
 
     def setUp(self):

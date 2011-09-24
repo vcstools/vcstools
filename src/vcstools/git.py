@@ -108,6 +108,7 @@ class GitClient(VcsClientBase):
             cmd = "git checkout remotes/origin/%s -b %s"%(version, version)
         else:  # tag or hash
             cmd = "git checkout %s -b %s"%(version, branch_name)
+        # starting with version 1.7.4.2, git does not allow tracking tags #3637
         if not self.is_hash(version) and not self.is_tag(version):
             cmd = cmd + " --track"
         #print "Git Installing: %s"%cmd
@@ -129,9 +130,12 @@ class GitClient(VcsClientBase):
     def update(self, version='master'):
         if not self.detect_presence():
             return False
-        
-        # shortcut if version is the same as requested
-        if self.is_hash(version) :
+
+        branch_parent = self.get_branch_parent()
+        # branch parent is None e.g. when we checked out using tag
+        if self.is_hash(version) or branch_parent == None:
+
+            # shortcut if version is the same as requested
             if self.get_version() == version:
                 return self.update_submodules()
 
@@ -145,13 +149,17 @@ class GitClient(VcsClientBase):
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 pass # OK to fail return False
             cmd = "git checkout %s -f -b %s"%(version, branch_name)
+            if not branch_parent and not self.is_hash(version) and not self.is_tag(version):
+                cmd = cmd + " --track"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
             cmd = "git branch -D rosinstall_temp"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
-        else:     # must be a branch name
-            if self.get_branch_parent() != version:
+        else:   # version must be a branch name or tag name or partial hash
+            # assume it is a branch name, check whether branch has changed
+            # TODO: fix cases tagname and partial hash
+            if branch_parent != version:
                 #cannot update if branch has changed
                 return False
             cmd = "git pull"
