@@ -47,40 +47,39 @@ class GitClientTestSetups(unittest.TestCase):
     def setUp(self):
         from vcstools.git import GitClient
         
-        directory = tempfile.mkdtemp()
-        self.directories = dict(setUp=directory)
-        remote_path = os.path.join(directory, "remote")
-        os.makedirs(remote_path)
+        self.root_directory = tempfile.mkdtemp()
+        self.directories = dict(setUp=self.root_directory)
+        self.remote_path = os.path.join(self.root_directory, "remote")
+        os.makedirs(self.remote_path)
         
         # create a "remote" repo
-        subprocess.check_call(["git", "init"], cwd=remote_path)
-        subprocess.check_call(["touch", "fixed.txt"], cwd=remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=remote_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=remote_path)
-        subprocess.check_call(["git", "tag", "test_tag"], cwd=remote_path)
+        subprocess.check_call(["git", "init"], cwd=self.remote_path)
+        subprocess.check_call(["touch", "fixed.txt"], cwd=self.remote_path)
+        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
+        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.remote_path)
+        subprocess.check_call(["git", "tag", "test_tag"], cwd=self.remote_path)
         
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=remote_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version_init = po.stdout.read().rstrip('"').lstrip('"')
         
         # files to be modified in "local" repo
-        subprocess.check_call(["touch", "modified.txt"], cwd=remote_path)
-        subprocess.check_call(["touch", "modified-fs.txt"], cwd=remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=remote_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=remote_path)
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call(["touch", "modified.txt"], cwd=self.remote_path)
+        subprocess.check_call(["touch", "modified-fs.txt"], cwd=self.remote_path)
+        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
+        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.remote_path)
+        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version_second = po.stdout.read().rstrip('"').lstrip('"')
         
-        subprocess.check_call(["touch", "deleted.txt"], cwd=remote_path)
-        subprocess.check_call(["touch", "deleted-fs.txt"], cwd=remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=remote_path)
-        subprocess.check_call(["git", "commit", "-m", "modified"], cwd=remote_path)
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call(["touch", "deleted.txt"], cwd=self.remote_path)
+        subprocess.check_call(["touch", "deleted-fs.txt"], cwd=self.remote_path)
+        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
+        subprocess.check_call(["git", "commit", "-m", "modified"], cwd=self.remote_path)
+        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call(["git", "tag", "last_tag"], cwd=self.remote_path)
 
         self.readonly_version = po.stdout.read().rstrip('"').lstrip('"')
-        self.readonly_path = os.path.join(directory, "readonly")
-        self.readonly_url = remote_path
-        client = GitClient(self.readonly_path)
-        self.assertTrue(client.checkout(remote_path, self.readonly_version))
+        
+        
 
     def tearDown(self):
         for d in self.directories:
@@ -88,15 +87,18 @@ class GitClientTestSetups(unittest.TestCase):
 
     
 class GitClientTest(GitClientTestSetups):
-
-
+    
     def test_get_url_by_reading(self):
         from vcstools.git import GitClient
-
-        client = GitClient(self.readonly_path)
+        local_path = os.path.join(self.root_directory, "ros")
+        url = self.remote_path
+        client = GitClient(local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_url(), self.readonly_url)
+        self.assertEqual(client.get_url(), self.remote_path)
         self.assertEqual(client.get_version(), self.readonly_version)
         self.assertEqual(client.get_version(self.readonly_version_init[0:6]), self.readonly_version_init)
         self.assertEqual(client.get_version("test_tag"), self.readonly_version_init)
@@ -115,13 +117,10 @@ class GitClientTest(GitClientTestSetups):
 
     def test_checkout(self):
         from vcstools.git import GitClient
-        directory = tempfile.mkdtemp()
-        self.directories["checkout_test"] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
+        local_path = os.path.join(self.root_directory, "ros")
+        url = self.remote_path
         client = GitClient(local_path)
         self.assertFalse(client.path_exists())
-        self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
@@ -132,16 +131,11 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch_parent(), "master")
         #self.assertEqual(client.get_version(), '-r*')
 
-        shutil.rmtree(directory)
-        self.directories.pop("checkout_test")
 
     def test_checkout_specific_version_and_update(self):
         from vcstools.git import GitClient
-        directory = tempfile.mkdtemp()
-        subdir = "checkout_specific_version_test"
-        self.directories[subdir] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
+        local_path = os.path.join(self.root_directory, "ros")
+        url = self.remote_path
         version = self.readonly_version
         client = GitClient(local_path)
         self.assertFalse(client.path_exists())
@@ -156,17 +150,13 @@ class GitClientTest(GitClientTestSetups):
         new_version = self.readonly_version_second
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), new_version)
-        
-        shutil.rmtree(directory)
-        self.directories.pop(subdir)
+
 
     def test_checkout_specific_branch_and_update(self):
         from vcstools.git import GitClient
-        directory = tempfile.mkdtemp()
         subdir = "checkout_specific_version_test"
-        self.directories[subdir] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
+        local_path = os.path.join(self.root_directory, "ros")
+        url = self.remote_path
         branch = "master"
         client = GitClient(local_path)
         self.assertFalse(client.path_exists())
@@ -181,15 +171,16 @@ class GitClientTest(GitClientTestSetups):
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
         self.assertEqual(client.get_branch_parent(), new_branch)
-        
-        shutil.rmtree(directory)
-        self.directories.pop(subdir)
 
-        
+
 class GitDiffStatClientTest(GitClientTestSetups):
 
     def setUp(self):
         GitClientTestSetups.setUp(self)
+        self.readonly_path = os.path.join(self.root_directory, "readonly")
+        from vcstools.git import GitClient
+        client = GitClient(self.readonly_path)
+        self.assertTrue(client.checkout(self.remote_path, self.readonly_version))
         # after setting up "readonly" repo, change files and make some changes
         subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.readonly_path)
         subprocess.check_call(["git", "rm", "deleted.txt"], cwd=self.readonly_path)
@@ -242,3 +233,6 @@ class GitDiffStatClientTest(GitClientTestSetups):
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEquals('A  ./added.txt\n D ./deleted-fs.txt\nD  ./deleted.txt\n M ./modified-fs.txt\nM  ./modified.txt\n?? ./added-fs.txt\n', client.get_status(untracked=True))
+
+
+
