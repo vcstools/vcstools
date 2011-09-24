@@ -151,7 +151,7 @@ class HgClient(VcsClientBase):
             else:
                  matches = [l for l in output.split('\n') if l.startswith('changeset: ')]
                  if len(matches) == 1:
-                     return matches[0].split(':')[2]+"+"
+                     return matches[0].split(':')[2]
         else:
             command = ['hg', 'identify', "-i", self._path]
             output = subprocess.Popen(command, stdout=subprocess.PIPE).communicate()[0]
