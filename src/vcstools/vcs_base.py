@@ -72,7 +72,17 @@ class VcsClientBase:
     def checkout(self, url, version):
         raise NotImplementedError("Base class checkout method must be overridden")
 
-    def update(self, version):
+    def update(self, spec):
+        """
+        Sets the local copy of the repository to a version matching
+        the spec. Fails when there are uncommited changes.
+        On failures (also e.g. network failure) grants the
+        checked out files are in the same state as before the call.
+        @param spec: token for identifying repository revision
+        desired.  Token might be a tagname, branchname, version-id, or
+        SHA-ID depending on the VCS implementation.
+        @return True on success, False else
+        """
         raise NotImplementedError("Base class update method must be overridden")
 
     def detect_presence(self):
