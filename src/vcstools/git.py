@@ -157,11 +157,6 @@ class GitClient(VcsClientBase):
             cmd = "git pull"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
-            # update submodules too
-            if self.submodule_exists:
-                cmd = "git submodule update --init --recursive"
-                if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
-                    return False
         return self.update_submodules()
 
     def get_version(self, spec=None):
