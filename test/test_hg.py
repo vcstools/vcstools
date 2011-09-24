@@ -202,6 +202,11 @@ class HGDiffStatClientTest(HGClientTestSetups):
 
         self.assertEquals('diff --git readonly/added.txt readonly/added.txt\nnew file mode 100644\n--- /dev/null\n+++ readonly/added.txt\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\ndiff --git readonly/deleted.txt readonly/deleted.txt\ndeleted file mode 100644\ndiff --git readonly/modified-fs.txt readonly/modified-fs.txt\n--- readonly/modified-fs.txt\n+++ readonly/modified-fs.txt\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\ndiff --git readonly/modified.txt readonly/modified.txt\n--- readonly/modified.txt\n+++ readonly/modified.txt\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n', client.get_diff(basepath=os.path.dirname(self.readonly_path)))
 
+    def test_get_version_modified(self):
+        from vcstools.hg import HgClient
+        client = HgClient(self.readonly_path)
+        self.assertFalse(client.get_version().endswith('+'))
+    
     def test_status(self):
         from vcstools.hg import HgClient
         client = HgClient(self.readonly_path)

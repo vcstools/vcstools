@@ -153,9 +153,10 @@ class HgClient(VcsClientBase):
                  if len(matches) == 1:
                      return matches[0].split(':')[2]
         else:
-            command = ['hg', 'identify', "-i", self._path]
+            command = ['hg', 'identify', "-i", self._path]            
             output = subprocess.Popen(command, stdout=subprocess.PIPE).communicate()[0]
-            return output.strip()
+            # hg adds a '+' to the end if there are uncommited changes, inconsistent to hg log
+            return output.strip().rstrip('+')
         
     def get_diff(self, basepath=None):
         response = None
