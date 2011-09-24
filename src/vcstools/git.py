@@ -34,6 +34,9 @@
 git vcs support.
 
 New in ROS C-Turtle.
+
+refnames in git can be branchnames, hashes, partial hashes, tags. On
+checkout, git will disambiguate by checking them in that order, taking the first that applies
 """
 
 import subprocess
@@ -88,7 +91,7 @@ class GitClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.git'))
 
-    def checkout(self, url, version='master'):
+    def checkout(self, url, refname='master'):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
@@ -101,15 +104,15 @@ class GitClient(VcsClientBase):
         if not self.update_submodules():
             return False
 
-        if self.get_branch_parent() == version:
+        if self.get_branch_parent() == refname:
             # If already at the right version update submodules and return
             return self.update_submodules()
-        elif self.is_remote_branch(version):  # remote branch
-            cmd = "git checkout remotes/origin/%s -b %s"%(version, version)
+        elif self.is_remote_branch(refname):  # remote branch
+            cmd = "git checkout remotes/origin/%s -b %s"%(refname, refname)
         else:  # tag or hash
-            cmd = "git checkout %s -b %s"%(version, branch_name)
+            cmd = "git checkout %s -b %s"%(refname, branch_name)
         # starting with version 1.7.4.2, git does not allow tracking tags #3637
-        if not self.is_hash(version) and not self.is_tag(version):
+        if not self.is_hash(refname) and not self.is_tag(refname):
             cmd = cmd + " --track"
         #print "Git Installing: %s"%cmd
         if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
@@ -127,18 +130,24 @@ class GitClient(VcsClientBase):
                 return False
         return True
 
-    def update(self, version='master'):
+    def update(self, refname=None):
         if not self.detect_presence():
             return False
 
         branch_parent = self.get_branch_parent()
+        if refname == None or refname.strip() == '':
+            refname = branch_parent
+        if refname == None:
+            # we are neither tracking, nor did we get any refname to update to
+            return False
+
         # branch parent is None e.g. when we checked out using tag
-        if self.is_hash(version) or branch_parent == None:
+        if self.is_hash(refname) or branch_parent == None:
 
             # shortcut if version is the same as requested
-            if self.get_version() == version:
+            if self.get_version() == refname:
                 return self.update_submodules()
-
+            
             cmd = "git checkout -f -b vcstools_temp" 
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
@@ -148,18 +157,18 @@ class GitClient(VcsClientBase):
             cmd = "git branch -D %s"%branch_name
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 pass # OK to fail return False
-            cmd = "git checkout %s -f -b %s"%(version, branch_name)
-            if not branch_parent and not self.is_hash(version) and not self.is_tag(version):
+            cmd = "git checkout %s -f -b %s"%(refname, branch_name)
+            if not branch_parent and not self.is_hash(refname) and not self.is_tag(refname):
                 cmd = cmd + " --track"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
             cmd = "git branch -D vcstools_temp"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
-        else:   # version must be a branch name or tag name or partial hash
+        else:   #refname must be a branch name or tag name or partial hash
             # assume it is a branch name, check whether branch has changed
             # TODO: fix cases tagname and partial hash
-            if branch_parent != version:
+            if branch_parent != refname:
                 #cannot update if branch has changed
                 return False
             cmd = "git pull"
