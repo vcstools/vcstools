@@ -107,12 +107,12 @@ class GitClient(VcsClientBase):
         if self.get_branch_parent() == refname:
             # If already at the right version update submodules and return
             return self.update_submodules()
-        elif self.is_remote_branch(refname):  # remote branch
+        elif self.is_remote_branch(refname, fetch=False):  # remote branch
             cmd = "git checkout remotes/origin/%s -b %s"%(refname, refname)
         else:  # tag or hash
             cmd = "git checkout %s -b %s"%(refname, branch_name)
         # starting with version 1.7.4.2, git does not allow tracking tags #3637
-        if not self.is_hash(refname) and not self.is_tag(refname):
+        if not self.is_hash(refname) and not self.is_tag(refname, fetch=False):
             cmd = cmd + " --track"
         #print "Git Installing: %s"%cmd
         if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
@@ -140,7 +140,7 @@ class GitClient(VcsClientBase):
         if refname == None:
             # we are neither tracking, nor did we get any refname to update to
             return False
-
+        
         # branch parent is None e.g. when we checked out using tag
         if self.is_hash(refname) or branch_parent == None:
 
@@ -158,7 +158,7 @@ class GitClient(VcsClientBase):
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 pass # OK to fail return False
             cmd = "git checkout %s -f -b %s"%(refname, branch_name)
-            if not branch_parent and not self.is_hash(refname) and not self.is_tag(refname):
+            if not branch_parent and not self.is_hash(refname) and not self.is_tag(refname, fetch=False):
                 cmd = cmd + " --track"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
@@ -230,8 +230,13 @@ class GitClient(VcsClientBase):
             response = response_processed
         return response
         
-    def is_remote_branch(self, branch_name):
+    def is_remote_branch(self, branch_name, fetch = True):
+        """
+        checks list of remote branches for match. Set fetch to False if you just fetched already.
+        """
         if self.path_exists():
+            if fetch and not subprocess.call("git fetch", cwd=self._path, shell=True) == 0:
+                return False
             output = subprocess.Popen(['git branch -r'], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             for l in output.splitlines():
                 elems = l.split()
@@ -288,7 +293,12 @@ class GitClient(VcsClientBase):
                 pass
         return False
 
-    def is_tag(self, tag_name):
+    def is_tag(self, tag_name, fetch = True):
+        """
+        checks list of tags for match. Set fetch to False if you just fetched already.
+        """
+        if fetch and not subprocess.call("git fetch", cwd=self._path, shell=True) == 0:
+            return False
         if self.path_exists():
             output = subprocess.Popen(['git tag -l %s'%tag_name], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             lines =  output.splitlines()
