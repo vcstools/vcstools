@@ -139,7 +139,7 @@ class GitClient(VcsClientBase):
             if self.get_version() == version:
                 return self.update_submodules()
 
-            cmd = "git checkout -f -b rosinstall_temp" 
+            cmd = "git checkout -f -b vcstools_temp" 
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
             cmd = "git fetch"
@@ -153,7 +153,7 @@ class GitClient(VcsClientBase):
                 cmd = cmd + " --track"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
-            cmd = "git branch -D rosinstall_temp"
+            cmd = "git branch -D vcstools_temp"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
         else:   # version must be a branch name or tag name or partial hash
