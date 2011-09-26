@@ -139,7 +139,7 @@ class GitClient(VcsClientBase):
             refname = branch_parent
         if refname == None:
             # we are neither tracking, nor did we get any refname to update to
-            return False
+            return self.update_submodules()
         
         # branch parent is None e.g. when we checked out using tag
         if self.is_hash(refname) or branch_parent == None:
