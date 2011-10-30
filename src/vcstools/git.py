@@ -95,7 +95,8 @@ class GitClient(VcsClientBase):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-            
+        
+        #since we cannot know whether refname names a branch, clone master initially
         cmd = "git clone %s %s"%(url, self._path)
         if not subprocess.call(cmd, shell=True) == 0:
             return False
@@ -213,6 +214,7 @@ class GitClient(VcsClientBase):
             response = None
         return response
 
+
     def get_status(self, basepath=None, untracked=False):
         response=None
         if basepath == None:
@@ -232,7 +234,8 @@ class GitClient(VcsClientBase):
                     response_processed+=line[0:3]+rel_path+'/'+line[3:]+'\n'
             response = response_processed
         return response
-        
+
+
     def is_remote_branch(self, branch_name, fetch = True):
         """
         checks list of remote branches for match. Set fetch to False if you just fetched already.
@@ -247,7 +250,8 @@ class GitClient(VcsClientBase):
                     br_names = elems[0].split('/')
                     if len(br_names) == 2 and br_names[0] == 'origin' and br_names[1] == branch_name:
                         return True
-            return False
+        return False
+
 
     def is_local_branch(self, branch_name):
         if self.path_exists():
@@ -260,7 +264,8 @@ class GitClient(VcsClientBase):
                 elif len(elems) == 2:
                     if elems[0] == '*' and elems[1] == branch_name:
                         return True
-            return False
+        return False
+
 
     def get_branch(self):
         if self.path_exists():
@@ -269,15 +274,18 @@ class GitClient(VcsClientBase):
                 elems = l.split()
                 if len(elems) == 2 and elems[0] == '*':
                     return elems[1]
-            return None
+        return None
+
 
     def get_branch_parent(self):
+        """return the name of the branch this branch tracks, if any"""
         if self.path_exists():
             output = subprocess.Popen(['git config --get branch.%s.merge'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
             if not output:
                 print "No output of get branch.%s.merge"%self.get_branch()
                 return None
             elems = output.split('/')
+            # due to an earlier bug vcstools would set up to track a tag
             if len(elems) != 3 or elems[0] != 'refs' or (elems[1] != 'heads' and elems[1] != 'tags'):
                 print "elems improperly formatted", elems
                 return None
