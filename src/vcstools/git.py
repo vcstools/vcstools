@@ -288,9 +288,10 @@ class GitClient(VcsClientBase):
             # due to an earlier bug vcstools would set up to track a tag
             if len(elems) != 3 or elems[0] != 'refs' or (elems[1] != 'heads' and elems[1] != 'tags'):
                 print "elems improperly formatted", elems
-                return None
             else:
-                return elems[2]
+                if elems[1] == 'heads':
+                    return elems[2]
+        return None
 
     def is_hash(self, hashstr):
         """
