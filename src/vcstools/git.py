@@ -175,12 +175,13 @@ class GitClient(VcsClientBase):
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
         return self.update_submodules()
-
-    def get_version(self, spec=None):
+    
+    def get_version(self, spec=None, fetch = True):
         """
         @param spec: (optional) token to identify desired version. For
         git, this may be anything accepted by git log, e.g. a tagname,
         branchname, or sha-id.
+        @param fetch: When spec is given, can be used to suppress git fetch call
         
         @return: current SHA-ID of the repository. Or if spec is
         provided, the SHA-ID of a commit specified by some token.
@@ -188,6 +189,8 @@ class GitClient(VcsClientBase):
         if self.detect_presence():
             command = ['git', 'log', "-1", "--format='%H'"]
             if spec is not None:
+                if fetch:
+                    self._do_fetch()
                 command.insert(3, spec)
             output = subprocess.Popen(' '.join(command), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             output = output.strip().strip("'")
@@ -235,7 +238,7 @@ class GitClient(VcsClientBase):
         checks list of remote branches for match. Set fetch to False if you just fetched already.
         """
         if self.path_exists():
-            if fetch and not subprocess.call("git fetch", cwd=self._path, shell=True) == 0:
+            if fetch and not self._do_fetch():
                 return False
             output = subprocess.Popen(['git branch -r'], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             for l in output.splitlines():
