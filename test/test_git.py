@@ -241,6 +241,15 @@ class GitClientTest(GitClientTestSetups):
         tag = "test_tag"
         self.assertTrue(client.update(tag))
 
+    def test_fast_forward(self):
+        from vcstools.git import GitClient
+        local_path = os.path.join(self.root_directory, "ros")
+        url = self.remote_path
+        client = GitClient(local_path)
+        self.assertTrue(client.checkout(url, "master"))
+        subprocess.check_call(["git", "reset", "--hard", "test_tag"], cwd=local_path)
+        self.assertTrue(client.update())
+
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def setUp(self):

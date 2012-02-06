@@ -129,7 +129,8 @@ class GitClient(VcsClientBase):
         # if same_branch and branch_parent == None:
         #   already on branch, nothing to pull as non-tracking branch
         if same_branch and branch_parent != None:
-            self._do_fast_forward()
+            if not self._do_fast_forward():
+                return False
         elif not same_branch:
             # refname can be a different branch or something else than a branch
             need_to_fetch = True
@@ -166,7 +167,8 @@ class GitClient(VcsClientBase):
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
                 new_branch_parent = self.get_branch_parent()
                 if new_branch_parent != None:
-                    self._do_fast_forward()
+                    if not self._do_fast_forward():
+                        return False
             
         return self.update_submodules()
     
@@ -377,18 +379,28 @@ class GitClient(VcsClientBase):
 
     def _do_fast_forward(self, fetch = True):
         """Execute git fetch if necessary, and if we can fast-foward,
-        do so to the last fetched version using git rebase."""
+        do so to the last fetched version using git rebase. Returns
+        False on command line failures"""
         # the safe way would be to git pull, and if that caused a merge or merge conflict, abort.
         # That would mean after the pull, we check whether we are in conflict or ahead of remote (merge commit created locally)
         parent = self.get_branch_parent()
         if parent != None and self.rev_list_contains("remotes/origin/%s"%parent, self.get_version(), fetch = fetch):
             # Rebase, do not pull, because somebody could have
-            # commited in the meantime. Do not merge, rebase does
-            # nothing when there are local changes
+            # commited in the meantime.
+            if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
+                # --keep allows o rebase even with local changes, as long as
+                # local changes are not in files that change between versions
             cmd = "git reset --keep remotes/origin/%s"%self.get_branch_parent()
             if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return True
+            else:
+                # prior to version 1.7.1, git does not know --keep
+                # Do not merge, rebase does nothing when there are local changes
+                cmd = "git rebase remotes/origin/%s"%self.get_branch_parent()
+                if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+                    return True
         return False
+        return True
 
 
     def _do_checkout(self, refname, fetch = True):
