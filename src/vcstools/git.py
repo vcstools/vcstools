@@ -48,22 +48,6 @@ from distutils.version import LooseVersion
 from .vcs_base import VcsClientBase
 
 
-def check_git_submodules():
-    """
-    @return: True if git version supports submodules, False otherwise,
-    including if version cannot be detected
-    """
-    try:
-        version = subprocess.Popen(['git --version'], shell=True, stdout=subprocess.PIPE).communicate()[0]
-    except:
-        return False
-   # 'git version 1.7.0.4\n'
-    if version.startswith('git version '):
-        version = version[len('git version '):].strip()
-    else:
-        return False
-    return LooseVersion(version) > LooseVersion('1.7')
-
 class GitClient(VcsClientBase):
     def __init__(self, path):
         """
@@ -72,11 +56,15 @@ class GitClient(VcsClientBase):
         VcsClientBase.__init__(self, 'git', path)
         with open(os.devnull, 'w') as fnull:
             try:
-                subprocess.call("git help".split(), stdout=fnull, stderr=fnull)
+                version = subprocess.Popen(['git --version'], shell=True, stdout=subprocess.PIPE).communicate()[0]
             except:
                 raise LookupError("git not installed, cannot create a git vcs client")
-
-        self.submodule_exists = check_git_submodules()
+            if version.startswith('git version '):
+                version = version[len('git version '):].strip()
+            else:
+                raise LookupError("git --version command returned invalid string: '%s'"%version)
+            self.gitversion = version
+        self.submodule_exists = self._check_git_submodules()
 
     def get_url(self):
         """
@@ -371,6 +359,14 @@ class GitClient(VcsClientBase):
                     return False
             return True
         return False
+
+    def _check_git_submodules(self):
+        """
+        @return: True if git version supports submodules, False otherwise,
+        including if version cannot be detected
+        """
+        # 'git version 1.7.0.4\n'
+        return LooseVersion(self.gitversion) > LooseVersion('1.7')
 
 
     def _do_fetch(self):
