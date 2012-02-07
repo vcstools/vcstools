@@ -390,16 +390,16 @@ class GitClient(VcsClientBase):
             if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
                 # --keep allows o rebase even with local changes, as long as
                 # local changes are not in files that change between versions
-            cmd = "git reset --keep remotes/origin/%s"%self.get_branch_parent()
-            if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
-                return True
+                cmd = "git reset --keep remotes/origin/%s"%self.get_branch_parent()
+                if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+                    return True
             else:
                 # prior to version 1.7.1, git does not know --keep
                 # Do not merge, rebase does nothing when there are local changes
                 cmd = "git rebase remotes/origin/%s"%self.get_branch_parent()
                 if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                     return True
-        return False
+            return False
         return True
 
 
