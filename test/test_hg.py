@@ -41,7 +41,9 @@ import tempfile
 import shutil
 
 class HGClientTestSetups(unittest.TestCase):
-    def setUp(self):
+
+    @classmethod
+    def setUpClass(self):
         from vcstools.hg import HgClient
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
@@ -79,9 +81,10 @@ class HGClientTestSetups(unittest.TestCase):
         self.readonly_url = remote_path
         
         client = HgClient(self.readonly_path)
-        self.assertTrue(client.checkout(remote_path, self.readonly_version))
+        client.checkout(remote_path, self.readonly_version)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
 
@@ -168,8 +171,10 @@ class HGClientTest(HGClientTestSetups):
         self.directories.pop(subdir)
 
 class HGDiffStatClientTest(HGClientTestSetups):
-    def setUp(self):
-        HGClientTestSetups.setUp(self)
+
+    @classmethod
+    def setUpClass(self):
+        HGClientTestSetups.setUpClass()
         # after setting up "readonly" repo, change files and make some changes
         subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.readonly_path)
         subprocess.check_call(["hg", "rm", "deleted.txt"], cwd=self.readonly_path)
