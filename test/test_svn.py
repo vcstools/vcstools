@@ -42,7 +42,8 @@ import re
 
 class SvnClientTestSetups(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         from vcstools.svn import SvnClient
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
@@ -79,9 +80,10 @@ class SvnClientTestSetups(unittest.TestCase):
 
         self.readonly_path = os.path.join(directory, "readonly")
         client = SvnClient(self.readonly_path)
-        self.assertTrue(client.checkout(self.readonly_url, self.readonly_version))
+        client.checkout(self.readonly_url, self.readonly_version)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
 
@@ -152,8 +154,9 @@ class SvnClientTest(SvnClientTestSetups):
 
 class SvnDiffStatClientTest(SvnClientTestSetups):
 
-    def setUp(self):
-        SvnClientTestSetups.setUp(self)
+    @classmethod
+    def setUpClass(self):
+        SvnClientTestSetups.setUpClass()
         # after setting up "readonly" repo, change files and make some changes
         subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.readonly_path)
         subprocess.check_call(["svn", "rm", "deleted.txt"], cwd=self.readonly_path)

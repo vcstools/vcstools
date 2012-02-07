@@ -42,7 +42,8 @@ import unittest
 
 class BzrClientTestSetups(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         from vcstools.bzr import BzrClient
 
         try:
@@ -80,9 +81,10 @@ class BzrClientTestSetups(unittest.TestCase):
         self.readonly_url = remote_path
         
         client = BzrClient(self.readonly_path)
-        self.assertTrue(client.checkout(self.readonly_url, self.readonly_version))
+        client.checkout(self.readonly_url, self.readonly_version)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
 
@@ -180,8 +182,10 @@ class BzrClientTest(BzrClientTestSetups):
 
 
 class BzrDiffStatClientTest(BzrClientTestSetups):
-    def setUp(self):
-        BzrClientTestSetups.setUp(self)
+
+    @classmethod
+    def setUpClass(self):
+        BzrClientTestSetups.setUpClass()
         # after setting up "readonly" repo, change files and make some changes
         subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.readonly_path)
         subprocess.check_call(["bzr", "rm", "deleted.txt"], cwd=self.readonly_path)
