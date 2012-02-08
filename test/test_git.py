@@ -49,7 +49,6 @@ class GitClientTestSetups(unittest.TestCase):
        
         self.root_directory = tempfile.mkdtemp()
         # helpful when setting tearDown to pass
-        print "mock directory", self.root_directory
         self.directories = dict(setUp=self.root_directory)
         self.remote_path = os.path.join(self.root_directory, "remote")
         self.local_path = os.path.join(self.root_directory, "ros")
