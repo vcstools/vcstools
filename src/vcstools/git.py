@@ -95,7 +95,7 @@ class GitClient(VcsClientBase):
             return False
         
         #since we cannot know whether refname names a branch, clone master initially
-        cmd = "git clone %s %s"%(url, self._path)
+        cmd = "git clone --recursive %s %s"%(url, self._path)
         if not subprocess.call(cmd, shell=True) == 0:
             return False
 
