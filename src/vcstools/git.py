@@ -33,10 +33,20 @@
 """
 git vcs support.
 
-New in ROS C-Turtle.
-
 refnames in git can be branchnames, hashes, partial hashes, tags. On
 checkout, git will disambiguate by checking them in that order, taking the first that applies
+
+This class aims to provide git for linear centralized workflows.
+This means we assume that the only relevant remote is the one named "origin",
+and we assume that commits once on origin remain on origin.
+
+A challenge with git is that it has strong reasonable
+conventions, but is very allowing for breaking them. E.g. it is
+possible to name remotes and branches with names like
+"refs/heads/master", give branches and tags the same name, or a valid
+SHA-ID as name, etc.  Similarly git allows plenty of ways to reference
+any object, in cae of ambiguities, git attempts to take the most
+reasonable disambiguation, and in some cases warns.
 """
 
 import subprocess
@@ -279,7 +289,6 @@ class GitClient(VcsClientBase):
         if self.path_exists():
             output = subprocess.Popen(['git config --get branch.%s.merge'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
             if not output:
-                print "No output of get branch.%s.merge"%self.get_branch()
                 return None
             elems = output.split('/')
             # due to an earlier bug vcstools would set up to track a tag
