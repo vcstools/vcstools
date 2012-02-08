@@ -252,6 +252,18 @@ class GitClientTest(GitClientTestSetups):
         subprocess.check_call(["git", "reset", "--hard", "test_tag"], cwd=self.local_path)
         self.assertTrue(client.update())
 
+    def test_fast_forward_simple_ref(self):
+        from vcstools.git import GitClient
+        
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url, "master"))
+        subprocess.check_call(["git", "reset", "--hard", "test_tag"], cwd=self.local_path)
+        # replace "refs/head/master" with just "master"
+        subprocess.check_call(["git", "config", "--replace-all", "branch.master.merge", "master"], cwd=self.local_path)
+        
+        self.assertTrue(client.get_branch_parent() is not None)
+        
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def setUp(self):

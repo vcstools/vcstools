@@ -125,7 +125,8 @@ class GitClient(VcsClientBase):
         # are we on any branch?
         current_branch = self.get_branch()
         if current_branch:
-            branch_parent = self.get_branch_parent()
+            branch_parent = self.get_branch_parent(need_to_fetch)
+            need_to_fetch = False
         else:
             branch_parent = None
 
@@ -177,7 +178,7 @@ class GitClient(VcsClientBase):
             
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
-                new_branch_parent = self.get_branch_parent()
+                new_branch_parent = self.get_branch_parent(fetch = need_to_fetch)
                 if new_branch_parent != None:
                     if not self._do_fast_forward(fetch = need_to_fetch):
                         return False
@@ -252,10 +253,10 @@ class GitClient(VcsClientBase):
                 return False
             output = subprocess.Popen(['git branch -r'], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             for l in output.splitlines():
-                elems = l.split()
-                if len(elems) == 1:
-                    br_names = elems[0].split('/')
-                    if len(br_names) == 2 and br_names[0] == 'origin' and br_names[1] == branch_name:
+                elem = l.split()[0]
+                rem_name = elem[:elem.find('/')]
+                br_name = elem[elem.find('/') + 1:]
+                if rem_name == "origin" and br_name == branch_name:
                         return True
         return False
 
@@ -284,19 +285,40 @@ class GitClient(VcsClientBase):
         return None
 
 
-    def get_branch_parent(self):
+    def get_branch_parent(self, fetch=False):
         """return the name of the branch this branch tracks, if any"""
         if self.path_exists():
-            output = subprocess.Popen(['git config --get branch.%s.merge'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            # get name of configured merge ref.
+            output = subprocess.Popen(['git config --get-all branch.%s.merge'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
             if not output:
                 return None
-            elems = output.split('/')
-            # due to an earlier bug vcstools would set up to track a tag
-            if len(elems) != 3 or elems[0] != 'refs' or (elems[1] != 'heads' and elems[1] != 'tags'):
-                print "elems improperly formatted", elems
-            else:
-                if elems[1] == 'heads':
-                    return elems[2]
+            lines = output.splitlines()
+            if len(lines) > 1:
+                print "vcstools unable to handle multiple merge references for branch %s:\n%s"%(self.get_branch(), output)
+                return None
+            # get name of configured remote
+            output2 = subprocess.Popen(['git config --get-all branch.%s.remote'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            if output2 != "origin":
+                print "vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(self.get_branch(), output2)
+                return None
+            output = lines[0]
+            # output is either refname, or /refs/heads/refname, or heads/refname
+            # we would like to return refname
+            # however, user could also have named any branch "/refs/heads/refname", for some unholy reason
+            # check all known branches on remote for refname, then for the odd cases, as git seems to do
+            candidate = output
+            if candidate.startswith('refs/'):
+                candidate = candidate[len('refs/'):]
+            if candidate.startswith('heads/'):
+                candidate = candidate[len('heads/'):]
+            elif candidate.startswith('tags/'):
+                candidate = candidate[len('tags/'):]
+            elif candidate.startswith('remotes/'):
+                candidate = candidate[len('remotes/'):]
+            if self.is_remote_branch(candidate, fetch=fetch):
+                return candidate
+            if output != candidate and self.is_remote_branch(output, fetch=False):
+                return output
         return None
 
 
@@ -392,8 +414,8 @@ class GitClient(VcsClientBase):
         """Execute git fetch if necessary, and if we can fast-foward,
         do so to the last fetched version using git rebase. Returns
         False on command line failures"""
-        parent = self.get_branch_parent()
-        if parent != None and self.rev_list_contains("remotes/origin/%s"%parent, self.get_version(), fetch = fetch):
+        parent = self.get_branch_parent(fetch = fetch)
+        if parent != None and self.rev_list_contains("remotes/origin/%s"%parent, self.get_version(), fetch = False):
             # Rebase, do not pull, because somebody could have
             # commited in the meantime.
             if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
