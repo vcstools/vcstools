@@ -39,13 +39,12 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from vcstools.bzr import BzrClient
 
 class BzrClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        from vcstools.bzr import BzrClient
-
         try:
             subprocess.check_call(["bzr", "whoami"])
         except subprocess.CalledProcessError as e:
@@ -53,102 +52,97 @@ class BzrClientTestSetups(unittest.TestCase):
         
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
-        remote_path = os.path.join(directory, "remote")
-        os.makedirs(remote_path)
+        self.remote_path = os.path.join(directory, "remote")
+        os.makedirs(self.remote_path)
 
         # create a "remote" repo
-        subprocess.check_call(["bzr", "init"], cwd=remote_path)
-        subprocess.check_call(["touch", "fixed.txt"], cwd=remote_path)
-        subprocess.check_call(["bzr", "add", "fixed.txt"], cwd=remote_path)
-        subprocess.check_call(["bzr", "commit", "-m", "initial"], cwd=remote_path)
-        subprocess.check_call(["bzr", "tag", "test_tag"], cwd=remote_path)
-        self.readonly_version_init = "1"
+        subprocess.check_call(["bzr", "init"], cwd=self.remote_path)
+        subprocess.check_call(["touch", "fixed.txt"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "add", "fixed.txt"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "commit", "-m", "initial"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "tag", "test_tag"], cwd=self.remote_path)
+        self.local_version_init = "1"
         
         # files to be modified in "local" repo
-        subprocess.check_call(["touch", "modified.txt"], cwd=remote_path)
-        subprocess.check_call(["touch", "modified-fs.txt"], cwd=remote_path)
-        subprocess.check_call(["bzr", "add", "modified.txt", "modified-fs.txt"], cwd=remote_path)
-        subprocess.check_call(["bzr", "commit", "-m", "initial"], cwd=remote_path)
-        self.readonly_version_second = "2"
+        subprocess.check_call(["touch", "modified.txt"], cwd=self.remote_path)
+        subprocess.check_call(["touch", "modified-fs.txt"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "add", "modified.txt", "modified-fs.txt"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "commit", "-m", "initial"], cwd=self.remote_path)
+        self.local_version_second = "2"
         
-        subprocess.check_call(["touch", "deleted.txt"], cwd=remote_path)
-        subprocess.check_call(["touch", "deleted-fs.txt"], cwd=remote_path)
-        subprocess.check_call(["bzr", "add", "deleted.txt", "deleted-fs.txt"], cwd=remote_path)
-        subprocess.check_call(["bzr", "commit", "-m", "modified"], cwd=remote_path)
-        self.readonly_version = "3"
+        subprocess.check_call(["touch", "deleted.txt"], cwd=self.remote_path)
+        subprocess.check_call(["touch", "deleted-fs.txt"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "add", "deleted.txt", "deleted-fs.txt"], cwd=self.remote_path)
+        subprocess.check_call(["bzr", "commit", "-m", "modified"], cwd=self.remote_path)
+        self.local_version = "3"
 
-        self.readonly_path = os.path.join(directory, "readonly")
-        self.readonly_url = remote_path
-        
-        client = BzrClient(self.readonly_path)
-        client.checkout(self.readonly_url, self.readonly_version)
+        self.local_path = os.path.join(directory, "local")
 
     @classmethod
     def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
 
+    def tearDown(self):
+        if os.path.exists(self.local_path):
+            shutil.rmtree(self.local_path)
+            
 class BzrClientTest(BzrClientTestSetups):
 
     def test_get_url_by_reading(self):
-        from vcstools.bzr import BzrClient
-        client = BzrClient(self.readonly_path)
+        client = BzrClient(self.local_path)
+        url = self.remote_path
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_url(), self.readonly_url)
-        self.assertEqual(client.get_version(), self.readonly_version)
-        self.assertEqual(client.get_version(self.readonly_version_init[0:6]), self.readonly_version_init)
-        self.assertEqual(client.get_version("test_tag"), self.readonly_version_init)
+        self.assertEqual(client.get_url(), self.remote_path)
+        self.assertEqual(client.get_version(), self.local_version)
+        self.assertEqual(client.get_version(self.local_version_init[0:6]), self.local_version_init)
+        self.assertEqual(client.get_version("test_tag"), self.local_version_init)
         
     def test_get_url_nonexistant(self):
-        from vcstools.bzr import BzrClient
         local_path = "/tmp/dummy"
         client = BzrClient(local_path)
         self.assertEqual(client.get_url(), None)
 
     def test_get_type_name(self):
-        from vcstools.bzr import BzrClient
         local_path = "/tmp/dummy"
         client = BzrClient(local_path)
         self.assertEqual(client.get_vcs_type_name(), 'bzr')
 
     def test_checkout_invalid(self):
         "makes sure failed checkout results in False, not Exception"
-        from vcstools.bzr import BzrClient
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url + "foobar"
-        client = BzrClient(local_path)
+        url = self.remote_path + "foobar"
+        client = BzrClient(self.local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertFalse(client.checkout(url))
 
     def test_checkout_invalid_update(self):
         "makes sure no exception happens on invalid update"
-        from vcstools.bzr import BzrClient
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
-        client = BzrClient(local_path)
+        url = self.remote_path
+        client = BzrClient(self.local_path)
         self.assertTrue(client.checkout(url))
         new_version = 'foobar'
         self.assertFalse(client.update(new_version))
 
     def test_checkout(self):
-        from vcstools.bzr import BzrClient
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
-        client = BzrClient(local_path)
+        url = self.remote_path
+        client = BzrClient(self.local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
 
         #self.assertEqual(client.get_version(), '-r*')
@@ -156,20 +150,18 @@ class BzrClientTest(BzrClientTestSetups):
         self.directories.pop("checkout_test")
 
     def test_checkout_specific_version_and_update(self):
-        from vcstools.bzr import BzrClient
         directory = tempfile.mkdtemp()
         subdir = "checkout_specific_version_test"
         self.directories[subdir] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
+        url = self.remote_path
         version = "1"
-        client = BzrClient(local_path)
+        client = BzrClient(self.local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url, version))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_version(), version)
         
@@ -186,59 +178,62 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
     @classmethod
     def setUpClass(self):
         BzrClientTestSetups.setUpClass()
-        # after setting up "readonly" repo, change files and make some changes
-        subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.readonly_path)
-        subprocess.check_call(["bzr", "rm", "deleted.txt"], cwd=self.readonly_path)
-        f = io.open(os.path.join(self.readonly_path, "modified.txt"), 'a')
+        url = self.remote_path
+        client = BzrClient(self.local_path)
+        client.checkout(url)
+        # after setting up "local" repo, change files and make some changes
+        subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.local_path)
+        subprocess.check_call(["bzr", "rm", "deleted.txt"], cwd=self.local_path)
+        f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
-        f = io.open(os.path.join(self.readonly_path, "modified-fs.txt"), 'a')
+        f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
-        f = io.open(os.path.join(self.readonly_path, "added-fs.txt"), 'w')
+        f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
-        f = io.open(os.path.join(self.readonly_path, "added.txt"), 'w')
+        f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
-        subprocess.check_call(["bzr", "add", "added.txt"], cwd=self.readonly_path)
+        subprocess.check_call(["bzr", "add", "added.txt"], cwd=self.local_path)
 
+    def tearDown(self):
+        pass
+        
     def test_diff(self):
-        from vcstools.bzr import BzrClient
-        client = BzrClient(self.readonly_path)
+        client = BzrClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         # using fnmatch because date and time change (remove when bzr reaches diff --format)
-        self.assertTrue(fnmatch.fnmatch(client.get_diff(),"=== added file 'added.txt'\n--- ./added.txt\t????-??-?? ??:??:?? +0000\n+++ ./added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- ./modified.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n"))
+        diff=client.get_diff()
+        self.assertTrue(diff is not None)
+        print diff
+        self.assertTrue(fnmatch.fnmatch(diff,"=== added file 'added.txt'\n--- ./added.txt\t????-??-?? ??:??:?? +0000\n+++ ./added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- ./modified.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n"))
 
     def test_diff_relpath(self):
-        from vcstools.bzr import BzrClient
-        client = BzrClient(self.readonly_path)
+        client = BzrClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         # using fnmatch because date and time change (remove when bzr introduces diff --format)
-        self.assertTrue(fnmatch.fnmatch(client.get_diff(basepath=os.path.dirname(self.readonly_path)), "=== added file 'added.txt'\n--- readonly/added.txt\t????-??-?? ??:??:?? +0000\n+++ readonly/added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- readonly/modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ readonly/modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- readonly/modified.txt\t????-??-?? ??:??:?? +0000\n+++ readonly/modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n"))
+        diff = client.get_diff(basepath=os.path.dirname(self.local_path))
+        self.assertTrue(diff is not None)
+        self.assertTrue(fnmatch.fnmatch(diff, "=== added file 'added.txt'\n--- local/added.txt\t????-??-?? ??:??:?? +0000\n+++ local/added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- local/modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ local/modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- local/modified.txt\t????-??-?? ??:??:?? +0000\n+++ local/modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n"))
 
     def test_status(self):
-        from vcstools.bzr import BzrClient
-        client = BzrClient(self.readonly_path)
+        client = BzrClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEquals('+N  ./added.txt\n D  ./deleted-fs.txt\n-D  ./deleted.txt\n M  ./modified-fs.txt\n M  ./modified.txt\n', client.get_status())
 
     def test_status_relpath(self):
-        from vcstools.bzr import BzrClient
-        client = BzrClient(self.readonly_path)
+        client = BzrClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('+N  readonly/added.txt\n D  readonly/deleted-fs.txt\n-D  readonly/deleted.txt\n M  readonly/modified-fs.txt\n M  readonly/modified.txt\n', client.get_status(basepath=os.path.dirname(self.readonly_path)))
+        self.assertEquals('+N  local/added.txt\n D  local/deleted-fs.txt\n-D  local/deleted.txt\n M  local/modified-fs.txt\n M  local/modified.txt\n', client.get_status(basepath=os.path.dirname(self.local_path)))
 
     def test_status_untracked(self):
-        from vcstools.bzr import BzrClient
-        client = BzrClient(self.readonly_path)
+        client = BzrClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEquals('?   ./added-fs.txt\n+N  ./added.txt\n D  ./deleted-fs.txt\n-D  ./deleted.txt\n M  ./modified-fs.txt\n M  ./modified.txt\n', client.get_status(untracked=True))
-
-        
-
