@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vcstools',
-      version= '0.1.2',
+      version= '0.1.3',
       packages=['vcstools'],
       package_dir = {'':'src'},
       scripts = [],
