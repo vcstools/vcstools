@@ -47,12 +47,17 @@ workingtree and branch do not necessarily lie in the same directory (in contrast
 """
 
 import sys
-import bzrlib
-import bzrlib.errors
-import bzrlib.branch
-import bzrlib.status
-import bzrlib.revisionspec
-import bzrlib.workingtree
+_bzr_missing = False
+try:
+    import bzrlib
+    import bzrlib.errors
+    import bzrlib.branch
+    import bzrlib.status
+    import bzrlib.revisionspec
+    import bzrlib.workingtree
+except:
+    _bzr_missing = True
+    pass
 
 from  .vcs_base import VcsClientBase
 
@@ -62,9 +67,21 @@ class BzrClient(VcsClientBase):
         Raise LookupError if bzr not detected
         """
         VcsClientBase.__init__(self, 'bzr', path)
+        if _bzr_missing:
+            raise LookupError("Bazaar libs could not be imported. Please install bazaar. On debian systems sudo apt-get install bzr")
         # required for any run_bzr command!
         bzrlib.commands.install_bzr_command_hooks()
 
+    @staticmethod
+    def get_environment_metadata():
+        metadict = {}
+        try:
+            import bzrlib
+            metadict["version"] = 'bzr:%s'%str(bzrlib.version_string)
+        except:
+            metadict["version"] = "no bzr installed"
+        return metadict
+        
     def get_url(self):
         """
         @return: BZR URL of the branch (output of bzr info command), or None if it cannot be determined

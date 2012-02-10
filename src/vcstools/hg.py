@@ -40,9 +40,14 @@ import os
 import sys
 import string
 
-import mercurial
-from mercurial import ui, hg, commands
-
+_mercurial_missing = False
+try:
+    import mercurial
+    from mercurial import ui, hg, commands
+except:
+    _mercurial_missing = True
+    pass
+    
 from .vcs_base import VcsClientBase
 
 #hg diff cannot seem to be persuaded to accept a different prefix for filenames
@@ -95,7 +100,19 @@ class HgClient(VcsClientBase):
         Raise LookupError if hg not detected
         """
         VcsClientBase.__init__(self, 'hg', path)
+        if _mercurial_missing:
+            raise LookupError("Mercurial libs could not be imported. Please install mercurial. On debian systems sudo apt-get install mercurial")
 
+    @staticmethod
+    def get_environment_metadata():
+        metadict = {}
+        try:
+            import mercurial.util
+            metadict["version"] = 'mercurial:%s'%str(mercurial.util.version())
+        except:
+            metadict["version"] = "no mercurial installed"
+        return metadict
+   
     def get_url(self):
         """
         @return: HG URL of the directory path (output of hg paths command), or None if it cannot be determined

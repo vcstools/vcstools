@@ -45,7 +45,7 @@ conventions, but is very allowing for breaking them. E.g. it is
 possible to name remotes and branches with names like
 "refs/heads/master", give branches and tags the same name, or a valid
 SHA-ID as name, etc.  Similarly git allows plenty of ways to reference
-any object, in cae of ambiguities, git attempts to take the most
+any object, in case of ambiguities, git attempts to take the most
 reasonable disambiguation, and in some cases warns.
 """
 
@@ -57,6 +57,23 @@ from distutils.version import LooseVersion
 
 from .vcs_base import VcsClientBase
 
+def _get_git_version():
+    """Looks up git version by calling git --version.
+
+    :raises: Lookup error if git is not installed or returns
+    something unexpected"""
+    with open(os.devnull, 'w') as fnull:
+        try:
+            version = subprocess.Popen(['git --version'],
+                                       shell = True,
+                                       stdout = subprocess.PIPE).communicate()[0]
+        except:
+            raise LookupError("git not installed")
+        if version.startswith('git version '):
+            version = version[len('git version '):].strip()
+        else:
+            raise LookupError("git --version returned invalid string: '%s'"%version)
+        return version
 
 class GitClient(VcsClientBase):
     def __init__(self, path):
@@ -64,18 +81,21 @@ class GitClient(VcsClientBase):
         Raise LookupError if git not detected
         """
         VcsClientBase.__init__(self, 'git', path)
-        with open(os.devnull, 'w') as fnull:
-            try:
-                version = subprocess.Popen(['git --version'], shell=True, stdout=subprocess.PIPE).communicate()[0]
-            except:
-                raise LookupError("git not installed, cannot create a git vcs client")
-            if version.startswith('git version '):
-                version = version[len('git version '):].strip()
-            else:
-                raise LookupError("git --version command returned invalid string: '%s'"%version)
-            self.gitversion = version
-        self.submodule_exists = self._check_git_submodules()
+        self.gitversion = _get_git_version()
 
+    @staticmethod
+    def get_environment_metadata():
+        metadict = {}
+        try:
+            version = _get_git_version()
+            resetkeep =  LooseVersion(version) >= LooseVersion('1.7.1')
+            submodules = LooseVersion(version) > LooseVersion('1.7')
+            metadict["features"] = "'reset --keep': %s, submodules: %s"%(resetkeep, submodules)
+        except LookupError as e:
+            version = "No git installed"
+        metadict["version"] = version
+        return metadict
+       
     def get_url(self):
         """
         @return: GIT URL of the directory path (output of git info command), or None if it cannot be determined
@@ -107,7 +127,7 @@ class GitClient(VcsClientBase):
     def update_submodules(self):
     
         # update and or init submodules too
-        if self.submodule_exists:
+        if LooseVersion(self.gitversion) > LooseVersion('1.7'):
             cmd = "git submodule update --init --recursive"
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
@@ -394,15 +414,6 @@ class GitClient(VcsClientBase):
                     return False
             return True
         return False
-
-    def _check_git_submodules(self):
-        """
-        @return: True if git version supports submodules, False otherwise,
-        including if version cannot be detected
-        """
-        # 'git version 1.7.0.4\n'
-        return LooseVersion(self.gitversion) > LooseVersion('1.7')
-
 
     def _do_fetch(self):
         if not subprocess.call("git fetch", cwd=self._path, shell=True) == 0:

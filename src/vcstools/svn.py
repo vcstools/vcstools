@@ -37,7 +37,13 @@ svn vcs support.
 import os
 import sys
 import subprocess
-import pysvn
+
+_pysvn_missing = False
+try:
+    import pysvn
+except:
+    _pysvn_missing = True
+
 import time
 import dateutil.parser
 import tempfile
@@ -50,8 +56,25 @@ class SvnClient(VcsClientBase):
         Raise LookupError if svn not detected
         """
         VcsClientBase.__init__(self, 'svn', path)
+        if _pysvn_missing:
+            raise LookupError("python-svn could not be imported. Please install python-svn. On debian systems sudo apt-get install python-svn")
         self._pysvnclient = pysvn.Client()
- 
+
+    @staticmethod
+    def get_environment_metadata():
+        metadict = {}
+        try:
+            output = subprocess.Popen(['svn', '--version'], stdout=subprocess.PIPE, env={"LANG":"en_US.UTF-8"}).communicate()[0]
+            metadict["version"] = output.splitlines()[0]
+        except:
+            metadict["version"] = "no svn installed"
+        try:
+            import pysvn
+            metadict["dependency"] = 'pysvn:%s'%str(pysvn.version)
+        except:
+            metadict["dependency"] = "no pysvn installed"
+        return metadict
+
     def get_url(self):
         """
         @return: SVN URL of the directory path (output of svn info command), or None if it cannot be determined

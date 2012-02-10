@@ -42,7 +42,16 @@ class VcsClientBase:
     def __init__(self, vcs_type_name, path):
         self._path = path
         self._vcs_type_name = vcs_type_name
-        
+
+    @staticmethod
+    def get_environment_metadata():
+        """
+        For debugging purposes, returns a dict containing information
+        about the environment, like the version of the SCM client, or
+        version of libraries involved.
+        """
+        raise NotImplementedError("Base class get_environment_metadata method must be overridden")
+    
     def path_exists(self):
         return os.path.exists(self._path)
         

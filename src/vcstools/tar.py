@@ -38,13 +38,36 @@ New in ROS C-Turtle.
 
 import subprocess
 import os
-import yaml
 import urllib
 import tempfile
 import sys
 import shutil
 
+_yaml_missing = False
+try:
+    import yaml
+except:
+    _yaml_missing = True
+
 from .vcs_base import VcsClientBase
+
+def _get_tar_version():
+    """Looks up tar version by calling tar --version.
+
+    :raises: Lookup error if git is not installed or returns
+    something unexpected"""
+    with open(os.devnull, 'w') as fnull:
+        try:
+            version = subprocess.Popen(['tar --version'],
+                                       shell = True,
+                                       stdout = subprocess.PIPE).communicate()[0]
+        except:
+            raise LookupError("git not installed")
+        if version.startswith('tar '):
+            version = version[len('tar '):].strip()
+        else:
+            raise LookupError("tar --version returned invalid string: '%s'"%version)
+        return version
 
 class TarClient(VcsClientBase):
 
@@ -54,12 +77,20 @@ class TarClient(VcsClientBase):
         """
         VcsClientBase.__init__(self, 'tar', path)
         self.metadata_path = os.path.join(self._path, ".tar")
-        with open(os.devnull, 'w') as fnull:
-            try:
-                subprocess.call("tar --help".split(), stdout=fnull, stderr=fnull)
-            except:
-                raise LookupError("tar not installed, cannnot create an tar vcs client")
- 
+        _get_tar_version()
+        if _yaml_missing:
+            raise VcsError("Python yaml libs could not be imported. Please install python-yaml. On debian systems sudo apt-get install python-yaml")
+
+    @staticmethod
+    def get_environment_metadata():
+        metadict = {}
+        try:
+            version = _get_tar_version()
+        except LookupError as e:
+            version = "No tar installed"
+        metadict["version"] = version
+        return metadict
+
     def get_url(self):
         """
         @return: TAR URL of the directory path (output of tar info command), or None if it cannot be determined
