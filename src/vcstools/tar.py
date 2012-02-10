@@ -33,7 +33,6 @@
 """
 tar vcs support.
 
-New in ROS C-Turtle.
 """
 
 import subprocess
@@ -93,7 +92,7 @@ class TarClient(VcsClientBase):
 
     def get_url(self):
         """
-        @return: TAR URL of the directory path (output of tar info command), or None if it cannot be determined
+        :returns: TAR URL of the directory path (output of tar info command), or None if it cannot be determined
         """
         if self.detect_presence():
             with open(self.metadata_path, 'r') as metadata_file:

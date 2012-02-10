@@ -78,7 +78,7 @@ def _get_git_version():
 class GitClient(VcsClientBase):
     def __init__(self, path):
         """
-        Raise LookupError if git not detected
+        :raises: LookupError if git not detected
         """
         VcsClientBase.__init__(self, 'git', path)
         self.gitversion = _get_git_version()
@@ -98,7 +98,7 @@ class GitClient(VcsClientBase):
        
     def get_url(self):
         """
-        @return: GIT URL of the directory path (output of git info command), or None if it cannot be determined
+        :returns: GIT URL of the directory path (output of git info command), or None if it cannot be determined
         """
         if self.detect_presence():
             output = subprocess.Popen(["git config --get remote.origin.url"], shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
@@ -207,12 +207,12 @@ class GitClient(VcsClientBase):
     
     def get_version(self, spec=None, fetch = True):
         """
-        @param spec: (optional) token to identify desired version. For
+        :param spec: (optional) token to identify desired version. For
         git, this may be anything accepted by git log, e.g. a tagname,
         branchname, or sha-id.
-        @param fetch: When spec is given, can be used to suppress git fetch call
+        :param fetch: When spec is given, can be used to suppress git fetch call
         
-        @return: current SHA-ID of the repository. Or if spec is
+        :returns: current SHA-ID of the repository. Or if spec is
         provided, the SHA-ID of a commit specified by some token.
         """
         if self.detect_presence():
@@ -358,10 +358,13 @@ class GitClient(VcsClientBase):
 
     def rev_list_contains(self, refname, version, fetch = True):
         """
-        calls git rev-list with refname and returns True if version can be found in rev-list result
-        @param refname a git refname
-        @param version an SHA IDs (if partial, caller is responsible for mismatch)
-        @returns
+        calls git rev-list with refname and returns True if version
+        can be found in rev-list result
+
+        :param refname: a git refname
+        :param version: an SHA IDs (if partial, caller is responsible
+        for mismatch)
+        :returns: True if version can be found in rev-list
         """
         # to avoid listing unnecessarily many rev-ids, we cut off all
         # those we are definitely not interested in
@@ -390,10 +393,11 @@ class GitClient(VcsClientBase):
         references, meaning branches or tags) for version. If it shows
         up, that means git garbage collection will not remove the
         commit. Else it would eventually be deleted.
-        @param version SHA IDs (if partial, caller is responsible for mismatch)
-        @param mask_self whether to consider direct references to this commit (rather than only references on descendants) as well
-        @param fetch whether fetch should be done first for remote refs
-        @return true if version is not recursively referenced by a branch or tag
+        
+        :param version: SHA IDs (if partial, caller is responsible for mismatch)
+        :param mask_self: whether to consider direct references to this commit (rather than only references on descendants) as well
+        :param fetch: whether fetch should be done first for remote refs
+        :returns: True if version is not recursively referenced by a branch or tag
         """
         if version != None and version != '':
             cmd = 'git show-ref -s'

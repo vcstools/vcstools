@@ -84,7 +84,7 @@ def _hg_diff_path_change(diff, path):
 
 class HackedHgUI():
     """This class modifies a given mercurial.ui object by substituing
-    the write method, so that the output is stored in a variable"""
+    the write method, so that the output is stored in a variable."""
     def __init__(self, ui):
         self.output = ''
         ui.write = self.write
@@ -97,7 +97,7 @@ class HgClient(VcsClientBase):
         
     def __init__(self, path):
         """
-        Raise LookupError if hg not detected
+        :raises: LookupError if hg not detected
         """
         VcsClientBase.__init__(self, 'hg', path)
         if _mercurial_missing:
@@ -115,7 +115,7 @@ class HgClient(VcsClientBase):
    
     def get_url(self):
         """
-        @return: HG URL of the directory path (output of hg paths command), or None if it cannot be determined
+        :returns: HG URL of the directory path (output of hg paths command), or None if it cannot be determined
         """
         r =  self._get_hg_repo(self._path)
         if r is None:
@@ -166,11 +166,11 @@ class HgClient(VcsClientBase):
         
     def get_version(self, spec=None):
         """
-        @param spec: (optional) token for identifying version. spec can be
+        :param spec: (optional) token for identifying version. spec can be
         a whatever is allowed by 'hg log -r', e.g. a tagname, sha-ID,
         revision-number
 
-        @return the current SHA-ID of the repository. Or if spec is
+        :returns: the current SHA-ID of the repository. Or if spec is
         provided, the SHA-ID of a revision specified by some
         token.
         """

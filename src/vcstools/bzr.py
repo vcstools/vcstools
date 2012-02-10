@@ -64,7 +64,7 @@ from  .vcs_base import VcsClientBase
 class BzrClient(VcsClientBase):
     def __init__(self, path):
         """
-        Raise LookupError if bzr not detected
+        :raises: LookupError if bzr not detected
         """
         VcsClientBase.__init__(self, 'bzr', path)
         if _bzr_missing:
@@ -84,7 +84,7 @@ class BzrClient(VcsClientBase):
         
     def get_url(self):
         """
-        @return: BZR URL of the branch (output of bzr info command), or None if it cannot be determined
+        :returns: BZR URL of the branch (output of bzr info command), or None if it cannot be determined
         """
         try:
             branch = bzrlib.workingtree.WorkingTree.open(self._path).branch
@@ -147,7 +147,7 @@ class BzrClient(VcsClientBase):
         be any revisionspec as returned by 'bzr help revisionspec',
         e.g. a tagname or 'revno:<number>'
         
-        @return: the current revision number of the repository. Or if
+        :returns: the current revision number of the repository. Or if
         spec is provided, the number of a revision specified by some
         token. 
         """

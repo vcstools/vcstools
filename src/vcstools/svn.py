@@ -53,7 +53,7 @@ class SvnClient(VcsClientBase):
 
     def __init__(self, path):
         """
-        Raise LookupError if svn not detected
+        :raises: LookupError if python-svn not detected
         """
         VcsClientBase.__init__(self, 'svn', path)
         if _pysvn_missing:
@@ -77,7 +77,7 @@ class SvnClient(VcsClientBase):
 
     def get_url(self):
         """
-        @return: SVN URL of the directory path (output of svn info command), or None if it cannot be determined
+        :returns: SVN URL of the directory path (output of svn info command), or None if it cannot be determined
         """
         info = self._get_info_dict(self._path)
         if info is not None:
@@ -112,11 +112,11 @@ class SvnClient(VcsClientBase):
 
     def get_version(self, spec=None):
         """
-        @param spec: (optional) spec can be what 'svn info --help'
+        :param spec: (optional) spec can be what 'svn info --help'
         allows, meaning a revnumber, {date}, HEAD, BASE, PREV, or
         COMMITTED.
 
-        @return: current revision number of the repository. Or if spec
+        :returns: current revision number of the repository. Or if spec
         provided, the number of a revision specified by some
         token.
         """
@@ -145,6 +145,8 @@ class SvnClient(VcsClientBase):
  
  
     def get_status(self, basepath=None, untracked=False):
+        # status not implemented yet using pysvn as we would have to
+        # format data ourselves and amend the relative paths
         response=None
         if basepath == None:
             basepath = self._path

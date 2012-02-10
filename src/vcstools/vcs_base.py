@@ -49,6 +49,9 @@ class VcsClientBase:
         For debugging purposes, returns a dict containing information
         about the environment, like the version of the SCM client, or
         version of libraries involved.
+        Suggest considering keywords "version", "dependency", "features" first.
+        :returns: a dict containing relevant information
+        :rtype: dict
         """
         raise NotImplementedError("Base class get_environment_metadata method must be overridden")
     
@@ -60,25 +63,38 @@ class VcsClientBase:
 
     def get_url(self):
         """
-        @return: The source control url for the path
-        @rtype: str
+        :returns: The source control url for the path
+        :rtype: str
         """
         raise NotImplementedError("Base class get_url method must be overridden")
 
     def get_version(self, spec=None):
         """
-        @param spec: token for identifying repository revision
-        desired.  Token might be a tagname, branchname, version-id, or
-        SHA-ID depending on the VCS implementation.
+        Find an identifier for a the current or a specified
+        revision. Token spec might be a tagname, branchname,
+        version-id, SHA-ID, ... depending on the VCS implementation.
 
-        @return: current revision number of the repository.  Or if
-        spec is provided, the globally unique identifier
-        (e.g. revision number, or SHA-ID) of a revision specified by
-        some token.
+        :param spec: token for identifying repository revision
+        :type spec: str
+        :returns: current revision number of the repository.  Or if
+        spec is provided, the respective revision number.
+        :rtype: str
         """
         raise NotImplementedError, "Base class get_version method must be overridden"
 
     def checkout(self, url, version):
+        """
+        Attempts to create a local repository given a remote
+        url. Fails if a direcotry exists already in target
+        location. If a spec is provided, the local repository
+        will be updated to that revision. It is possible that
+        after a failed call to checkout, a repository still exists,
+        e.g. if an invalid revision spec was given.
+
+        :param spec: token for identifying repository revision
+        :type spec: str
+        :returns: True if successful
+        """
         raise NotImplementedError("Base class checkout method must be overridden")
 
     def update(self, spec):
@@ -87,10 +103,10 @@ class VcsClientBase:
         the spec. Fails when there are uncommited changes.
         On failures (also e.g. network failure) grants the
         checked out files are in the same state as before the call.
-        @param spec: token for identifying repository revision
-        desired.  Token might be a tagname, branchname, version-id, or
-        SHA-ID depending on the VCS implementation.
-        @return True on success, False else
+        :param spec: token for identifying repository revision
+        desired.  Token might be a tagname, branchname, version-id, 
+        SHA-ID, ... depending on the VCS implementation.
+        :return True on success, False else
         """
         raise NotImplementedError("Base class update method must be overridden")
 
@@ -104,12 +120,12 @@ class VcsClientBase:
 
     def get_diff(self, basepath=None):
         """
-        @param basepath: diff paths will be relative to this, if any
-        @return: A string showing local differences
+        :param basepath: diff paths will be relative to this, if any
+        :returns: A string showing local differences
+        :rtype: str
         """
         raise NotImplementedError("Base class get_diff method must be overridden")
 
-    # kruset: not sure whether we need 2 options (unchanged, unstaged) instead and what the default should be
     def get_status(self, basepath=None, untracked=False):
         """
         Calls scm status command. semantics of untracked are difficult
@@ -117,9 +133,10 @@ class VcsClientBase:
         hg, bzr, this would be changesthat have not been added for
         commit.
 
-        @param basepath: status path will be relative to this, if any
-        @param untracked: whether to also show changes that would not commit
-        @return: A string summarizing locally modified files
+        :param basepath: status path will be relative to this, if any
+        :param untracked: whether to also show changes that would not commit
+        :returns: A string summarizing locally modified files
+        :rtype: str
         """
         raise NotImplementedError("Base class get_status method must be overridden")
 
@@ -130,9 +147,9 @@ class VcsClientBase:
         If path is absolute, return relative path to it from
         basepath. If relative, return it normalized.
         
-        @param path: an absolute or relative path
-        @param basepath: if path is absolute, shall be made relative to this
-        @return: a normalized relative path
+        :param path: an absolute or relative path
+        :param basepath: if path is absolute, shall be made relative to this
+        :returns: a normalized relative path
         """
         # gracefully ignore invalid input absolute path + no basepath
         if os.path.isabs(path) and basepath is not None:
