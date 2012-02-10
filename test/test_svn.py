@@ -39,29 +39,29 @@ import subprocess
 import tempfile
 import shutil
 import re
-
+from vcstools.svn import SvnClient
+        
 class SvnClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        from vcstools.svn import SvnClient
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
-        remote_path = os.path.join(directory, "remote")
-        init_path = os.path.join(directory, "remote")
+        self.remote_path = os.path.join(directory, "remote")
+        init_path = os.path.join(directory, "init")
         
         # create a "remote" repo
-        subprocess.check_call(["svnadmin", "create", remote_path], cwd=directory)
-        self.readonly_url = "file://localhost"+remote_path
+        subprocess.check_call(["svnadmin", "create", self.remote_path], cwd=directory)
+        self.local_url = "file://localhost"+self.remote_path
         
-        # create an "init" repo to feed remote repo
-        subprocess.check_call(["svn", "checkout", self.readonly_url, init_path], cwd=directory)
+        # create an "init" repo to populate remote repo
+        subprocess.check_call(["svn", "checkout", self.local_url, init_path], cwd=directory)
         
         subprocess.check_call(["touch", "fixed.txt"], cwd=init_path)
         subprocess.check_call(["svn", "add", "fixed.txt"], cwd=init_path)
         subprocess.check_call(["svn", "commit", "-m", "initial"], cwd=init_path)
                 
-        self.readonly_version_init = "-r1"
+        self.local_version_init = "-r1"
         
         # files to be modified in "local" repo
         subprocess.check_call(["touch", "modified.txt"], cwd=init_path)
@@ -69,85 +69,75 @@ class SvnClientTestSetups(unittest.TestCase):
         subprocess.check_call(["svn", "add", "modified.txt", "modified-fs.txt"], cwd=init_path)
         subprocess.check_call(["svn", "commit", "-m", "initial"], cwd=init_path)
         
-        self.readonly_version_second = "-r2"
+        self.local_version_second = "-r2"
         
         subprocess.check_call(["touch", "deleted.txt"], cwd=init_path)
         subprocess.check_call(["touch", "deleted-fs.txt"], cwd=init_path)
         subprocess.check_call(["svn", "add", "deleted.txt", "deleted-fs.txt"], cwd=init_path)
         subprocess.check_call(["svn", "commit", "-m", "modified"], cwd=init_path)
         
-        self.readonly_version = "-r3"
-
-        self.readonly_path = os.path.join(directory, "readonly")
-        client = SvnClient(self.readonly_path)
-        client.checkout(self.readonly_url, self.readonly_version)
+        self.local_path = os.path.join(directory, "local")
+        
 
     @classmethod
     def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
 
+    def tearDown(self):
+        if os.path.exists(self.local_path):
+            shutil.rmtree(self.local_path)
 
 class SvnClientTest(SvnClientTestSetups):
 
     def test_get_url_by_reading(self):
-        from vcstools.svn import SvnClient
-        client = SvnClient(self.readonly_path)
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_url(), self.readonly_url)
-        #self.assertEqual(client.get_version(), self.readonly_version)
+        self.assertEqual(self.local_url, client.get_url())
+        #self.assertEqual(client.get_version(), self.local_version)
         self.assertEqual(client.get_version("PREV"), "-r2")
         self.assertEqual(client.get_version("2"), "-r2")
         self.assertEqual(client.get_version("-r2"), "-r2")
-
+        # test invalid cient and repo without url
+        client = SvnClient(os.path.join(self.remote_path, 'foo'))
+        self.assertEqual( None, client.get_url())
+        
+        
     def test_get_type_name(self):
-        from vcstools.svn import SvnClient
         local_path = "/tmp/dummy"
         client = SvnClient(local_path)
         self.assertEqual(client.get_vcs_type_name(), 'svn')
 
     def test_get_url_nonexistant(self):
-        from vcstools.svn import SvnClient
         local_path = "/tmp/dummy"
         client = SvnClient(local_path)
         self.assertEqual(client.get_url(), None)
 
     def test_checkout(self):
-        from vcstools.svn import SvnClient
-        directory = tempfile.mkdtemp()
-        self.directories["checkout_test"] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
-        client = SvnClient(local_path)
+        url = self.local_url
+        client = SvnClient(self.local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_path(), local_path)
+        self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
-
-        #self.assertEqual(client.get_version(), '-r*')
 
     def test_checkout_specific_version_and_update_short(self):
         "using just a number as version"
-        from vcstools.svn import SvnClient
-        directory = tempfile.mkdtemp()
-        subdir = "checkout_specific_version_test"
-        self.directories[subdir] = directory
-        local_path = os.path.join(directory, "ros")
-        url = self.readonly_url
+        url = self.local_url
         version = "3"
-        client = SvnClient(local_path)
+        client = SvnClient(self.local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url, version))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_version(), "-r3")
-        
         new_version = '2'
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), "-r2")
@@ -157,22 +147,27 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
     @classmethod
     def setUpClass(self):
         SvnClientTestSetups.setUpClass()
-        # after setting up "readonly" repo, change files and make some changes
-        subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.readonly_path)
-        subprocess.check_call(["svn", "rm", "deleted.txt"], cwd=self.readonly_path)
-        f = io.open(os.path.join(self.readonly_path, "modified.txt"), 'a')
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+        # after setting up "local" repo, change files and make some changes
+        subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.local_path)
+        subprocess.check_call(["svn", "rm", "deleted.txt"], cwd=self.local_path)
+        f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
-        f = io.open(os.path.join(self.readonly_path, "modified-fs.txt"), 'a')
+        f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
-        f = io.open(os.path.join(self.readonly_path, "added-fs.txt"), 'w')
+        f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
-        f = io.open(os.path.join(self.readonly_path, "added.txt"), 'w')
+        f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
-        subprocess.check_call(["svn", "add", "added.txt"], cwd=self.readonly_path)
+        subprocess.check_call(["svn", "add", "added.txt"], cwd=self.local_path)
+
+    def tearDown(self):
+        pass
         
     def assertEqualDiffs(self, expected, actual):
         "True if actual is similar enough to expected, minus svn properties"
@@ -193,8 +188,7 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
             
         
     def test_diff(self):
-        from vcstools.svn import SvnClient
-        client = SvnClient(self.readonly_path)
+        client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
 
@@ -203,33 +197,29 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
 
 
     def test_diff_relpath(self):
-        from vcstools.svn import SvnClient
-        client = SvnClient(self.readonly_path)
+        client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
 
-        print 'Index: readonly/added.txt\n===================================================================\n--- readonly/added.txt\t(revision 0)\n+++ readonly/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: readonly/modified-fs.txt\n===================================================================\n--- readonly/modified-fs.txt\t(revision 3)\n+++ readonly/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: readonly/modified.txt\n===================================================================\n--- readonly/modified.txt\t(revision 3)\n+++ readonly/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n'
-        print client.get_diff(basepath=os.path.dirname(self.readonly_path))
+        print 'Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n'
+        print client.get_diff(basepath=os.path.dirname(self.local_path))
         
-        self.assertEqualDiffs('Index: readonly/added.txt\n===================================================================\n--- readonly/added.txt\t(revision 0)\n+++ readonly/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: readonly/modified-fs.txt\n===================================================================\n--- readonly/modified-fs.txt\t(revision 3)\n+++ readonly/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: readonly/modified.txt\n===================================================================\n--- readonly/modified.txt\t(revision 3)\n+++ readonly/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n', client.get_diff(basepath=os.path.dirname(self.readonly_path)))
+        self.assertEqualDiffs('Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n', client.get_diff(basepath=os.path.dirname(self.local_path)))
 
     def test_status(self):
-        from vcstools.svn import SvnClient
-        client = SvnClient(self.readonly_path)
+        client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEquals('A       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status())
 
     def test_status_relpath(self):
-        from vcstools.svn import SvnClient
-        client = SvnClient(self.readonly_path)
+        client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A       readonly/added.txt\nD       readonly/deleted.txt\nM       readonly/modified-fs.txt\n!       readonly/deleted-fs.txt\nM       readonly/modified.txt\n', client.get_status(basepath=os.path.dirname(self.readonly_path)))
+        self.assertEquals('A       local/added.txt\nD       local/deleted.txt\nM       local/modified-fs.txt\n!       local/deleted-fs.txt\nM       local/modified.txt\n', client.get_status(basepath=os.path.dirname(self.local_path)))
 
     def test_status_untracked(self):
-        from vcstools.svn import SvnClient
-        client = SvnClient(self.readonly_path)
+        client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEquals('?       added-fs.txt\nA       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status(untracked=True))
