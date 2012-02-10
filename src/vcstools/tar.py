@@ -103,8 +103,8 @@ class TarClient(VcsClientBase):
                 print "failed to extract"
                 os.shutil.rmtree(filename)
                 return False
-        except:
-            sys.stderr.write("Tarball download unpack failed\n")
+        except Exception as e:
+            sys.stderr.write("Tarball download unpack failed%s\n"%str(e))
             return False
         return False
 
