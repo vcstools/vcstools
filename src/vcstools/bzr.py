@@ -33,13 +33,26 @@
 """
 bzr vcs support.
 
-New in ROS C-Turtle.
+Important bzrlib types:
+
+Revision - a snapshot of the files you're working with.
+revision_id are globally unique. Revision numbers are local to a branch
+Working tree - the directory containing your version-controlled files and sub-directories.
+Branch - an ordered set of revisions that describe the history of a set of files (that which lies in .bzr)
+Repository - a store of revisions.
+A bzrdir is a filesystem directory.
+A bzr RevisionSpec is something that may identify a revision.
+
+workingtree and branch do not necessarily lie in the same directory (in contrast to e.g. git).
 """
 
-import subprocess
-import os
 import sys
-import urllib
+import bzrlib
+import bzrlib.errors
+import bzrlib.branch
+import bzrlib.status
+import bzrlib.revisionspec
+import bzrlib.workingtree
 
 from  .vcs_base import VcsClientBase
 
@@ -49,48 +62,66 @@ class BzrClient(VcsClientBase):
         Raise LookupError if bzr not detected
         """
         VcsClientBase.__init__(self, 'bzr', path)
-        with open(os.devnull, 'w') as fnull:
-            try:
-                subprocess.call("bzr help".split(), stdout=fnull, stderr=fnull)
-            except:
-                raise LookupError("bzr not installed, cannot create a bzr vcs client")
+        # required for any run_bzr command!
+        bzrlib.commands.install_bzr_command_hooks()
 
     def get_url(self):
         """
-        @return: BZR URL of the directory path (output of bzr info command), or None if it cannot be determined
+        @return: BZR URL of the branch (output of bzr info command), or None if it cannot be determined
         """
-        if self.detect_presence():
-            output = subprocess.Popen(['bzr', 'info', self._path], stdout=subprocess.PIPE).communicate()[0]
-            matches = [l for l in output.split('\n') if l.startswith('  parent branch:')]
-            if matches:
-                return urllib.url2pathname(matches[0][17:])
+        try:
+            branch = bzrlib.workingtree.WorkingTree.open(self._path).branch
+            parent = str(branch.get_parent())
+            if parent is not None and parent.strip() != '':
+                if parent.startswith('file://'):
+                    parent = parent[len('file://'):]
+                return str(parent.rstrip('/'))
+        except bzrlib.errors.NotBranchError as e:
+            sys.stderr.write("No bzr branch at %s : %s\n"%(self._path, str(e)))
         return None
 
     def detect_presence(self):
-        return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
+        try:
+            bzrlib.workingtree.WorkingTree.open(self._path)
+            return True
+        except bzrlib.errors.NotBranchError as e:
+            return False
 
-    def checkout(self, url, version=''):
+    def checkout(self, url, version=None):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-            
-        if version:
-            cmd = "bzr branch -r %s %s %s"%(version, url, self._path)
-        else:
-            cmd = "bzr branch %s %s"%(url, self._path)
-        if subprocess.call(cmd, shell=True) == 0:
-            return True
+        argv=['branch', url, self._path]
+        if version is not None:
+            argv.extend(['-r', version])
+        try:
+            status = bzrlib.commands.run_bzr(argv)
+            # not sure what status number could be else
+            if status == 0:
+                return True
+        except bzrlib.errors.InvalidRevisionSpec:
+            sys.stderr.write("Invalid revision: %s"%version)
+        except bzrlib.errors.NotBranchError:
+            sys.stderr.write("No bzr repo at: %s"%self._path)
+        except bzrlib.errors.BzrCommandError as e:
+            sys.stderr.write(str(e))
         return False
 
-    def update(self, version=''):
-        if not self.detect_presence():
-            return False
-        if not subprocess.call("bzr pull", cwd=self._path, shell=True) == 0:
-            return False
-        if version != '':
-            cmd = "bzr update -r %s"%(version)
-            if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+    def update(self, version=None):
+        argv=['pull', '-d', self._path]
+        if version is not None:
+            argv.extend(['-r', version])
+        try:
+            status = bzrlib.commands.run_bzr(argv)
+            # not sure what status number could be else
+            if status == 0:
                 return True
+        except bzrlib.errors.InvalidRevisionSpec:
+            sys.stderr.write("Invalid revision: %s"%version)
+        except bzrlib.errors.NotBranchError:
+            sys.stderr.write("No bzr repo at: %s"%self._path)
+        except bzrlib.errors.BzrCommandError as e:
+            sys.stderr.write(str(e))
         return False
 
     def get_version(self, spec=None):
@@ -103,51 +134,88 @@ class BzrClient(VcsClientBase):
         spec is provided, the number of a revision specified by some
         token. 
         """
-        if self.detect_presence():
-            if spec is not None:
-                command = ['bzr', 'log', '-r', spec, '.']
-                output = subprocess.Popen(command, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
-                if output is None or output.strip() == '' or output.startswith("bzr:"):
-                    return None
-                else:
-                    matches = [l for l in output.split('\n') if l.startswith('revno: ')]
-                    if len(matches) == 1:
-                        return matches[0].split()[1]
+        try:
+            tree = bzrlib.workingtree.WorkingTree.open(self._path)
+            branch = tree.branch
+            if spec is None:
+                spec = tree.last_revision() # not always same as branch.last_revision()
+            rspec = bzrlib.revisionspec.RevisionSpec.from_string(spec)
+            rev_id = rspec.as_revision_id(branch)
+            # revision = branch.get_revision(rev_id) 
+            rid_rno_map = branch.get_revision_id_to_revno_map()
+            result = rid_rno_map.get(rev_id)
+            if result is not None and len(result)>0:
+                return str(result[0])
             else:
-                output = subprocess.Popen(['bzr', 'revno', '--tree'], cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
-                return output.strip()
+                return str(branch.revno())
+        except bzrlib.errors.NotBranchError:
+            sys.stderr.write("No bzr repo at:%s"%self._path)
+        except bzrlib.errors.InvalidRevisionSpec:
+            sys.stderr.write("Not a valid Revision:%s"%spec)
+        return None
 
     def get_diff(self, basepath=None):
-        response = None
         if basepath == None:
             basepath = self._path
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "cd %s; bzr diff %s"%(basepath, rel_path)
-            command += " -p1 --prefix %s/:%s/"%(rel_path,rel_path)
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
-        if response != None and response.strip() == '':
-            response = None
-        return response
+
+        argv=['diff', self._path, '-p1', '--prefix', "%s/:%s/"%(rel_path,rel_path)]
+        try:
+            from cStringIO import StringIO
+            import sys
+            old_stdout = sys.stdout
+            # redirect stdout as the only means to get the diff
+            sys.stdout = mystdout = StringIO()
+            status = bzrlib.commands.run_bzr(argv)
+            sys.stdout = old_stdout
+            # for some reason, this returns always 1
+            if status == 1:
+                return mystdout.getvalue()
+        except bzrlib.errors.InvalidRevisionSpec:
+            sys.stdout = old_stdout
+            sys.stderr.write("Invalid revision: %s"%version)
+        except bzrlib.errors.NotBranchError:
+            sys.stdout = old_stdout
+            sys.stderr.write("No bzr repo at: %s"%self._path)
+        except bzrlib.errors.BzrCommandError as e:
+            sys.stdout = old_stdout
+            sys.stderr.write(str(e))
+        return None
 
 
     def get_status(self, basepath=None, untracked=False):
-        response=None
         if basepath == None:
             basepath = self._path
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "cd %s; bzr status %s -S"%(basepath, rel_path)
-            if not untracked:
-                command += " -V"
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
+        versioned = not untracked
+        try:
+
+            from cStringIO import StringIO
+            import sys
+            old_stdout = sys.stdout
+            # redirect stdout as the only means to get the diff
+            sys.stdout = mystdout = StringIO()
+            tree = bzrlib.workingtree.WorkingTree.open(self._path)
+            bzrlib.status.show_tree_status(tree, short=True, versioned=versioned)
+            sys.stdout = old_stdout
+            response = mystdout.getvalue()
             response_processed = ""
             for line in response.split('\n'):
                 if len(line.strip()) > 0:
                     response_processed+=line[0:4]+rel_path+'/'+line[4:]+'\n'
             response = response_processed
-        return response
-
+            return response
+        except bzrlib.errors.InvalidRevisionSpec:
+            sys.stdout = old_stdout
+            sys.stderr.write("Invalid revision: %s"%version)
+        except bzrlib.errors.NotBranchError:
+            sys.stdout = old_stdout
+            sys.stderr.write("No bzr repo at: %s"%self._path)
+        except bzrlib.errors.BzrCommandError as e:
+            sys.stdout = old_stdout
+            sys.stderr.write(str(e))
+        return None
+    
 BZRClient=BzrClient
