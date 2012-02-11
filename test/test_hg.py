@@ -121,13 +121,24 @@ class HGClientTest(HGClientTestSetups):
         client = HgClient(local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
-        self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), url)
+        self.assertEqual(client.get_version(), self.readonly_version)
 
+    def test_checkout_emptystringversion(self):
+        # special test to check that version '' means the same as None
+        from vcstools.hg import HgClient
+        directory = tempfile.mkdtemp()
+        self.directories["checkout_test"] = directory
+        local_path = os.path.join(directory, "anyvc")
+        url = self.readonly_url
+        client = HgClient(local_path)
+        self.assertTrue(client.checkout(url, ''))
+        self.assertEqual(client.get_version(), self.readonly_version)
+        
     def test_checkout_into_subdir_without_existing_parent(self): # test for #3497
         from vcstools.hg import HgClient
         directory = tempfile.mkdtemp()
@@ -136,7 +147,6 @@ class HGClientTest(HGClientTestSetups):
         url = self.readonly_url
         client = HgClient(local_path)
         self.assertFalse(client.path_exists())
-        self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())

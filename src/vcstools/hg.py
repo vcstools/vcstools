@@ -133,7 +133,7 @@ class HgClient(VcsClientBase):
         except mercurial.error.RepoError:
             return False
 
-    def checkout(self, url, version=''):
+    def checkout(self, url, version=None):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
@@ -146,7 +146,11 @@ class HgClient(VcsClientBase):
             # OSError thrown if directory already exists this is ok
             pass
         try:
-            localrepo = hg.clone(ui.ui(), url, self._path, update=version)
+            if version != None and version.strip() != '':
+                localrepo = hg.clone(ui.ui(), url, self._path, update=version)
+            else:
+                # providing update=None means revision 0!
+                localrepo = hg.clone(ui.ui(), url, self._path)
             return True
         except Exception as e:
             sys.stderr.write("Failed to checkout from url %s : %s\n"%(url, str(e)))
