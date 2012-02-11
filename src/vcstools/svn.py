@@ -47,26 +47,42 @@ except:
 import time
 import dateutil.parser
 import tempfile
-from .vcs_base import VcsClientBase
+from .vcs_base import VcsClientBase, VcsError
+
+
+def _get_svn_version():
+    """Looks up svn version by calling svn --version.
+
+    :raises: VcsError if svn is not installed"""
+    with open(os.devnull, 'w') as fnull:
+        try:
+            output = subprocess.Popen(['svn', '--version'],
+                                      stdout=subprocess.PIPE,
+                                      env={"LANG":"en_US.UTF-8"}).communicate()[0]
+            version = output.splitlines()[0]
+        except:
+            raise VcsError("svn not installed")
+        return version
 
 class SvnClient(VcsClientBase):
 
     def __init__(self, path):
         """
-        :raises: LookupError if python-svn not detected
+        :raises: VcsError if python-svn not detected
         """
         VcsClientBase.__init__(self, 'svn', path)
         if _pysvn_missing:
-            raise LookupError("python-svn could not be imported. Please install python-svn. On debian systems sudo apt-get install python-svn")
+            raise VcsError("python-svn could not be imported. Please install python-svn. On debian systems sudo apt-get install python-svn")
+        # test for svn here, we need it for status
+        _get_svn_version()
         self._pysvnclient = pysvn.Client()
 
     @staticmethod
     def get_environment_metadata():
         metadict = {}
         try:
-            output = subprocess.Popen(['svn', '--version'], stdout=subprocess.PIPE, env={"LANG":"en_US.UTF-8"}).communicate()[0]
-            metadict["version"] = output.splitlines()[0]
-        except:
+            metadict["version"] = _get_svn_version()
+        except VcsError:
             metadict["version"] = "no svn installed"
         try:
             import pysvn
@@ -155,10 +171,7 @@ class SvnClient(VcsClientBase):
             command = "cd %s; svn status %s"%(basepath, rel_path)
             if not untracked:
                 command += " -q"
-            try:
-                stdout_handle = os.popen(command, "r")
-            except:
-                raise LookupError("svn not installed, cannnot create an svn vcs client")
+            stdout_handle = os.popen(command, "r")
             response = stdout_handle.read()
         return response
 

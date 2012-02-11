@@ -48,12 +48,12 @@ try:
 except:
     _yaml_missing = True
 
-from .vcs_base import VcsClientBase
+from .vcs_base import VcsClientBase, VcsError
 
 def _get_tar_version():
     """Looks up tar version by calling tar --version.
 
-    :raises: Lookup error if git is not installed or returns
+    :raises: VcsError if git is not installed or returns
     something unexpected"""
     with open(os.devnull, 'w') as fnull:
         try:
@@ -61,11 +61,11 @@ def _get_tar_version():
                                        shell = True,
                                        stdout = subprocess.PIPE).communicate()[0]
         except:
-            raise LookupError("git not installed")
+            raise VcsError("git not installed")
         if version.startswith('tar '):
             version = version[len('tar '):].strip()
         else:
-            raise LookupError("tar --version returned invalid string: '%s'"%version)
+            raise VcsError("tar --version returned invalid string: '%s'"%version)
         return version
 
 class TarClient(VcsClientBase):
@@ -85,7 +85,7 @@ class TarClient(VcsClientBase):
         metadict = {}
         try:
             version = _get_tar_version()
-        except LookupError as e:
+        except VcsError as e:
             version = "No tar installed"
         metadict["version"] = version
         return metadict

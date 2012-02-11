@@ -55,7 +55,7 @@ import base64
 import sys
 from distutils.version import LooseVersion
 
-from .vcs_base import VcsClientBase
+from .vcs_base import VcsClientBase, VcsError
 
 def _get_git_version():
     """Looks up git version by calling git --version.
@@ -68,17 +68,17 @@ def _get_git_version():
                                        shell = True,
                                        stdout = subprocess.PIPE).communicate()[0]
         except:
-            raise LookupError("git not installed")
+            raise VcsError("git not installed")
         if version.startswith('git version '):
             version = version[len('git version '):].strip()
         else:
-            raise LookupError("git --version returned invalid string: '%s'"%version)
+            raise VcsError("git --version returned invalid string: '%s'"%version)
         return version
 
 class GitClient(VcsClientBase):
     def __init__(self, path):
         """
-        :raises: LookupError if git not detected
+        :raises: VcsError if git not detected
         """
         VcsClientBase.__init__(self, 'git', path)
         self.gitversion = _get_git_version()
@@ -91,7 +91,7 @@ class GitClient(VcsClientBase):
             resetkeep =  LooseVersion(version) >= LooseVersion('1.7.1')
             submodules = LooseVersion(version) > LooseVersion('1.7')
             metadict["features"] = "'reset --keep': %s, submodules: %s"%(resetkeep, submodules)
-        except LookupError as e:
+        except VcsError as e:
             version = "No git installed"
         metadict["version"] = version
         return metadict
@@ -464,4 +464,5 @@ class GitClient(VcsClientBase):
             return False
         return True
 
+    
 GITClient=GitClient

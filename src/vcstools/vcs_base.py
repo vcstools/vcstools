@@ -32,14 +32,25 @@
 #
 """
 vcs support library base class.
-
-New in ROS C-Turtle.
 """
 import os
 
+class VcsError(Exception):
+    """To be thrown when an SCM Client faces a situation because of a
+    violated assumption"""
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+
 class VcsClientBase:
 
+    
     def __init__(self, vcs_type_name, path):
+        """
+        subclasses may raise VcsError when a dependency is missing
+        """
         self._path = path
         self._vcs_type_name = vcs_type_name
 

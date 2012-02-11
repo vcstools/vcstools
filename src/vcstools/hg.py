@@ -48,7 +48,7 @@ except:
     _mercurial_missing = True
     pass
     
-from .vcs_base import VcsClientBase
+from .vcs_base import VcsClientBase, VcsError
 
 #hg diff cannot seem to be persuaded to accept a different prefix for filenames
 def _hg_diff_path_change(diff, path):
@@ -97,11 +97,11 @@ class HgClient(VcsClientBase):
         
     def __init__(self, path):
         """
-        :raises: LookupError if hg not detected
+        :raises: VcsError if hg not detected
         """
         VcsClientBase.__init__(self, 'hg', path)
         if _mercurial_missing:
-            raise LookupError("Mercurial libs could not be imported. Please install mercurial. On debian systems sudo apt-get install mercurial")
+            raise VcsError("Mercurial libs could not be imported. Please install mercurial. On debian systems sudo apt-get install mercurial")
 
     @staticmethod
     def get_environment_metadata():

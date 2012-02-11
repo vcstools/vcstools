@@ -59,16 +59,16 @@ except:
     _bzr_missing = True
     pass
 
-from  .vcs_base import VcsClientBase
+from  .vcs_base import VcsClientBase, VcsError
 
 class BzrClient(VcsClientBase):
     def __init__(self, path):
         """
-        :raises: LookupError if bzr not detected
+        :raises: VcsError if bzr not detected
         """
         VcsClientBase.__init__(self, 'bzr', path)
         if _bzr_missing:
-            raise LookupError("Bazaar libs could not be imported. Please install bazaar. On debian systems sudo apt-get install bzr")
+            raise VcsError("Bazaar libs could not be imported. Please install bazaar. On debian systems sudo apt-get install bzr")
         # required for any run_bzr command!
         bzrlib.commands.install_bzr_command_hooks()
 
