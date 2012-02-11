@@ -71,6 +71,9 @@ class BzrClient(VcsClientBase):
             raise VcsError("Bazaar libs could not be imported. Please install bazaar. On debian systems sudo apt-get install bzr")
         # required for any run_bzr command!
         bzrlib.commands.install_bzr_command_hooks()
+        # required with bzr 2.3.4 as workaround for some quirk
+        # https://bugs.launchpad.net/bzr/+bug/930511
+        bzrlib.commands.all_command_names()
 
     @staticmethod
     def get_environment_metadata():
