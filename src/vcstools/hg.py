@@ -89,7 +89,8 @@ class HackedHgUI():
         self.output = ''
         ui.write = self.write
 
-    def write(self, output):
+    def write(self, output, label = None):
+        # label param required for later mercurial versions
         self.output += output
 
         
