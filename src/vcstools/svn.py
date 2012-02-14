@@ -50,20 +50,6 @@ import tempfile
 from .vcs_base import VcsClientBase, VcsError
 
 
-def _get_svn_version():
-    """Looks up svn version by calling svn --version.
-
-    :raises: VcsError if svn is not installed"""
-    with open(os.devnull, 'w') as fnull:
-        try:
-            output = subprocess.Popen(['svn', '--version'],
-                                      stdout=subprocess.PIPE,
-                                      env={"LANG":"en_US.UTF-8"}).communicate()[0]
-            version = output.splitlines()[0]
-        except:
-            raise VcsError("svn not installed")
-        return version
-
 class SvnClient(VcsClientBase):
 
     def __init__(self, path):
@@ -74,14 +60,20 @@ class SvnClient(VcsClientBase):
         if _pysvn_missing:
             raise VcsError("python-svn could not be imported. Please install python-svn. On debian systems sudo apt-get install python-svn")
         # test for svn here, we need it for status
-        _get_svn_version()
+        try:
+            # SVN commands produce differently formatted output for french locale
+            subprocess.Popen(['svn', '--version'],
+                             stdout=subprocess.PIPE,
+                             env={"LANG":"en_US.UTF-8"}).communicate()[0]
+        except:
+            raise VcsError("svn not installed")
         self._pysvnclient = pysvn.Client()
 
     @staticmethod
     def get_environment_metadata():
         metadict = {}
         try:
-            metadict["version"] = _get_svn_version()
+            metadict["version"] = "svn: %s"%str(pysvn.svn_api_version)
         except VcsError:
             metadict["version"] = "no svn installed"
         try:

@@ -55,24 +55,23 @@ def _get_tar_version():
 
     :raises: VcsError if git is not installed or returns
     something unexpected"""
-    with open(os.devnull, 'w') as fnull:
-        try:
-            version = subprocess.Popen(['tar --version'],
-                                       shell = True,
-                                       stdout = subprocess.PIPE).communicate()[0]
-        except:
-            raise VcsError("git not installed")
-        if version.startswith('tar '):
-            version = version[len('tar '):].strip()
-        else:
-            raise VcsError("tar --version returned invalid string: '%s'"%version)
-        return version
+    try:
+        version = subprocess.Popen(['tar --version'],
+                                   shell = True,
+                                   stdout = subprocess.PIPE).communicate()[0]
+    except:
+        raise VcsError("git not installed")
+    if version.startswith('tar '):
+        version = version[len('tar '):].strip()
+    else:
+        raise VcsError("tar --version returned invalid string: '%s'"%version)
+    return version
 
 class TarClient(VcsClientBase):
 
     def __init__(self, path):
         """
-        @raise KeyError if tar not detected
+        @raise VcsError if tar not detected
         """
         VcsClientBase.__init__(self, 'tar', path)
         self.metadata_path = os.path.join(self._path, ".tar")

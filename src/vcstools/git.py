@@ -62,18 +62,17 @@ def _get_git_version():
 
     :raises: Lookup error if git is not installed or returns
     something unexpected"""
-    with open(os.devnull, 'w') as fnull:
-        try:
-            version = subprocess.Popen(['git --version'],
-                                       shell = True,
-                                       stdout = subprocess.PIPE).communicate()[0]
-        except:
-            raise VcsError("git not installed")
-        if version.startswith('git version '):
-            version = version[len('git version '):].strip()
-        else:
-            raise VcsError("git --version returned invalid string: '%s'"%version)
-        return version
+    try:
+        version = subprocess.Popen(['git --version'],
+                                   shell = True,
+                                   stdout = subprocess.PIPE).communicate()[0]
+    except:
+        raise VcsError("git not installed")
+    if version.startswith('git version '):
+        version = version[len('git version '):].strip()
+    else:
+        raise VcsError("git --version returned invalid string: '%s'"%version)
+    return version
 
 class GitClient(VcsClientBase):
     def __init__(self, path):
