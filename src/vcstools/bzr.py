@@ -83,7 +83,7 @@ class BzrClient(VcsClientBase):
         metadict = {}
         try:
             import bzrlib
-            metadict["version"] = 'bzr:%s'%str(bzrlib.version_string)
+            metadict["version"] = '%s'%str(bzrlib.version_string)
         except:
             metadict["version"] = "no bzr installed"
         return metadict

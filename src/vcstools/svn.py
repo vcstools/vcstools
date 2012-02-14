@@ -74,12 +74,12 @@ class SvnClient(VcsClientBase):
         metadict = {}
         try:
             import pysvn
-            metadict["version"] = "svn: %s"%str(pysvn.svn_api_version)
+            metadict["version"] = '.'.join([str(x) for x in pysvn.svn_api_version])
         except VcsError:
             metadict["version"] = "no svn installed"
         try:
             import pysvn
-            metadict["dependency"] = 'pysvn:%s'%str(pysvn.version)
+            metadict["dependency"] = 'pysvn: %s'%('.'.join([str(x) for x in pysvn.version]))
         except:
             metadict["dependency"] = "no pysvn installed"
         return metadict

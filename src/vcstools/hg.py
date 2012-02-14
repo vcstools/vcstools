@@ -108,7 +108,7 @@ class HgClient(VcsClientBase):
         metadict = {}
         try:
             import mercurial.util
-            metadict["version"] = 'mercurial:%s'%str(mercurial.util.version())
+            metadict["version"] = '%s'%str(mercurial.util.version())
         except:
             metadict["version"] = "no mercurial installed"
         return metadict
