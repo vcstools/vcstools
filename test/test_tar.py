@@ -38,6 +38,8 @@ import unittest
 import tempfile
 import shutil
 
+from vcstools.tar import TarClient
+
 class TarClientTest(unittest.TestCase):
 
     def setUp(self):
@@ -45,40 +47,37 @@ class TarClientTest(unittest.TestCase):
 
     def tearDown(self):
         for d in self.directories:
+            self.assertTrue(os.path.exists(self.directories[d]))
             shutil.rmtree(self.directories[d])
+            self.assertFalse(os.path.exists(self.directories[d]))
 
     def test_get_url_by_reading(self):
-        from vcstools.tar import TarClient
-
         directory = tempfile.mkdtemp()
-        self.directories['readonly'] = directory
+        self.directories['local'] = directory
 
-        readonly_url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
-        readonly_version = "exploration-0.3.0"
-        readonly_path = os.path.join(directory, "readonly")
+        remote_url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
+        local_version = "exploration-0.3.0"
+        local_path = os.path.join(directory, "local")
 
-        client = TarClient(readonly_path)
-        self.assertTrue(client.checkout(readonly_url, readonly_version))
+        client = TarClient(local_path)
+        self.assertTrue(client.checkout(remote_url, local_version))
         
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_url(), readonly_url)
-        #self.assertEqual(client.get_version(), readonly_version)
+        self.assertEqual(client.get_url(), remote_url)
+        #self.assertEqual(client.get_version(), local_version)
 
     def test_get_url_nonexistant(self):
-        from vcstools.tar import TarClient
         local_path = "/tmp/dummy"
         client = TarClient(local_path)
         self.assertEqual(client.get_url(), None)
 
     def test_get_type_name(self):
-        from vcstools.tar import TarClient
         local_path = "/tmp/dummy"
         client = TarClient(local_path)
         self.assertEqual(client.get_vcs_type_name(), 'tar')
 
     def test_checkout(self):
-        from vcstools.tar import TarClient
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
         local_path = os.path.join(directory, "exploration")
@@ -92,7 +91,3 @@ class TarClientTest(unittest.TestCase):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), url)
-
-        #self.assertEqual(client.get_version(), '-r*')
-        shutil.rmtree(directory)
-        self.directories.pop("checkout_test")
