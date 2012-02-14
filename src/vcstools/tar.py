@@ -126,12 +126,13 @@ class TarClient(VcsClientBase):
                 metadata = yaml.dump({'url': url, 'version':version})
                 with open(self.metadata_path, 'w') as md:
                     md.write(metadata)
-                shutil.rmtree(tempdir)
+                if os.path.exists(tempdir):
+                    shutil.rmtree(tempdir)
                 return True
             else:
                 sys.stderr.write("failed to extract")
             
-            shutil.rmtree(os.shutil.rmtree(tempdir))
+            shutil.rmtree(tempdir)
         except Exception as e:
             sys.stderr.write("Tarball download unpack failed%s\n"%str(e))
             return False
