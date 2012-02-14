@@ -45,7 +45,12 @@ except:
     _pysvn_missing = True
 
 import time
-import dateutil.parser
+_dateutil_missing = False
+try:
+    import dateutil.parser
+except:
+    _dateutil_missing = True
+    
 import tempfile
 from .vcs_base import VcsClientBase, VcsError
 
@@ -82,6 +87,7 @@ class SvnClient(VcsClientBase):
             metadict["dependency"] = 'pysvn: %s'%('.'.join([str(x) for x in pysvn.version]))
         except:
             metadict["dependency"] = "no pysvn installed"
+        metadict["features"] = "dateutil: %s"%(_dateutil_missing)
         return metadict
 
     def get_url(self):
@@ -196,8 +202,12 @@ class SvnClient(VcsClientBase):
                 revision=pysvn.Revision(pysvn.opt_revision_kind.previous)
             elif '{' in version and '}' in version:
                 try:
-                    # dateutil parser can cope with "{}"
-                    date=dateutil.parser.parse(version)
+                    if _dateutil_missing:
+                        raise VcsError("vcstools without dateutils library unable to handle revisions by date")
+                    else:
+                        # dateutil parser can cope with "{}"
+                        date=dateutil.parser.parse(version)
+                        revision=pysvn.Revision(pysvn.opt_revision_kind.date, date)
                 except ValueError:
                     raise ValueError("%s is not a valid ISO time:"%version)
             else:
