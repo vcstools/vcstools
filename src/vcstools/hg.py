@@ -46,7 +46,6 @@ try:
     from mercurial import ui, hg, commands
 except:
     _mercurial_missing = True
-    pass
     
 from .vcs_base import VcsClientBase, VcsError
 

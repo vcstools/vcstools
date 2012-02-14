@@ -208,7 +208,6 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
         # using fnmatch because date and time change (remove when bzr reaches diff --format)
         diff=client.get_diff()
         self.assertTrue(diff is not None)
-        print diff
         self.assertTrue(fnmatch.fnmatch(diff,"=== added file 'added.txt'\n--- ./added.txt\t????-??-?? ??:??:?? +0000\n+++ ./added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- ./modified.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n"))
 
     def test_diff_relpath(self):

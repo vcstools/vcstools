@@ -200,9 +200,6 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-
-        print 'Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n'
-        print client.get_diff(basepath=os.path.dirname(self.local_path))
         
         self.assertEqualDiffs('Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n', client.get_diff(basepath=os.path.dirname(self.local_path)))
 

@@ -57,7 +57,6 @@ try:
     import bzrlib.workingtree
 except:
     _bzr_missing = True
-    pass
 from distutils.version import LooseVersion
 
 from  .vcs_base import VcsClientBase, VcsError
@@ -97,8 +96,9 @@ class BzrClient(VcsClientBase):
             branch = bzrlib.workingtree.WorkingTree.open(self._path).branch
             parent = str(branch.get_parent())
             if parent is not None and parent.strip() != '':
-                if parent.startswith('file://'):
-                    parent = parent[len('file://'):]
+                prefix = 'file://'
+                if parent.startswith(prefix):
+                    parent = parent[len(prefix):]
                 return str(parent.rstrip('/'))
         except bzrlib.errors.NotBranchError as e:
             sys.stderr.write("No bzr branch at %s : %s\n"%(self._path, str(e)))

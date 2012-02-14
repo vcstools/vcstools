@@ -60,7 +60,7 @@ from .vcs_base import VcsClientBase, VcsError
 def _get_git_version():
     """Looks up git version by calling git --version.
 
-    :raises: Lookup error if git is not installed or returns
+    :raises: VcsError if git is not installed or returns
     something unexpected"""
     try:
         version = subprocess.Popen(['git --version'],
@@ -68,8 +68,9 @@ def _get_git_version():
                                    stdout = subprocess.PIPE).communicate()[0]
     except:
         raise VcsError("git not installed")
-    if version.startswith('git version '):
-        version = version[len('git version '):].strip()
+    prefix = 'git version '
+    if version.startswith(prefix):
+        version = version[len(prefix):].strip()
     else:
         raise VcsError("git --version returned invalid string: '%s'"%version)
     return version
