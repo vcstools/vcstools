@@ -39,10 +39,12 @@ using ui object to redirect output into a string
 import os
 import sys
 import string
+from distutils.version import LooseVersion
 
 _mercurial_missing = False
 try:
     import mercurial
+    import mercurial.util
     from mercurial import ui, hg, commands
 except:
     _mercurial_missing = True
@@ -120,7 +122,7 @@ class HgClient(VcsClientBase):
         r =  self._get_hg_repo(self._path)
         if r is None:
             return None
-        r = hg.repository(ui=ui.ui(), path=self._path)
+        r = hg.repository(ui = ui.ui(), path = self._path)
         for name, path in r.ui.configitems("paths"):
             if name == 'default':
                 return path
@@ -128,7 +130,7 @@ class HgClient(VcsClientBase):
 
     def detect_presence(self):
         try:
-            hg.repository(ui=ui.ui(), path=self._path)
+            hg.repository(ui = ui.ui(), path = self._path)
             return True
         except mercurial.error.RepoError:
             return False
@@ -146,14 +148,25 @@ class HgClient(VcsClientBase):
             # OSError thrown if directory already exists this is ok
             pass
         try:
-            if version != None and version.strip() != '':
-                localrepo = hg.clone(ui.ui(), url, self._path, update=version)
+            if version == None or version.strip() == '':
+                version = True # means default
+            if LooseVersion(mercurial.util.version()) >= LooseVersion("1.9"):
+                hg.clone(ui = ui.ui(),
+                         peeropts = {}, # new in 1.9
+                         source = url,
+                         dest = self._path,
+                         update = version)
             else:
-                # providing update=None means revision 0!
-                localrepo = hg.clone(ui.ui(), url, self._path)
+                hg.clone(ui = ui.ui(),
+                         source = url,
+                         dest = self._path,
+                         update = version)
             return True
+        except mercurial.error.RepoError as e:
+            sys.stderr.write("RepoError during checkout version %s from %s : %s\n"%(str(version), url, str(e)))
+            return False
         except Exception as e:
-            sys.stderr.write("Failed to checkout from url %s : %s\n"%(url, str(e)))
+            sys.stderr.write("Failed to checkout version %s from url %s : %s\n"%(str(version), url, str(e)))
             return False
 
     def update(self, version=None):
@@ -161,9 +174,12 @@ class HgClient(VcsClientBase):
             r =  self._get_hg_repo(self._path)
             if r is None:
                 return None
-            commands.pull(r.ui, r)
-            hg.update(r, version)
+            commands.pull(ui = r.ui, repo = r)
+            hg.update(repo = r, node = version)
             return True
+        except mercurial.error.RepoError as e:
+            sys.stderr.write("RepoError during pull/update : %s\n"%str(e))
+            return False
         except Exception as e:
             sys.stderr.write("Failed to pull/update : %s\n"%str(e))
             return False
@@ -182,7 +198,7 @@ class HgClient(VcsClientBase):
         if r is None:
             return None
         fakeui = HackedHgUI(r.ui)
-        commands.identify(r.ui, r, rev=spec)
+        commands.identify(ui = r.ui, repo = r, rev=spec)
         result = fakeui.output
         shaid = result.splitlines()[0].split()[0].rstrip('+')
         return shaid
@@ -197,7 +213,7 @@ class HgClient(VcsClientBase):
         if r is None:
             return None
         fakeui = HackedHgUI(r.ui)
-        commands.diff(r.ui, r, git=True)
+        commands.diff(ui = r.ui, repo = r, git = True)
         response = fakeui.output
         if response is not None and response.strip() == '':
             response = None
@@ -216,10 +232,13 @@ class HgClient(VcsClientBase):
             if r is None:
                 return None
             fakeui = HackedHgUI(r.ui)
-            commands.status(r.ui, r, git=True,modified=not untracked,
-                added=not untracked,
-                removed=not untracked,
-                deleted=not untracked)
+            commands.status(ui = r.ui,
+                            repo = r,
+                            git = True,
+                            modified = not untracked,
+                            added=not untracked,
+                            removed=not untracked,
+                            deleted=not untracked)
             response = fakeui.output
             response_processed = ""
             rel_path = self._normalized_rel_path(self._path, basepath)
@@ -235,7 +254,7 @@ class HgClient(VcsClientBase):
 
     def _get_hg_repo(self, path):
         try:
-            return hg.repository(ui=ui.ui(), path=path)
+            return hg.repository(ui = ui.ui(), path = path)
         except mercurial.error.RepoError:            
             sys.stderr.write("No hg repo at : %s\n"%self._path)
             return None
