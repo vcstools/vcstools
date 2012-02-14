@@ -1,7 +1,7 @@
 .PHONY: all setup clean_dist distro clean install dsc source_deb upload
 
 NAME=vcstools
-VERSION=0.1.4
+VERSION=0.1.5
 
 all:
 	echo "noop for debbuild"
