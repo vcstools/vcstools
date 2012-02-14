@@ -73,6 +73,7 @@ class SvnClient(VcsClientBase):
     def get_environment_metadata():
         metadict = {}
         try:
+            import pysvn
             metadict["version"] = "svn: %s"%str(pysvn.svn_api_version)
         except VcsError:
             metadict["version"] = "no svn installed"
