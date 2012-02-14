@@ -266,7 +266,6 @@ class GitClientTest(GitClientTestSetups):
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def setUp(self):
-        GitClientTestSetups.setUpClass()
         from vcstools.git import GitClient
         client = GitClient(self.local_path)
         client.checkout(self.remote_path)
