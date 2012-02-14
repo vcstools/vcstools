@@ -62,7 +62,7 @@ def _get_tar_version():
     except:
         raise VcsError("git not installed")
     if version.startswith('tar '):
-        version = version[len('tar '):].strip()
+        version = version.splitlines()[0][len('tar '):].strip()
     else:
         raise VcsError("tar --version returned invalid string: '%s'"%version)
     return version
