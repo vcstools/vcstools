@@ -152,8 +152,8 @@ class SvnClient(VcsClientBase):
             try:
                 # first argument to diff is a writable path for temp files
                 response = self._pysvnclient.diff(tempfile.gettempdir(),
-                                              self._path,
-                                              relative_to_dir = basepath)
+                                              os.path.realpath(self._path),
+                                              relative_to_dir = os.path.realpath(basepath))
             except pysvn.ClientError as e:
                 sys.stderr.write("Failed to svn diff : %s\n"%str(e))
         return response

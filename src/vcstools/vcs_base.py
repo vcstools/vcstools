@@ -51,7 +51,7 @@ class VcsClientBase:
         """
         subclasses may raise VcsError when a dependency is missing
         """
-        self._path = os.path.realpath(path)
+        self._path = path
         self._vcs_type_name = vcs_type_name
 
     @staticmethod
