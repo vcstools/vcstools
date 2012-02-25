@@ -48,7 +48,10 @@ class VcsClient(object):
 
     def __init__(self, vcs_type, path):
         self._path = path
-        self.vcs = get_vcs(vcs_type)(path)
+        clientclass = get_vcs(vcs_type)
+        if clientclass is None:
+            raise LookupException("No Vcs client registered for type %s"%vcs_type)
+        self.vcs = clientclass(path)
     
     def path_exists(self):
         return os.path.exists(self._path)
