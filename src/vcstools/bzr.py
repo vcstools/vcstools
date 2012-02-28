@@ -181,30 +181,31 @@ class BzrClient(VcsClientBase):
     def get_diff(self, basepath=None):
         if basepath == None:
             basepath = self._path
+        argv=['diff', self._path]
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
+            argv.extend(['-p1', '--prefix', "%s/:%s/"%(rel_path,rel_path)])
 
-        argv=['diff', self._path, '-p1', '--prefix', "%s/:%s/"%(rel_path,rel_path)]
-        try:
-            from cStringIO import StringIO
-            import sys
-            old_stdout = sys.stdout
-            # redirect stdout as the only means to get the diff
-            sys.stdout = mystdout = StringIO()
-            status = bzrlib.commands.run_bzr(argv)
-            sys.stdout = old_stdout
-            # for some reason, this returns always 1
-            if status == 1:
-                return mystdout.getvalue()
-        except bzrlib.errors.InvalidRevisionSpec:
-            sys.stdout = old_stdout
-            sys.stderr.write("Invalid revision: %s"%version)
-        except bzrlib.errors.NotBranchError:
-            sys.stdout = old_stdout
-            sys.stderr.write("No bzr repo at: %s"%self._path)
-        except bzrlib.errors.BzrCommandError as e:
-            sys.stdout = old_stdout
-            sys.stderr.write(str(e))
+            try:
+                from cStringIO import StringIO
+                import sys
+                old_stdout = sys.stdout
+                # redirect stdout as the only means to get the diff
+                sys.stdout = mystdout = StringIO()
+                status = bzrlib.commands.run_bzr(argv)
+                sys.stdout = old_stdout
+                # for some reason, this returns always 1
+                if status == 1:
+                    return mystdout.getvalue()
+            except bzrlib.errors.InvalidRevisionSpec:
+                sys.stdout = old_stdout
+                sys.stderr.write("Invalid revision: %s"%version)
+            except bzrlib.errors.NotBranchError:
+                sys.stdout = old_stdout
+                sys.stderr.write("No bzr repo at: %s"%self._path)
+            except bzrlib.errors.BzrCommandError as e:
+                sys.stdout = old_stdout
+                sys.stderr.write(str(e))
         return None
 
 
@@ -213,33 +214,33 @@ class BzrClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
-        versioned = not untracked
-        try:
-
-            from cStringIO import StringIO
-            import sys
-            old_stdout = sys.stdout
-            # redirect stdout as the only means to get the diff
-            sys.stdout = mystdout = StringIO()
-            tree = bzrlib.workingtree.WorkingTree.open(self._path)
-            bzrlib.status.show_tree_status(tree, short=True, versioned=versioned)
-            sys.stdout = old_stdout
-            response = mystdout.getvalue()
-            response_processed = ""
-            for line in response.split('\n'):
-                if len(line.strip()) > 0:
-                    response_processed+=line[0:4]+rel_path+'/'+line[4:]+'\n'
-            response = response_processed
-            return response
-        except bzrlib.errors.InvalidRevisionSpec:
-            sys.stdout = old_stdout
-            sys.stderr.write("Invalid revision: %s"%version)
-        except bzrlib.errors.NotBranchError:
-            sys.stdout = old_stdout
-            sys.stderr.write("No bzr repo at: %s"%self._path)
-        except bzrlib.errors.BzrCommandError as e:
-            sys.stdout = old_stdout
-            sys.stderr.write(str(e))
-        return None
+            versioned = not untracked
+            try:
+    
+                from cStringIO import StringIO
+                import sys
+                old_stdout = sys.stdout
+                # redirect stdout as the only means to get the diff
+                sys.stdout = mystdout = StringIO()
+                tree = bzrlib.workingtree.WorkingTree.open(self._path)
+                bzrlib.status.show_tree_status(tree, short=True, versioned=versioned)
+                sys.stdout = old_stdout
+                response = mystdout.getvalue()
+                response_processed = ""
+                for line in response.split('\n'):
+                    if len(line.strip()) > 0:
+                        response_processed+=line[0:4]+rel_path+'/'+line[4:]+'\n'
+                response = response_processed
+                return response
+            except bzrlib.errors.InvalidRevisionSpec:
+                sys.stdout = old_stdout
+                sys.stderr.write("Invalid revision: %s"%version)
+            except bzrlib.errors.NotBranchError:
+                sys.stdout = old_stdout
+                sys.stderr.write("No bzr repo at: %s"%self._path)
+            except bzrlib.errors.BzrCommandError as e:
+                sys.stdout = old_stdout
+                sys.stderr.write(str(e))
+            return None
     
 BZRClient=BzrClient
