@@ -63,7 +63,7 @@ def _get_git_version():
     :raises: VcsError if git is not installed or returns
     something unexpected"""
     try:
-        version = subprocess.Popen(['git --version'],
+        version = subprocess.Popen('git --version',
                                    shell = True,
                                    stdout = subprocess.PIPE).communicate()[0]
     except:
@@ -101,7 +101,7 @@ class GitClient(VcsClientBase):
         :returns: GIT URL of the directory path (output of git info command), or None if it cannot be determined
         """
         if self.detect_presence():
-            output = subprocess.Popen(["git config --get remote.origin.url"], shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen("git config --get remote.origin.url", shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
             return output.rstrip()
         return None
 
@@ -226,18 +226,15 @@ class GitClient(VcsClientBase):
             return output
 
     def get_diff(self, basepath=None):
-        response = None
+        response = ''
         if basepath == None:
             basepath = self._path
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
             # git needs special treatment as it only works from inside
             # use HEAD to also show staged changes. Maybe should be option?
-            command = "cd %s; git diff HEAD"%(self._path)
-            # change path using prefix
-            command += " --src-prefix=%s/ --dst-prefix=%s/ ."%(rel_path,rel_path)
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
+            command = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(rel_path, rel_path)
+            response = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
         if response != None and response.strip() == '':
             response = None
         return response
@@ -253,8 +250,7 @@ class GitClient(VcsClientBase):
             command = "cd %s; git status -s "%(self._path)
             if not untracked:
                 command += " -uno"
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
+            response = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             response_processed = ""
             for line in response.split('\n'):
                 if len(line.strip()) > 0:
@@ -271,7 +267,7 @@ class GitClient(VcsClientBase):
         if self.path_exists():
             if fetch and not self._do_fetch():
                 return False
-            output = subprocess.Popen(['git branch -r'], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git branch -r', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             for l in output.splitlines():
                 elem = l.split()[0]
                 rem_name = elem[:elem.find('/')]
@@ -283,7 +279,7 @@ class GitClient(VcsClientBase):
 
     def is_local_branch(self, branch_name):
         if self.path_exists():
-            output = subprocess.Popen(['git branch'], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git branch', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             for l in output.splitlines():
                 elems = l.split()
                 if len(elems) == 1:
@@ -297,7 +293,7 @@ class GitClient(VcsClientBase):
 
     def get_branch(self):
         if self.path_exists():
-            output = subprocess.Popen(['git branch'], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git branch', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             for l in output.splitlines():
                 elems = l.split()
                 if len(elems) == 2 and elems[0] == '*':
@@ -309,7 +305,7 @@ class GitClient(VcsClientBase):
         """return the name of the branch this branch tracks, if any"""
         if self.path_exists():
             # get name of configured merge ref.
-            output = subprocess.Popen(['git config --get-all branch.%s.merge'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            output = subprocess.Popen('git config --get-all branch.%s.merge'%self.get_branch(), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
             if not output:
                 return None
             lines = output.splitlines()
@@ -317,7 +313,7 @@ class GitClient(VcsClientBase):
                 print "vcstools unable to handle multiple merge references for branch %s:\n%s"%(self.get_branch(), output)
                 return None
             # get name of configured remote
-            output2 = subprocess.Popen(['git config --get-all branch.%s.remote'%self.get_branch()], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            output2 = subprocess.Popen('git config --get-all branch.%s.remote'%self.get_branch(), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
             if output2 != "origin":
                 print "vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(self.get_branch(), output2)
                 return None
@@ -349,7 +345,7 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         if self.path_exists():
-            output = subprocess.Popen(['git tag -l %s'%tag_name], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git tag -l %s'%tag_name, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             lines =  output.splitlines()
             if len(lines) == 1:
                 return True
@@ -377,7 +373,7 @@ class GitClient(VcsClientBase):
         if fetch == True:
             self._do_fetch()
         if refname != None and refname != '' and version!=None and version!='':
-            output = subprocess.Popen(['git rev-list %s ^%s --parents'%(refname, version)], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git rev-list %s ^%s --parents'%(refname, version), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             #print "revlist", refname, versionlist, output
             for line in output.splitlines():
                 # can have 1, 2 or 3 elements (commit, parent1, parent2)
@@ -401,7 +397,7 @@ class GitClient(VcsClientBase):
         """
         if version != None and version != '':
             cmd = 'git show-ref -s'
-            output = subprocess.Popen([cmd], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen(cmd, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             refs = output.splitlines()
             # git log over all refs except HEAD
             cmd = 'git log '+ " ".join(refs)
@@ -411,7 +407,7 @@ class GitClient(VcsClientBase):
             else:
                 # %H: commit hash
                 cmd += " --pretty=format:%H"
-            output = subprocess.Popen([cmd], shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen(cmd, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             count = 0
             for l in output.splitlines():
                 if l.startswith(version):

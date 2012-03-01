@@ -56,7 +56,7 @@ def _get_tar_version():
     :raises: VcsError if git is not installed or returns
     something unexpected"""
     try:
-        version = subprocess.Popen(['tar --version'],
+        version = subprocess.Popen('tar --version',
                                    shell = True,
                                    stdout = subprocess.PIPE).communicate()[0]
     except:

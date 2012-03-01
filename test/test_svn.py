@@ -51,30 +51,30 @@ class SvnClientTestSetups(unittest.TestCase):
         init_path = os.path.join(directory, "init")
         
         # create a "remote" repo
-        subprocess.check_call(["svnadmin", "create", self.remote_path], cwd=directory)
+        subprocess.check_call("svnadmin create %s"%self.remote_path, shell=True, cwd=directory)
         self.local_url = "file://localhost"+self.remote_path
         
         # create an "init" repo to populate remote repo
-        subprocess.check_call(["svn", "checkout", self.local_url, init_path], cwd=directory)
+        subprocess.check_call("svn checkout %s %s"%(self.local_url, init_path), shell=True, cwd=directory)
         
-        subprocess.check_call(["touch", "fixed.txt"], cwd=init_path)
-        subprocess.check_call(["svn", "add", "fixed.txt"], cwd=init_path)
-        subprocess.check_call(["svn", "commit", "-m", "initial"], cwd=init_path)
+        subprocess.check_call("touch fixed.txt", shell=True, cwd=init_path)
+        subprocess.check_call("svn add fixed.txt", shell=True, cwd=init_path)
+        subprocess.check_call("svn commit -m initial", shell=True, cwd=init_path)
                 
         self.local_version_init = "-r1"
         
         # files to be modified in "local" repo
-        subprocess.check_call(["touch", "modified.txt"], cwd=init_path)
-        subprocess.check_call(["touch", "modified-fs.txt"], cwd=init_path)
-        subprocess.check_call(["svn", "add", "modified.txt", "modified-fs.txt"], cwd=init_path)
-        subprocess.check_call(["svn", "commit", "-m", "initial"], cwd=init_path)
+        subprocess.check_call("touch modified.txt", shell=True, cwd=init_path)
+        subprocess.check_call("touch modified-fs.txt", shell=True, cwd=init_path)
+        subprocess.check_call("svn add modified.txt modified-fs.txt", shell=True, cwd=init_path)
+        subprocess.check_call("svn commit -m initial", shell=True, cwd=init_path)
         
         self.local_version_second = "-r2"
         
-        subprocess.check_call(["touch", "deleted.txt"], cwd=init_path)
-        subprocess.check_call(["touch", "deleted-fs.txt"], cwd=init_path)
-        subprocess.check_call(["svn", "add", "deleted.txt", "deleted-fs.txt"], cwd=init_path)
-        subprocess.check_call(["svn", "commit", "-m", "modified"], cwd=init_path)
+        subprocess.check_call("touch deleted.txt", shell=True, cwd=init_path)
+        subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=init_path)
+        subprocess.check_call("svn add deleted.txt deleted-fs.txt", shell=True, cwd=init_path)
+        subprocess.check_call("svn commit -m modified", shell=True, cwd=init_path)
         
         self.local_path = os.path.join(directory, "local")
         
@@ -150,8 +150,8 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         client = SvnClient(self.local_path)
         client.checkout(self.local_url)
         # after setting up "local" repo, change files and make some changes
-        subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.local_path)
-        subprocess.check_call(["svn", "rm", "deleted.txt"], cwd=self.local_path)
+        subprocess.check_call("rm deleted-fs.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("svn rm deleted.txt", shell=True, cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
@@ -164,7 +164,7 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
-        subprocess.check_call(["svn", "add", "added.txt"], cwd=self.local_path)
+        subprocess.check_call("svn add added.txt", shell=True, cwd=self.local_path)
 
     def tearDown(self):
         pass

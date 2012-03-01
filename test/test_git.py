@@ -55,32 +55,32 @@ class GitClientTestSetups(unittest.TestCase):
         os.makedirs(self.remote_path)
         
         # create a "remote" repo
-        subprocess.check_call(["git", "init"], cwd=self.remote_path)
-        subprocess.check_call(["touch", "fixed.txt"], cwd=self.remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.remote_path)
-        subprocess.check_call(["git", "tag", "test_tag"], cwd=self.remote_path)
+        subprocess.check_call("git init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
         # other branch
-        subprocess.check_call(["git", "branch", "test_branch"], cwd=self.remote_path)
+        subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
         
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version_init = po.stdout.read().rstrip('"').lstrip('"')
 
         # files to be modified in "local" repo
-        subprocess.check_call(["touch", "modified.txt"], cwd=self.remote_path)
-        subprocess.check_call(["touch", "modified-fs.txt"], cwd=self.remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.remote_path)
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call("touch modified.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch modified-fs.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version_second = po.stdout.read().rstrip('"').lstrip('"')
         
-        subprocess.check_call(["touch", "deleted.txt"], cwd=self.remote_path)
-        subprocess.check_call(["touch", "deleted-fs.txt"], cwd=self.remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
-        subprocess.check_call(["git", "commit", "-m", "modified"], cwd=self.remote_path)
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call("touch deleted.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m modified", shell=True, cwd=self.remote_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version = po.stdout.read().rstrip('"').lstrip('"')
-        subprocess.check_call(["git", "tag", "last_tag"], cwd=self.remote_path)
+        subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
 
 
     @classmethod
@@ -248,7 +248,7 @@ class GitClientTest(GitClientTestSetups):
         url = self.remote_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url, "master"))
-        subprocess.check_call(["git", "reset", "--hard", "test_tag"], cwd=self.local_path)
+        subprocess.check_call("git reset --hard test_tag", shell=True, cwd=self.local_path)
         self.assertTrue(client.update())
 
     def test_fast_forward_simple_ref(self):
@@ -257,9 +257,9 @@ class GitClientTest(GitClientTestSetups):
         url = self.remote_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url, "master"))
-        subprocess.check_call(["git", "reset", "--hard", "test_tag"], cwd=self.local_path)
+        subprocess.check_call("git reset --hard test_tag", shell=True, cwd=self.local_path)
         # replace "refs/head/master" with just "master"
-        subprocess.check_call(["git", "config", "--replace-all", "branch.master.merge", "master"], cwd=self.local_path)
+        subprocess.check_call("git config --replace-all branch.master.merge master", shell=True, cwd=self.local_path)
         
         self.assertTrue(client.get_branch_parent() is not None)
         
@@ -270,31 +270,31 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         client = GitClient(self.local_path)
         client.checkout(self.remote_path)
         # Create some local untracking branch
-        subprocess.check_call(["git", "checkout", "test_tag", "-b", "localbranch"], cwd=self.local_path)
-        subprocess.check_call(["touch", "local.txt"], cwd=self.local_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.local_path)
-        subprocess.check_call(["git", "commit", "-m", "my_branch"], cwd=self.local_path)
-        subprocess.check_call(["git", "tag", "my_branch_tag"], cwd=self.local_path)
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.local_path, stdout=subprocess.PIPE)
+        subprocess.check_call("git checkout test_tag -b localbranch", shell=True, cwd=self.local_path)
+        subprocess.check_call("touch local.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m my_branch", shell=True, cwd=self.local_path)
+        subprocess.check_call("git tag my_branch_tag", shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.untracked_version = po.stdout.read().rstrip('"').lstrip('"')
         
         # Go detached to create some dangling commits
-        subprocess.check_call(["git", "checkout", "test_tag"], cwd=self.local_path)
+        subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
         # create a commit only referenced by tag
-        subprocess.check_call(["touch", "tagged.txt"], cwd=self.local_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.local_path)
-        subprocess.check_call(["git", "commit", "-m", "no_branch"], cwd=self.local_path)
-        subprocess.check_call(["git", "tag", "no_br_tag"], cwd=self.local_path)
+        subprocess.check_call("touch tagged.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m no_branch", shell=True, cwd=self.local_path)
+        subprocess.check_call("git tag no_br_tag", shell=True, cwd=self.local_path)
         # create a dangling commit
-        subprocess.check_call(["touch", "dangling.txt"], cwd=self.local_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.local_path)
-        subprocess.check_call(["git", "commit", "-m", "dangling"], cwd=self.local_path)
+        subprocess.check_call("touch dangling.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m dangling", shell=True, cwd=self.local_path)
 
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.local_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.dangling_version = po.stdout.read().rstrip('"').lstrip('"')
 
         # go back to master to make head point somewhere else
-        subprocess.check_call(["git", "checkout", "master"], cwd=self.local_path)
+        subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
 
         
     def test_protect_dangling(self):
@@ -417,22 +417,22 @@ class GitDiffStatClientTest(GitClientTestSetups):
         client = GitClient(self.local_path)
         client.checkout(self.remote_path, self.readonly_version)
         # after setting up "readonly" repo, change files and make some changes
-        subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.local_path)
-        subprocess.check_call(["git", "rm", "deleted.txt"], cwd=self.local_path)
+        subprocess.check_call("rm deleted-fs.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git rm deleted.txt", shell=True, cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
         f.write(u'0123456789abcdef')
         f.close()
-        subprocess.check_call(["git", "add", "modified.txt"], cwd=self.local_path)
+        subprocess.check_call("git add modified.txt", shell=True, cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
         f.write(u'0123456789abcdef')
         f.close()
-        subprocess.check_call(["git", "add", "added.txt"], cwd=self.local_path)
+        subprocess.check_call("git add added.txt", shell=True, cwd=self.local_path)
 
     def tearDown(self):
         pass

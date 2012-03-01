@@ -62,60 +62,60 @@ class GitClientTestSetups(unittest.TestCase):
         os.makedirs(self.subsubmodule_path)
         
         # create a "remote" repo
-        subprocess.check_call(["git", "init"], cwd=self.remote_path)
-        subprocess.check_call(["touch", "fixed.txt"], cwd=self.remote_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.remote_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.remote_path)
-        subprocess.check_call(["git", "tag", "test_tag"], cwd=self.remote_path)
-        subprocess.check_call(["git", "branch", "test_branch"], cwd=self.remote_path)
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call("git init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.version_init = po.stdout.read().rstrip('"').lstrip('"')
 
         # create a submodule repo
-        subprocess.check_call(["git", "init"], cwd=self.submodule_path)
-        subprocess.check_call(["touch", "subfixed.txt"], cwd=self.submodule_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.submodule_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.submodule_path)
-        subprocess.check_call(["git", "tag", "sub_test_tag"], cwd=self.submodule_path)
+        subprocess.check_call("git init", shell=True, cwd=self.submodule_path)
+        subprocess.check_call("touch subfixed.txt", shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git commit -m initial", shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git tag sub_test_tag", shell=True, cwd=self.submodule_path)
 
         # create a subsubmodule repo
-        subprocess.check_call(["git", "init"], cwd=self.subsubmodule_path)
-        subprocess.check_call(["touch", "subsubfixed.txt"], cwd=self.subsubmodule_path)
-        subprocess.check_call(["git", "add", "*"], cwd=self.subsubmodule_path)
-        subprocess.check_call(["git", "commit", "-m", "initial"], cwd=self.subsubmodule_path)
-        subprocess.check_call(["git", "tag", "subsub_test_tag"], cwd=self.subsubmodule_path)
+        subprocess.check_call("git init", shell=True, cwd=self.subsubmodule_path)
+        subprocess.check_call("touch subsubfixed.txt", shell=True, cwd=self.subsubmodule_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.subsubmodule_path)
+        subprocess.check_call("git commit -m initial", shell=True, cwd=self.subsubmodule_path)
+        subprocess.check_call("git tag subsub_test_tag", shell=True, cwd=self.subsubmodule_path)
 
         # attach subsubmodule to submodule
-        subprocess.check_call(["git", "submodule", "add", self.subsubmodule_path, "subsubmodule"], cwd=self.submodule_path)
-        subprocess.check_call(["git", "submodule", "init"], cwd=self.submodule_path)
-        subprocess.check_call(["git", "submodule", "update"], cwd=self.submodule_path)
-        subprocess.check_call(["git", "commit", "-m", "subsubmodule"], cwd=self.submodule_path)
+        subprocess.check_call("git submodule add %s %s"%(self.subsubmodule_path, "subsubmodule"), shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git commit -m subsubmodule", shell=True, cwd=self.submodule_path)
 
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.subsubmodule_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.subsubmodule_path, stdout=subprocess.PIPE)
         self.subsubversion_final = po.stdout.read().rstrip('"').lstrip('"')
 
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.submodule_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.submodule_path, stdout=subprocess.PIPE)
         self.subversion_final = po.stdout.read().rstrip('"').lstrip('"')
 
         # attach submodule to remote
-        subprocess.check_call(["git", "submodule", "add", self.submodule_path, "submodule"], cwd=self.remote_path)
-        subprocess.check_call(["git", "submodule", "init"], cwd=self.remote_path)
-        subprocess.check_call(["git", "submodule", "update"], cwd=self.remote_path)
-        subprocess.check_call(["git", "commit", "-m", "submodule"], cwd=self.remote_path)
+        subprocess.check_call("git submodule add %s %s"%(self.submodule_path, "submodule"), shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
 
-        po = subprocess.Popen(["git", "log", "-n", "1", "--pretty=format:\"%H\""], cwd=self.remote_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.version_final = po.stdout.read().rstrip('"').lstrip('"')
-        subprocess.check_call(["git", "tag", "last_tag"], cwd=self.remote_path)
+        subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
 
         # attach submodule somewhere else in test_branch
-        subprocess.check_call(["git", "checkout", "test_branch"], cwd=self.remote_path)
-        subprocess.check_call(["git", "submodule", "add", self.submodule_path, "submodule2"], cwd=self.remote_path)
-        subprocess.check_call(["git", "submodule", "init"], cwd=self.remote_path)
-        subprocess.check_call(["git", "submodule", "update"], cwd=self.remote_path)
-        subprocess.check_call(["git", "commit", "-m", "submodule"], cwd=self.remote_path)
+        subprocess.check_call("git checkout test_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule add %s %s"%(self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
 
         # go back to master else clients will checkout test_branch
-        subprocess.check_call(["git", "checkout", "master"], cwd=self.remote_path)
+        subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
         
     @classmethod
     def tearDownClass(self):

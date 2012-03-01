@@ -67,7 +67,8 @@ class SvnClient(VcsClientBase):
         # test for svn here, we need it for status
         try:
             # SVN commands produce differently formatted output for french locale
-            subprocess.Popen(['svn', '--version'],
+            subprocess.Popen('svn --version',
+                             shell=True,
                              stdout=subprocess.PIPE,
                              env={"LANG":"en_US.UTF-8"}).communicate()[0]
         except:
@@ -167,11 +168,10 @@ class SvnClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "cd %s; svn status %s"%(basepath, rel_path)
+            command = "svn status %s"%rel_path
             if not untracked:
                 command += " -q"
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
+            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
         return response
 
     def _get_info_dict(self, path, show_error=True):
