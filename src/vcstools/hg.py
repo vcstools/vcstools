@@ -169,11 +169,13 @@ class HgClient(VcsClientBase):
             sys.stderr.write("Failed to checkout version %s from url %s : %s\n"%(str(version), url, str(e)))
             return False
 
-    def update(self, version=None):
+    def update(self, version = None):
         try:
             r =  self._get_hg_repo(self._path)
             if r is None:
                 return None
+            if version != None and version.strip() == '':
+                version = None
             commands.pull(ui = r.ui, repo = r)
             hg.update(repo = r, node = version)
             return True

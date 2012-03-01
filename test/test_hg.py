@@ -163,6 +163,15 @@ class HGClientTest(HGClientTestSetups):
         new_version = self.local_version_second
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), new_version)
+
+        self.assertTrue(client.update())
+        self.assertEqual(client.get_version(), self.local_version)
+
+        self.assertTrue(client.update(new_version))
+        self.assertEqual(client.get_version(), new_version)
+
+        self.assertTrue(client.update(''))
+        self.assertEqual(client.get_version(), self.local_version)
        
 
 class HGDiffStatClientTest(HGClientTestSetups):
