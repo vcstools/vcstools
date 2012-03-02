@@ -34,6 +34,7 @@
 svn vcs support.
 """
 
+import shlex
 import os
 import sys
 import subprocess
@@ -168,7 +169,11 @@ class SvnClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "svn status %s"%rel_path
+            # protect against shell injection
+            safe_arg = '\"%s\"'%rel_path
+            if len(shlex.split(safe_arg)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%rel_path)
+            command = 'svn status %s'%safe_arg
             if not untracked:
                 command += " -q"
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
