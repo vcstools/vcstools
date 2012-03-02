@@ -163,6 +163,8 @@ class VcsClientBase:
         :returns: a normalized relative path
         """
         # gracefully ignore invalid input absolute path + no basepath
+        if path is None:
+            return basepath
         if os.path.isabs(path) and basepath is not None:
             return os.path.normpath(os.path.relpath(path, basepath))
         return os.path.normpath(path)
