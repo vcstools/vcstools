@@ -123,7 +123,7 @@ class SvnClient(VcsClientBase):
             return False
         if result.number == -1:
             # pysvn's way of telling us something is odd, e.g. there is no svn repo
-            sys.stderr.write("Failed to update, maybe no repo at %s : %s\n"%(self._path, str(e)))
+            sys.stderr.write("Failed to update, maybe no repo at %s : %s\n"%(self._path, result.number))
             return False
         return True
 
