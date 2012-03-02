@@ -34,6 +34,8 @@
 hg vcs support.
 
 using ui object to redirect output into a string
+
+Note that the mercurial API as of 1.4.2 proved to be non-thread safe with certain officially supported extentions enabled.
 """
 
 import os
