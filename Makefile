@@ -1,15 +1,15 @@
 .PHONY: all setup clean_dist distro clean install dsc source_deb upload
 
 NAME=vcstools
-VERSION=0.1.6
+VERSION=0.1.7
 
 all:
 	echo "noop for debbuild"
 
 setup:
-	echo "confirming version numbers are all consistent"
-	grep ${VERSION} setup.py
-	echo "building version ${VERSION}"
+	@echo "Confirming version numbers are all consistently taged with ${VERSION}"
+	@grep ${VERSION} setup.py 1> /dev/null
+	@echo "Confirmed: all files reference version ${VERSION}"
 
 clean_dist:
 	-rm -f MANIFEST
