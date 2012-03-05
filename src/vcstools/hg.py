@@ -46,17 +46,16 @@ from .vcs_base import VcsClientBase, VcsError
 
 
 def _get_hg_version():
-    """Looks up svn version by calling svn --version.
-    :raises: VcsError if svn is not installed"""
+    """Looks up hg version by calling hg --version.
+    :raises: VcsError if hg is not installed"""
     try:
-        # SVN commands produce differently formatted output for french locale
         output = subprocess.Popen('hg --version',
                                   shell = True,
                                   stdout=subprocess.PIPE,
                                   env={"LANG":"en_US.UTF-8"}).communicate()[0]
         version = output.splitlines()[0]
     except:
-        raise VcsError("svn not installed")
+        raise VcsError("hg not installed")
     return version
 
 #hg diff cannot seem to be persuaded to accept a different prefix for filenames
