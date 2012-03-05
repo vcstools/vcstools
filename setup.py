@@ -3,7 +3,6 @@ from setuptools import setup
 setup(name='vcstools',
       version= '0.1.6',
       packages=['vcstools'],
-      install_requires=['python-dateutil'],
       package_dir = {'':'src'},
       scripts = [],
       author = "Tully Foote, Thibault Kruse, Ken Conley", 

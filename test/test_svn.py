@@ -127,6 +127,20 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
 
+    def test_checkout_emptyversion(self):
+        url = self.local_url
+        client = SvnClient(self.local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, version=''))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_path(), self.local_path)
+        self.assertEqual(client.get_url(), url)
+        self.assertTrue(client.update(None))
+        self.assertTrue(client.update(""))
+
     def test_checkout_specific_version_and_update_short(self):
         "using just a number as version"
         url = self.local_url

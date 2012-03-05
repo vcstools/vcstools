@@ -39,22 +39,21 @@ import os
 import sys
 import subprocess
 
-_pysvn_missing = False
-try:
-    import pysvn
-except:
-    _pysvn_missing = True
-
-import time
-_dateutil_missing = False
-try:
-    import dateutil.parser
-except:
-    _dateutil_missing = True
-    
-import tempfile
 from .vcs_base import VcsClientBase, VcsError
 
+def _get_svn_version():
+    """Looks up svn version by calling svn --version.
+    :raises: VcsError if svn is not installed"""
+    try:
+        # SVN commands produce differently formatted output for french locale
+        output = subprocess.Popen('svn --version',
+                                  shell = True,
+                                  stdout=subprocess.PIPE,
+                                  env={"LANG":"en_US.UTF-8"}).communicate()[0]
+        version = output.splitlines()[0]
+    except:
+        raise VcsError("svn not installed")
+    return version
 
 class SvnClient(VcsClientBase):
 
@@ -63,69 +62,74 @@ class SvnClient(VcsClientBase):
         :raises: VcsError if python-svn not detected
         """
         VcsClientBase.__init__(self, 'svn', path)
-        if _pysvn_missing:
-            raise VcsError("python-svn could not be imported. Please install python-svn. On debian systems sudo apt-get install python-svn")
         # test for svn here, we need it for status
         try:
-            # SVN commands produce differently formatted output for french locale
-            subprocess.Popen('svn --version',
-                             shell=True,
-                             stdout=subprocess.PIPE,
-                             env={"LANG":"en_US.UTF-8"}).communicate()[0]
+            _get_svn_version()
         except:
             raise VcsError("svn not installed")
-        self._pysvnclient = pysvn.Client()
+
 
     @staticmethod
     def get_environment_metadata():
         metadict = {}
         try:
-            import pysvn
-            metadict["version"] = '.'.join([str(x) for x in pysvn.svn_api_version])
-        except VcsError:
-            metadict["version"] = "no svn installed"
-        try:
-            import pysvn
-            metadict["dependency"] = 'pysvn: %s'%('.'.join([str(x) for x in pysvn.version]))
+            metadict["version"] = _get_svn_version
         except:
-            metadict["dependency"] = "no pysvn installed"
-        metadict["features"] = "dateutil: %s"%(_dateutil_missing)
+            metadict["version"] = "no svn installed"
         return metadict
+
 
     def get_url(self):
         """
         :returns: SVN URL of the directory path (output of svn info command), or None if it cannot be determined
         """
-        info = self._get_info_dict(self._path)
-        if info is not None:
-            return info.data['url']
-        return None
+        if self.detect_presence():
+            #3305: parsing not robust to non-US locales
+            output = subprocess.Popen(['svn', 'info', self._path], stdout=subprocess.PIPE, env={"LANG":"en_US.UTF-8"}).communicate()[0]
+            matches = [l for l in output.splitlines() if l.startswith('URL: ')]
+            if matches:
+                return matches[0][5:]
 
     def detect_presence(self):
-        return self._get_info_dict(self._path, show_error=False) is not None
+        return self.path_exists() and os.path.isdir(os.path.join(self._path, '.svn'))
 
     def checkout(self, url, version=''):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-        try:
-            self._pysvnclient.checkout(url, self._path, self._parse_revision(version))
-        except pysvn.ClientError as e:
-            sys.stderr.write("Failed to checkout from url %s : %s\n"%(url, str(e)))
-            return False
-        return True
+        if version != None and version != '':
+            if not version.startswith("-r"):
+                version = "-r%s"%version
+            if len(shlex.split('\"%s\"'%version)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%version)
+            version = '"%s"'%version
+        elif version == None:
+            version = ''
+        if len(shlex.split('\"%s\"'%url)) != 1:
+            raise VcsError("Shell injection attempt detected: %s"%url)
+        cmd = 'svn co %s "%s" %s'%(version, url, self._path)
+        if subprocess.call(cmd, shell=True) == 0:
+            return True
+        return False
 
-    def update(self, version=''):
-        try:
-            result = self._pysvnclient.update(self._path, revision = self._parse_revision(version))[0]
-        except pysvn.ClientError as e:
-            sys.stderr.write("Failed to update : %s\n"%str(e))
+    def update(self, version=None):
+        if not self.detect_presence():
+            sys.stderr.write("Error: cannot update non-existing directory\n")
             return False
-        if result.number == -1:
-            # pysvn's way of telling us something is odd, e.g. there is no svn repo
-            sys.stderr.write("Failed to update, maybe no repo at %s : %s\n"%(self._path, result.number))
-            return False
-        return True
+        # protect against shell injection
+
+        if version != None and version != '':
+            if len(shlex.split('\"%s\"'%version)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%version)
+            if not version.startswith("-r"):
+                version = "-r" + version
+            version = '"%s"'%version
+        elif version == None:
+            version = ''
+        cmd = 'svn up %s %s'%(version, self._path)
+        if subprocess.call(cmd, shell=True) == 0:
+            return True
+        return False
 
     def get_version(self, spec=None):
         """
@@ -137,33 +141,52 @@ class SvnClient(VcsClientBase):
         provided, the number of a revision specified by some
         token.
         """
-        # info2 returns a list of (path, dict) tupels. Need the dict of first tuple
-        try:
-            datadict = self._pysvnclient.info2(self._path, revision= self._parse_revision(spec), recurse = False)[0][1]
-            if datadict is not None:
-                return '-r%s'%datadict.data["rev"].number
-        except pysvn.ClientError as e:
-            sys.stderr.write("Failed to get svn info : %s\n"%str(e))
-            return None
+        command = ['svn', 'info']
+        if spec != None:
+            if len(shlex.split('\"%s\"'%spec)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%spec)
+            if spec.isdigit():
+                # looking up svn with "-r" takes long, and if spec is
+                # a number, all we get from svn is the same number,
+                # unless we try to look at higher rev numbers (in
+                # which case either get the same number, or an error
+                # if the rev does not exist). So we first do a very
+                # quick svn info, and check revision numbers.
+                currentversion = self.get_version(spec = None)
+                # currentversion is like '-r12345'
+                if currentversion != None and int(currentversion[2:]) > int(spec):
+                    # so if we know revision exist, just return the
+                    # number, avoid the long call to svn server
+                    return '-r'+spec
+            if spec.startswith("-r"):
+                command.append(spec)
+            else:
+                command.append('-r' + spec)
+        command.append(self._path)
+        # #3305: parsing not robust to non-US locales
+        output = subprocess.Popen(command, env={"LANG":"en_US.UTF-8"}, stdout=subprocess.PIPE).communicate()[0]
+        if output != None:
+            matches = [l for l in output.splitlines() if l.startswith('Revision: ')]
+            if len(matches) == 1:
+                split_str = matches[0].split()
+                if len(split_str) == 2:
+                    return '-r'+split_str[1]
+        return None
 
     def get_diff(self, basepath=None):
         response = None
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            try:
-                # first argument to diff is a writable path for temp files
-                response = self._pysvnclient.diff(tempfile.gettempdir(),
-                                              os.path.realpath(self._path),
-                                              relative_to_dir = os.path.realpath(basepath))
-            except pysvn.ClientError as e:
-                sys.stderr.write("Failed to svn diff : %s\n"%str(e))
+            rel_path = self._normalized_rel_path(self._path, basepath)
+            command = 'svn diff %s'%(rel_path)
+            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+        if response != None and response.strip() == '':
+            response = None
         return response
  
  
     def get_status(self, basepath=None, untracked=False):
-        # status not implemented yet using pysvn as we would have to
-        # format data ourselves and amend the relative paths
         response=None
         if basepath == None:
             basepath = self._path
@@ -179,44 +202,6 @@ class SvnClient(VcsClientBase):
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
         return response
 
-    def _get_info_dict(self, path, show_error=True):
-        """returns the result of svn info path as a dict, if path is
-        an svn controlled resource. Returns None else."""
-        try:
-            info = self._pysvnclient.info(path)
-            return info
-        except pysvn.ClientError as e:
-            if show_error:
-                sys.stderr.write("Failed to get svn info for path %s : %s\n"%(path, str(e)))
-            return None
 
-    def _parse_revision(self, version):
-        """takes a string and returns a pysvn revision object, or throws an error if format is mysterious"""
-        if version == None or version == '':
-            revision=pysvn.Revision(pysvn.opt_revision_kind.unspecified)
-        elif version.startswith("-r"):
-            revision=pysvn.Revision(pysvn.opt_revision_kind.number, int(version[2:]))
-        else:
-            if version.upper() == "BASE":
-                revision=pysvn.Revision(pysvn.opt_revision_kind.base)
-            elif version.upper() == "HEAD":
-                revision=pysvn.Revision(pysvn.opt_revision_kind.head)
-            elif version.upper() == "COMMITTED":
-                revision=pysvn.Revision(pysvn.opt_revision_kind.committed)
-            elif version.upper() == "PREV":
-                revision=pysvn.Revision(pysvn.opt_revision_kind.previous)
-            elif '{' in version and '}' in version:
-                try:
-                    if _dateutil_missing:
-                        raise VcsError("vcstools without dateutils library unable to handle revisions by date")
-                    else:
-                        # dateutil parser can cope with "{}"
-                        date=dateutil.parser.parse(version)
-                        revision=pysvn.Revision(pysvn.opt_revision_kind.date, date)
-                except ValueError:
-                    raise ValueError("%s is not a valid ISO time:"%version)
-            else:
-                revision=pysvn.Revision(pysvn.opt_revision_kind.number, int(version))
-        return revision
         
 SVNClient = SvnClient
