@@ -85,7 +85,7 @@ class SvnClient(VcsClientBase):
         """
         if self.detect_presence():
             #3305: parsing not robust to non-US locales
-            output = subprocess.Popen(['svn', 'info', self._path], stdout=subprocess.PIPE, env={"LANG":"en_US.UTF-8"}).communicate()[0]
+            output = subprocess.Popen('svn info %s'%self._path, shell=True, stdout=subprocess.PIPE, env={"LANG":"en_US.UTF-8"}).communicate()[0]
             matches = [l for l in output.splitlines() if l.startswith('URL: ')]
             if matches:
                 return matches[0][5:]
@@ -108,7 +108,10 @@ class SvnClient(VcsClientBase):
         if len(shlex.split('\"%s\"'%url)) != 1:
             raise VcsError("Shell injection attempt detected: %s"%url)
         cmd = 'svn co %s "%s" %s'%(version, url, self._path)
-        if subprocess.call(cmd, shell=True) == 0:
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        p.communicate()
+        p.poll()
+        if p.returncode == 0:
             return True
         return False
 
@@ -127,7 +130,10 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn up %s %s'%(version, self._path)
-        if subprocess.call(cmd, shell=True) == 0:
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        p.communicate()
+        p.poll()
+        if p.returncode == 0:
             return True
         return False
 
