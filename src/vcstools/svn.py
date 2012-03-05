@@ -102,7 +102,6 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn co %s %s %s'%(sanitized(version), sanitized(url), self._path)
-        print(cmd)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         p.communicate()
         p.poll()
@@ -122,7 +121,6 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn up %s %s'%(sanitized(version), self._path)
-        print(cmd)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         p.communicate()
         p.poll()
@@ -160,7 +158,6 @@ class SvnClient(VcsClientBase):
             else:
                 command += sanitized('-r%s'%spec)
         command += " %s"%self._path
-        print(command)
         # #3305: parsing not robust to non-US locales
         output = subprocess.Popen(command, shell=True, env={"LANG":"en_US.UTF-8"}, stdout=subprocess.PIPE).communicate()[0]
         if output != None:
