@@ -52,11 +52,10 @@ reasonable disambiguation, and in some cases warns.
 import subprocess
 import os
 import base64
-import shlex
 import sys
 from distutils.version import LooseVersion
 
-from .vcs_base import VcsClientBase, VcsError
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
 
 def _get_git_version():
     """Looks up git version by calling git --version.
@@ -221,10 +220,7 @@ class GitClient(VcsClientBase):
             if spec is not None:
                 if fetch:
                     self._do_fetch()
-                safe_arg = '"%s"'%spec
-                if len(shlex.split(safe_arg)) != 1:
-                    raise VcsError("Shell injection attempt detected: %s"%spec)
-                command += " %s"%safe_arg
+                command += " %s"%sanitized(spec)
             command += " --format='%H'"
             output = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             output = output.strip().strip("'")
@@ -235,14 +231,11 @@ class GitClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
+            rel_path = normalized_rel_path(self._path, basepath)
             # git needs special treatment as it only works from inside
             # use HEAD to also show staged changes. Maybe should be option?
             # injection should be impossible using relpath, but to be sure, we check
-            safe_arg = '"%s"'%rel_path
-            if len(shlex.split(safe_arg)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%spec)
-            command = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(safe_arg, safe_arg)
+            command = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(sanitized(rel_path), sanitized(rel_path))
             response = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
         if response != None and response.strip() == '':
             response = None
@@ -254,7 +247,7 @@ class GitClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
+            rel_path = normalized_rel_path(self._path, basepath)
             # git command only works inside repo
             # self._path is safe against command injection, as long as we check path.exists
             command = "git status -s "
@@ -300,7 +293,7 @@ class GitClient(VcsClientBase):
                         return True
         return False
 
-
+    
     def get_branch(self):
         if self.path_exists():
             output = subprocess.Popen('git branch', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
@@ -316,11 +309,7 @@ class GitClient(VcsClientBase):
         if self.path_exists():
             # get name of configured merge ref.
             branchname = self.get_branch()
-            safe_arg = '"%s"'%branchname
-            # Admittedly, this is an unlikely attack strategy, but still we want to prevent errors due to bad branch names
-            if len(shlex.split(safe_arg)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%spec)
-            output = subprocess.Popen('git config --get-all "branch.%s.merge"'%branchname, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            output = subprocess.Popen('git config --get-all %s'%sanitized('branch.%s.merge'%branchname), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
             if not output:
                 return None
             lines = output.splitlines()
@@ -360,10 +349,7 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         if self.path_exists():
-            safe_arg = '"%s"'%tag_name
-            if len(shlex.split(safe_arg)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%tag_name)
-            output = subprocess.Popen('git tag -l %s'%safe_arg, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git tag -l %s'%sanitized(tag_name), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             lines =  output.splitlines()
             if len(lines) == 1:
                 return True
@@ -391,13 +377,7 @@ class GitClient(VcsClientBase):
         if fetch == True:
             self._do_fetch()
         if refname != None and refname != '' and version!=None and version!='':
-            safe_refname = '"%s"'%refname
-            if len(shlex.split(safe_refname)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%refname)
-            safe_version = '"%s"'%version
-            if len(shlex.split(safe_version)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%version)
-            output = subprocess.Popen('git rev-list %s ^%s --parents'%(safe_refname, safe_version), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen('git rev-list %s %s --parents'%(sanitized(refname), sanitized('^%s'%version)), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
             #print "revlist", refname, versionlist, output
             for line in output.splitlines():
                 # can have 1, 2 or 3 elements (commit, parent1, parent2)

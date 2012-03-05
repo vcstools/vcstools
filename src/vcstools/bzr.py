@@ -40,7 +40,7 @@ import subprocess
 import urllib
 
 
-from  vcs_base import VcsClientBase, VcsError
+from  vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
 
 
 def _get_bzr_version():
@@ -123,7 +123,7 @@ class BzrClient(VcsClientBase):
         """
         if self.detect_presence():
             if spec is not None:
-                command = ['bzr log -r %s .'%spec]
+                command = ['bzr log -r %s .'%sanitized(spec)]
                 output = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
                 if output is None or output.strip() == '' or output.startswith("bzr:"):
                     return None
@@ -140,11 +140,10 @@ class BzrClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "cd %s; bzr diff %s"%(basepath, rel_path)
-            command += " -p1 --prefix %s/:%s/"%(rel_path,rel_path)
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
+            rel_path = sanitized(normalized_rel_path(self._path, basepath))
+            command = "bzr diff %s"%rel_path
+            command += " -p1 --prefix %s/:%s/"%(rel_path, rel_path)
+            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
         if response != None and response.strip() == '':
             response = None
         return response
@@ -154,12 +153,11 @@ class BzrClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "cd %s; bzr status %s -S"%(basepath, rel_path)
+            rel_path = normalized_rel_path(self._path, basepath)
+            command = "bzr status %s -S"%sanitized(rel_path)
             if not untracked:
                 command += " -V"
-            stdout_handle = os.popen(command, "r")
-            response = stdout_handle.read()
+            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
             response_processed = ""
             for line in response.split('\n'):
                 if len(line.strip()) > 0:

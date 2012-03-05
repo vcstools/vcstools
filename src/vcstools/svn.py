@@ -34,12 +34,11 @@
 svn vcs support.
 """
 
-import shlex
 import os
 import sys
 import subprocess
 
-from .vcs_base import VcsClientBase, VcsError
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
 
 def _get_svn_version():
     """Looks up svn version by calling svn --version.
@@ -100,14 +99,10 @@ class SvnClient(VcsClientBase):
         if version != None and version != '':
             if not version.startswith("-r"):
                 version = "-r%s"%version
-            if len(shlex.split('\"%s\"'%version)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%version)
-            version = '"%s"'%version
         elif version == None:
             version = ''
-        if len(shlex.split('\"%s\"'%url)) != 1:
-            raise VcsError("Shell injection attempt detected: %s"%url)
-        cmd = 'svn co %s "%s" %s'%(version, url, self._path)
+        cmd = 'svn co %s %s %s'%(sanitized(version), sanitized(url), self._path)
+        print(cmd)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         p.communicate()
         p.poll()
@@ -122,14 +117,12 @@ class SvnClient(VcsClientBase):
         # protect against shell injection
 
         if version != None and version != '':
-            if len(shlex.split('\"%s\"'%version)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%version)
             if not version.startswith("-r"):
                 version = "-r" + version
-            version = '"%s"'%version
         elif version == None:
             version = ''
-        cmd = 'svn up %s %s'%(version, self._path)
+        cmd = 'svn up %s %s'%(sanitized(version), self._path)
+        print(cmd)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         p.communicate()
         p.poll()
@@ -147,10 +140,8 @@ class SvnClient(VcsClientBase):
         provided, the number of a revision specified by some
         token.
         """
-        command = ['svn', 'info']
+        command = 'svn info '
         if spec != None:
-            if len(shlex.split('\"%s\"'%spec)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%spec)
             if spec.isdigit():
                 # looking up svn with "-r" takes long, and if spec is
                 # a number, all we get from svn is the same number,
@@ -165,12 +156,13 @@ class SvnClient(VcsClientBase):
                     # number, avoid the long call to svn server
                     return '-r'+spec
             if spec.startswith("-r"):
-                command.append(spec)
+                command += sanitized(spec)
             else:
-                command.append('-r' + spec)
-        command.append(self._path)
+                command += sanitized('-r%s'%spec)
+        command += " %s"%self._path
+        print(command)
         # #3305: parsing not robust to non-US locales
-        output = subprocess.Popen(command, env={"LANG":"en_US.UTF-8"}, stdout=subprocess.PIPE).communicate()[0]
+        output = subprocess.Popen(command, shell=True, env={"LANG":"en_US.UTF-8"}, stdout=subprocess.PIPE).communicate()[0]
         if output != None:
             matches = [l for l in output.splitlines() if l.startswith('Revision: ')]
             if len(matches) == 1:
@@ -184,8 +176,8 @@ class SvnClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
-            command = 'svn diff %s'%(rel_path)
+            rel_path = normalized_rel_path(self._path, basepath)
+            command = 'svn diff %s'%sanitized(rel_path)
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
         if response != None and response.strip() == '':
             response = None
@@ -197,12 +189,9 @@ class SvnClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
+            rel_path = normalized_rel_path(self._path, basepath)
             # protect against shell injection
-            safe_arg = '\"%s\"'%rel_path
-            if len(shlex.split(safe_arg)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%rel_path)
-            command = 'svn status %s'%safe_arg
+            command = 'svn status %s'%sanitized(rel_path)
             if not untracked:
                 command += " -q"
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]

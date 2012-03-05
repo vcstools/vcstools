@@ -40,9 +40,8 @@ import os
 import subprocess
 import sys
 import string
-import shlex
    
-from .vcs_base import VcsClientBase, VcsError
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
 
 
 def _get_hg_version():
@@ -126,7 +125,6 @@ class HgClient(VcsClientBase):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-
         # make sure that the parent directory exists for #3497
         base_path = os.path.split(self.get_path())[0]
         try:
@@ -134,32 +132,24 @@ class HgClient(VcsClientBase):
         except OSError, ex:
             # OSError thrown if directory already exists this is ok
             pass
-        safe_url = '\"%s\"'%url
-        if len(shlex.split(safe_url)) != 1:
-            raise VcsError("Shell injection attempt detected: %s"%url)
-        cmd = "hg clone %s %s"%(safe_url, self._path)
+        cmd = "hg clone %s %s"%(sanitized(url), self._path)
         if not subprocess.call(cmd, shell=True) == 0:
             return False
         if version != None and version.strip() != '':
-            safe_version = '\"%s\"'%version
-            if len(shlex.split(safe_version)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%url)
-            cmd = "hg checkout %s"%(safe_version)
+            cmd = "hg checkout %s"%sanitized(version)
             if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
                 return False
         return True
 
     def update(self, version = ''):
         if not self.detect_presence():
+            sys.stderr.write("Error: cannot update non-existing directory\n")
             return True
         cmd = "hg pull"
         if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
             return False
         if version != None and version.strip() != '':
-            safe_version = '\"%s\"'%version
-            if len(shlex.split(safe_version)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%url)
-            cmd = "hg checkout %s"%safe_version
+            cmd = "hg checkout %s"%sanitized(version)
         else:
             cmd = "hg update"
         if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
@@ -178,10 +168,7 @@ class HgClient(VcsClientBase):
         """
         # detect presence only if we need path for cwd in popen
         if self.detect_presence() and spec != None:
-            safe_spec = '\"%s\"'%spec
-            if len(shlex.split(spec)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%spec)
-            command = 'hg log -r %s'%safe_spec
+            command = 'hg log -r %s'%sanitized(spec)
             output = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
             if output == None or output.strip() == '' or output.startswith("abort"):
                 return None
@@ -200,8 +187,8 @@ class HgClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
-            command = "hg diff -g %s"%(rel_path)
+            rel_path = normalized_rel_path(self._path, basepath)
+            command = "hg diff -g %s"%(sanitized(rel_path))
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
             response = _hg_diff_path_change(response, rel_path)
         if response != None and response.strip() == '':
@@ -213,12 +200,10 @@ class HgClient(VcsClientBase):
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            rel_path = self._normalized_rel_path(self._path, basepath)
+            rel_path = normalized_rel_path(self._path, basepath)
             # protect against shell injection
             safe_arg = '\"%s\"'%rel_path
-            if len(shlex.split(safe_arg)) != 1:
-                raise VcsError("Shell injection attempt detected: %s"%rel_path)
-            command = "hg status %s"%(safe_arg)
+            command = "hg status %s"%(sanitized(rel_path))
             if not untracked:
                 command += " -mard"
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]

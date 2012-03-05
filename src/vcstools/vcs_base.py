@@ -34,6 +34,7 @@
 vcs support library base class.
 """
 import os
+import shlex
 
 class VcsError(Exception):
     """To be thrown when an SCM Client faces a situation because of a
@@ -42,6 +43,33 @@ class VcsError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+
+def normalized_rel_path(path, basepath):
+    """
+    Utility function for subclasses.
+    
+    If path is absolute, return relative path to it from
+    basepath. If relative, return it normalized.
+    
+    :param path: an absolute or relative path
+    :param basepath: if path is absolute, shall be made relative to this
+    :returns: a normalized relative path
+    """
+    # gracefully ignore invalid input absolute path + no basepath
+    if path is None:
+        return basepath
+    if os.path.isabs(path) and basepath is not None:
+        return os.path.normpath(os.path.relpath(path, basepath))
+    return os.path.normpath(path)
+
+def sanitized(arg):
+    if arg is None or arg.strip() == '':
+        return ''
+    safe_arg = '\"%s\"'%arg
+    if len(shlex.split(safe_arg)) != 1:
+        raise VcsError("Shell injection attempt detected: %s"%arg)
+    return safe_arg
 
 
 class VcsClientBase:
@@ -151,20 +179,3 @@ class VcsClientBase:
         """
         raise NotImplementedError("Base class get_status method must be overridden")
 
-    def _normalized_rel_path(self, path, basepath):
-        """
-        Utility function for subclasses.
-        
-        If path is absolute, return relative path to it from
-        basepath. If relative, return it normalized.
-        
-        :param path: an absolute or relative path
-        :param basepath: if path is absolute, shall be made relative to this
-        :returns: a normalized relative path
-        """
-        # gracefully ignore invalid input absolute path + no basepath
-        if path is None:
-            return basepath
-        if os.path.isabs(path) and basepath is not None:
-            return os.path.normpath(os.path.relpath(path, basepath))
-        return os.path.normpath(path)
