@@ -34,24 +34,30 @@
 hg vcs support.
 
 using ui object to redirect output into a string
-
-Note that the mercurial API as of 1.4.2 proved to be non-thread safe with certain officially supported extentions enabled.
 """
 
 import os
+import subprocess
 import sys
 import string
-from distutils.version import LooseVersion
-
-_mercurial_missing = False
-try:
-    import mercurial
-    import mercurial.util
-    from mercurial import ui, hg, commands
-except:
-    _mercurial_missing = True
-    
+import shlex
+   
 from .vcs_base import VcsClientBase, VcsError
+
+
+def _get_hg_version():
+    """Looks up svn version by calling svn --version.
+    :raises: VcsError if svn is not installed"""
+    try:
+        # SVN commands produce differently formatted output for french locale
+        output = subprocess.Popen('hg --version',
+                                  shell = True,
+                                  stdout=subprocess.PIPE,
+                                  env={"LANG":"en_US.UTF-8"}).communicate()[0]
+        version = output.splitlines()[0]
+    except:
+        raise VcsError("svn not installed")
+    return version
 
 #hg diff cannot seem to be persuaded to accept a different prefix for filenames
 def _hg_diff_path_change(diff, path):
@@ -85,17 +91,6 @@ def _hg_diff_path_change(diff, path):
         result += newline + '\n'
     return result
 
-class HackedHgUI():
-    """This class modifies a given mercurial.ui object by substituing
-    the write method, so that the output is stored in a variable."""
-    def __init__(self, ui):
-        self.output = ''
-        ui.write = self.write
-
-    def write(self, output, label = None):
-        # label param required for later mercurial versions
-        self.output += output
-
         
 class HgClient(VcsClientBase):
         
@@ -104,15 +99,14 @@ class HgClient(VcsClientBase):
         :raises: VcsError if hg not detected
         """
         VcsClientBase.__init__(self, 'hg', path)
-        if _mercurial_missing:
-            raise VcsError("Mercurial libs could not be imported. Please install mercurial. On debian systems sudo apt-get install mercurial")
+        _get_hg_version()
 
     @staticmethod
     def get_environment_metadata():
         metadict = {}
         try:
             import mercurial.util
-            metadict["version"] = '%s'%str(mercurial.util.version())
+            metadict["version"] = '%s'%_get_hg_version()
         except:
             metadict["version"] = "no mercurial installed"
         return metadict
@@ -121,23 +115,15 @@ class HgClient(VcsClientBase):
         """
         :returns: HG URL of the directory path (output of hg paths command), or None if it cannot be determined
         """
-        r =  self._get_hg_repo(self._path)
-        if r is None:
-            return None
-        r = hg.repository(ui = ui.ui(), path = self._path)
-        for name, path in r.ui.configitems("paths"):
-            if name == 'default':
-                return path
+        if self.detect_presence():
+            output = subprocess.Popen("hg paths default", shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            return output.rstrip()
         return None
 
     def detect_presence(self):
-        try:
-            hg.repository(ui = ui.ui(), path = self._path)
-            return True
-        except mercurial.error.RepoError:
-            return False
-
-    def checkout(self, url, version=None):
+        return self.path_exists() and os.path.isdir(os.path.join(self._path, '.hg'))
+    
+    def checkout(self, url, version=''):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
@@ -149,44 +135,37 @@ class HgClient(VcsClientBase):
         except OSError, ex:
             # OSError thrown if directory already exists this is ok
             pass
-        try:
-            if version == None or version.strip() == '':
-                version = True # means default
-            if LooseVersion(mercurial.util.version()) >= LooseVersion("1.9"):
-                hg.clone(ui = ui.ui(),
-                         peeropts = {}, # new in 1.9
-                         source = url,
-                         dest = self._path,
-                         update = version)
-            else:
-                hg.clone(ui = ui.ui(),
-                         source = url,
-                         dest = self._path,
-                         update = version)
-            return True
-        except mercurial.error.RepoError as e:
-            sys.stderr.write("RepoError during checkout version %s from %s : %s\n"%(str(version), url, str(e)))
+        safe_url = '\"%s\"'%url
+        if len(shlex.split(safe_url)) != 1:
+            raise VcsError("Shell injection attempt detected: %s"%url)
+        cmd = "hg clone %s %s"%(safe_url, self._path)
+        if not subprocess.call(cmd, shell=True) == 0:
             return False
-        except Exception as e:
-            sys.stderr.write("Failed to checkout version %s from url %s : %s\n"%(str(version), url, str(e)))
-            return False
+        if version != None and version.strip() != '':
+            safe_version = '\"%s\"'%version
+            if len(shlex.split(safe_version)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%url)
+            cmd = "hg checkout %s"%(safe_version)
+            if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+                return False
+        return True
 
-    def update(self, version = None):
-        try:
-            r =  self._get_hg_repo(self._path)
-            if r is None:
-                return None
-            if version != None and version.strip() == '':
-                version = None
-            commands.pull(ui = r.ui, repo = r)
-            hg.update(repo = r, node = version)
+    def update(self, version = ''):
+        if not self.detect_presence():
             return True
-        except mercurial.error.RepoError as e:
-            sys.stderr.write("RepoError during pull/update : %s\n"%str(e))
+        cmd = "hg pull"
+        if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
             return False
-        except Exception as e:
-            sys.stderr.write("Failed to pull/update : %s\n"%str(e))
+        if version != None and version.strip() != '':
+            safe_version = '\"%s\"'%version
+            if len(shlex.split(safe_version)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%url)
+            cmd = "hg checkout %s"%safe_version
+        else:
+            cmd = "hg update"
+        if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
             return False
+        return True
         
     def get_version(self, spec=None):
         """
@@ -198,70 +177,53 @@ class HgClient(VcsClientBase):
         provided, the SHA-ID of a revision specified by some
         token.
         """
-        r =  self._get_hg_repo(self._path)
-        if r is None:
-            return None
-        fakeui = HackedHgUI(r.ui)
-        commands.identify(ui = r.ui, repo = r, rev=spec)
-        result = fakeui.output
-        shaid = result.splitlines()[0].split()[0].rstrip('+')
-        return shaid
+        # detect presence only if we need path for cwd in popen
+        if self.detect_presence() and spec != None:
+            safe_spec = '\"%s\"'%spec
+            if len(shlex.split(spec)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%spec)
+            command = 'hg log -r %s'%safe_spec
+            output = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            if output == None or output.strip() == '' or output.startswith("abort"):
+                return None
+            else:
+                 matches = [l for l in output.split('\n') if l.startswith('changeset: ')]
+                 if len(matches) == 1:
+                     return matches[0].split(':')[2]
+        else:
+            command = 'hg identify -i %s'%self._path
+            output = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).communicate()[0]
+            # hg adds a '+' to the end if there are uncommited changes, inconsistent to hg log
+            return output.strip().rstrip('+')
         
     def get_diff(self, basepath=None):
+        response = None
         if basepath == None:
             basepath = self._path
-
-        rel_path = self._normalized_rel_path(self._path, basepath)
-        # command returns None, prints result to ui object
-        r =  self._get_hg_repo(self._path)
-        if r is None:
-            return None
-        fakeui = HackedHgUI(r.ui)
-        commands.diff(ui = r.ui, repo = r, git = True)
-        response = fakeui.output
-        if response is not None and response.strip() == '':
+        if self.path_exists():
+            rel_path = self._normalized_rel_path(self._path, basepath)
+            command = "hg diff -g %s"%(rel_path)
+            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            response = _hg_diff_path_change(response, rel_path)
+        if response != None and response.strip() == '':
             response = None
-        if response is None:
-            return None
-        response = _hg_diff_path_change(response, rel_path)
         return response
-        
 
     def get_status(self, basepath=None, untracked=False):
         response=None
         if basepath == None:
             basepath = self._path
         if self.path_exists():
-            r =  self._get_hg_repo(self._path)
-            if r is None:
-                return None
-            fakeui = HackedHgUI(r.ui)
-            commands.status(ui = r.ui,
-                            repo = r,
-                            git = True,
-                            modified = not untracked,
-                            added=not untracked,
-                            removed=not untracked,
-                            deleted=not untracked)
-            response = fakeui.output
-            response_processed = ""
             rel_path = self._normalized_rel_path(self._path, basepath)
-            if rel_path == '.':
-                rel_path = ''
-            else:
-                rel_path +='/'
-            for line in response.split('\n'):
-                if len(line.strip()) > 0:
-                    response_processed+=line[0:2]+rel_path+line[2:]+'\n'
-            response = response_processed
+            # protect against shell injection
+            safe_arg = '\"%s\"'%rel_path
+            if len(shlex.split(safe_arg)) != 1:
+                raise VcsError("Shell injection attempt detected: %s"%rel_path)
+            command = "hg status %s"%(safe_arg)
+            if not untracked:
+                command += " -mard"
+            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
         return response
-
-    def _get_hg_repo(self, path):
-        try:
-            return hg.repository(ui = ui.ui(), path = path)
-        except mercurial.error.RepoError:            
-            sys.stderr.write("No hg repo at : %s\n"%self._path)
-            return None
 
 # backwards compat
 HGClient = HgClient
