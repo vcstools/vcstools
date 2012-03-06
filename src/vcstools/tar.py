@@ -104,6 +104,10 @@ class TarClient(VcsClientBase):
         return self.path_exists() and os.path.exists(self.metadata_path)
 
     def checkout(self, url, version=''):
+        """
+        untars from url to self.path. If version was given, only the
+        subdirectory 'version' of the tar will end up in self.path.
+        """
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
@@ -118,6 +122,8 @@ class TarClient(VcsClientBase):
                 if not os.path.isdir(subdir):
                     sys.stderr.write("%s is not a subdirectory\n"%subdir)
                     return False
+                if version == '':
+                    sys.stderr.write("Warning: no tar subdirectory chosen via the 'version' argument.\n"%subdir)
                 try:
                     #os.makedirs(os.path.dirname(self._path))
                     shutil.move(subdir, self._path)
