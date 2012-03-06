@@ -123,7 +123,7 @@ class TarClient(VcsClientBase):
                     sys.stderr.write("%s is not a subdirectory\n"%subdir)
                     return False
                 if version == '':
-                    sys.stderr.write("Warning: no tar subdirectory chosen via the 'version' argument.\n"%subdir)
+                    sys.stderr.write("Warning: no tar subdirectory chosen via the 'version' argument.\n")
                 try:
                     #os.makedirs(os.path.dirname(self._path))
                     shutil.move(subdir, self._path)
