@@ -80,10 +80,15 @@ class BzrClient(VcsClientBase):
         :returns: BZR URL of the branch (output of bzr info command), or None if it cannot be determined
         """
         if self.detect_presence():
-            output = subprocess.Popen('bzr info %s'%self._path, shell = True, stdout=subprocess.PIPE).communicate()[0]
-            matches = [l for l in output.split('\n') if l.startswith('  parent branch:')]
+            output = subprocess.Popen('bzr info %s'%self._path,
+                                      shell = True,
+                                      env={"LANG":"en_US.UTF-8"},
+                                      stdout=subprocess.PIPE).communicate()[0]
+            matches = [l for l in output.splitlines() if l.startswith('  parent branch: ')]
             if matches:
-                return urllib.url2pathname(matches[0][17:])
+                ppath = urllib.url2pathname(matches[0][len('  parent branch: '):])
+                if ppath is not None:
+                    return os.path.abspath(os.path.join(self._path, ppath))
         return None
 
     def detect_presence(self):
