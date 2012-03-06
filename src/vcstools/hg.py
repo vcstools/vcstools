@@ -179,6 +179,8 @@ class HgClient(VcsClientBase):
         else:
             command = 'hg identify -i %s'%self._path
             output = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).communicate()[0]
+            if output == None or output.strip() == '' or output.startswith("abort"):
+                return None
             # hg adds a '+' to the end if there are uncommited changes, inconsistent to hg log
             return output.strip().rstrip('+')
         
@@ -202,11 +204,12 @@ class HgClient(VcsClientBase):
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
             # protect against shell injection
-            safe_arg = '\"%s\"'%rel_path
             command = "hg status %s"%(sanitized(rel_path))
             if not untracked:
                 command += " -mard"
             response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            if response != None and response.startswith("abort"):
+                raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
         return response
 
 # backwards compat
