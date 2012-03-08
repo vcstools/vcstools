@@ -68,25 +68,32 @@ def _hg_diff_path_change(diff, path):
     INDIFF = 1
     # small state machine makes sure we never touch anything inside the actual diff
     state = INIT
-    result = ""
+
     s_list = [line for line in diff.split(os.linesep)]
+    lines = []
     for line in s_list:
-        newline = line
         if line.startswith("diff"):
             state = INIT
         if state == INIT:
             if line.startswith("@@"):
                 state = INDIFF
+                newline = line
             else:
                 if line.startswith("---") and not line.startswith("--- /dev/null"):
-                    newline = "--- " + path + line[5:]
-                if line.startswith("+++") and not line.startswith("+++ /dev/null"):
-                    newline = "+++ " + path + line[5:]
-                if line.startswith("diff --git"):
+                    newline = "--- %s%s"%(path, line[5:])
+                elif line.startswith("+++") and not line.startswith("+++ /dev/null"):
+                    newline = "+++ %s%s"%(path, line[5:])
+                elif line.startswith("diff --git"):
                     # first replacing b in case path starts with a/
                     newline = string.replace(line, " b/", " " + path + "/", 1)
                     newline = string.replace(newline, " a/", " " + path + "/", 1)
-        result += newline + '\n'
+                else:
+                    newline = line
+        else:
+            newline = line
+        if newline != '':
+            lines.append(newline)
+    result = "\n".join(lines)
     return result
 
         
