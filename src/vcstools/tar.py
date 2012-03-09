@@ -35,11 +35,11 @@ tar vcs support.
 
 """
 
-import subprocess
 import os
 import urllib
 import tempfile
 import sys
+import logging
 import shutil
 
 _yaml_missing = False
@@ -48,7 +48,7 @@ try:
 except:
     _yaml_missing = True
 
-from .vcs_base import VcsClientBase, VcsError
+from .vcs_base import VcsClientBase, VcsError, run_shell_command
 
 def _get_tar_version():
     """Looks up tar version by calling tar --version.
@@ -56,11 +56,9 @@ def _get_tar_version():
     :raises: VcsError if git is not installed or returns
     something unexpected"""
     try:
-        version = subprocess.Popen('tar --version',
-                                   shell = True,
-                                   stdout = subprocess.PIPE).communicate()[0]
-    except:
-        raise VcsError("git not installed")
+        _, version, _ = run_shell_command('tar --version', shell=True, us_env = True)
+    except OSError:
+        raise VcsError("tar not installed")
     if version.startswith('tar '):
         version = version.splitlines()[0][len('tar '):].strip()
     else:
@@ -117,31 +115,32 @@ class TarClient(VcsClientBase):
             tempdir = tempfile.mkdtemp()
             cmd = "tar -xf %s -C %s"%(filename, tempdir)
             #print "extract command", cmd
-            if subprocess.call(cmd, shell=True) == 0:
-                subdir = os.path.join(tempdir, version)
-                if not os.path.isdir(subdir):
-                    sys.stderr.write("%s is not a subdirectory\n"%subdir)
-                    return False
-                if version == '':
-                    sys.stderr.write("Warning: no tar subdirectory chosen via the 'version' argument.\n")
-                try:
-                    #os.makedirs(os.path.dirname(self._path))
-                    shutil.move(subdir, self._path)
-                except Exception as ex:
-                    print "%s failed to move %s to %s"%(ex, subdir, self._path)
-                metadata = yaml.dump({'url': url, 'version':version})
-                with open(self.metadata_path, 'w') as md:
-                    md.write(metadata)
-                if os.path.exists(tempdir):
-                    shutil.rmtree(tempdir)
-                return True
+            value, _, stderror = run_shell_command(cmd, shell=True)
+            if value != 0:
+                raise VcsError("failed to extract: %s"%stderror)
+
+            if version == '':
+                self.logger.warn("Warning: no tar subdirectory chosen via the 'version' argument.\n")
+                subdir = tempdir
             else:
-                sys.stderr.write("failed to extract")
+                subdir = os.path.join(tempdir, version)
+            if not os.path.isdir(subdir):
+                raise VcsError("%s is not a subdirectory\n"%subdir)
             
-            shutil.rmtree(tempdir)
+            try:
+                #os.makedirs(os.path.dirname(self._path))
+                shutil.move(subdir, self._path)
+            except Exception as ex:
+                raise VcsError("%s failed to move %s to %s"%(ex, subdir, self._path))
+            metadata = yaml.dump({'url': url, 'version':version})
+            with open(self.metadata_path, 'w') as md:
+                md.write(metadata)
+            return True
+            
         except Exception as e:
-            sys.stderr.write("Tarball download unpack failed%s\n"%str(e))
-            return False
+            self.logger.error("Tarball download unpack failed%s\n"%str(e))
+        if os.path.exists(tempdir):
+            shutil.rmtree(tempdir)
         return False
 
     def update(self, version=''):
