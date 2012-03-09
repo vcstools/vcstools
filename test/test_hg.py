@@ -49,38 +49,38 @@ class HGClientTestSetups(unittest.TestCase):
 
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
-        remote_path = os.path.join(directory, "remote")
-        os.makedirs(remote_path)
+        self.remote_path = os.path.join(directory, "remote")
+        os.makedirs(self.remote_path)
 
         # create a "remote" repo
-        subprocess.check_call("hg init", shell=True, cwd=remote_path)
-        subprocess.check_call("touch fixed.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("hg add fixed.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("hg commit -m initial", shell=True, cwd=remote_path)
+        subprocess.check_call("hg init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("hg add fixed.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("hg commit -m initial", shell=True, cwd=self.remote_path)
         
-        po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=remote_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.local_version_init = po.stdout.read().rstrip("'").lstrip("'")
         # in hg, tagging creates an own changeset, so we need to fetch version before tagging
-        subprocess.check_call("hg tag test_tag", shell=True, cwd=remote_path)
+        subprocess.check_call("hg tag test_tag", shell=True, cwd=self.remote_path)
 
         
         # files to be modified in "local" repo
-        subprocess.check_call("touch modified.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("touch modified-fs.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("hg add modified.txt modified-fs.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("hg commit -m initial", shell=True, cwd=remote_path)
-        po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call("touch modified.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch modified-fs.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("hg add modified.txt modified-fs.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("hg commit -m initial", shell=True, cwd=self.remote_path)
+        po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.local_version_second = po.stdout.read().rstrip("'").lstrip("'")
         
-        subprocess.check_call("touch deleted.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("hg add deleted.txt deleted-fs.txt", shell=True, cwd=remote_path)
-        subprocess.check_call("hg commit -m modified", shell=True, cwd=remote_path)
-        po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call("touch deleted.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("hg add deleted.txt deleted-fs.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("hg commit -m modified", shell=True, cwd=self.remote_path)
+        po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.local_version = po.stdout.read().rstrip("'").lstrip("'")
 
         self.local_path = os.path.join(directory, "local")
-        self.local_url = remote_path
+        self.local_url = self.remote_path
         
 
     @classmethod
@@ -172,7 +172,14 @@ class HGClientTest(HGClientTestSetups):
 
         self.assertTrue(client.update(''))
         self.assertEqual(client.get_version(), self.local_version)
-       
+        
+    def testDiffClean(self):
+        client = HgClient(self.remote_path)
+        self.assertEquals('', client.get_diff())
+
+    def testStatusClean(self):
+        client = HgClient(self.remote_path)
+        self.assertEquals('', client.get_status())       
 
 class HGDiffStatClientTest(HGClientTestSetups):
 

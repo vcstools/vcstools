@@ -203,8 +203,6 @@ class HgClient(VcsClientBase):
             command = "hg diff -g %s"%(sanitized(rel_path))
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response = _hg_diff_path_change(response, rel_path)
-        if response != None and response.strip() == '':
-            response = None
         return response
 
     def get_status(self, basepath=None, untracked=False):

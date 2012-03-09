@@ -248,6 +248,14 @@ class GitClientTest(GitClientTestSetups):
         subprocess.check_call("git config --replace-all branch.master.merge master", shell=True, cwd=self.local_path)
         
         self.assertTrue(client.get_branch_parent() is not None)
+
+    def testDiffClean(self):
+        client = GitClient(self.remote_path)
+        self.assertEquals('', client.get_diff())
+
+    def testStatusClean(self):
+        client = GitClient(self.remote_path)
+        self.assertEquals('', client.get_status())
            
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 

@@ -284,8 +284,6 @@ class GitClient(VcsClientBase):
                 cmd = 'git submodule foreach --recursive git diff HEAD'
                 _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
                 response += _git_diff_path_submodule_change(output, rel_path, self._path)
-        if response != None and response.strip() == '':
-            response = None
         return response
 
 

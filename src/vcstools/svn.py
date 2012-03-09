@@ -170,8 +170,6 @@ class SvnClient(VcsClientBase):
             rel_path = normalized_rel_path(self._path, basepath)
             command = 'svn diff %s'%sanitized(rel_path)
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
-        if response != None and response.strip() == '':
-            response = None
         return response
  
  

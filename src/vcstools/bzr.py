@@ -150,8 +150,6 @@ class BzrClient(VcsClientBase):
             command = "bzr diff %s"%rel_path
             command += " -p1 --prefix %s/:%s/"%(rel_path, rel_path)
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
-        if response != None and response.strip() == '':
-            response = None
         return response
 
     def get_status(self, basepath=None, untracked=False):

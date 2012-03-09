@@ -156,6 +156,14 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), "-r2")
 
+    def testDiffClean(self):
+        client = SvnClient(self.remote_path)
+        self.assertEquals('', client.get_diff())
+
+    def testStatusClean(self):
+        client = SvnClient(self.remote_path)
+        self.assertEquals('', client.get_status())
+        
 class SvnDiffStatClientTest(SvnClientTestSetups):
 
     @classmethod

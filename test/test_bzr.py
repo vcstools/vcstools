@@ -156,7 +156,14 @@ class BzrClientTest(BzrClientTestSetups):
         new_version = '2'
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), new_version)
-        
+
+    def testDiffClean(self):
+        client = BzrClient(self.remote_path)
+        self.assertEquals('', client.get_diff())
+
+    def testStatusClean(self):
+        client = BzrClient(self.remote_path)
+        self.assertEquals('', client.get_status())
 
 class BzrDiffStatClientTest(BzrClientTestSetups):
 
