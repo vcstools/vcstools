@@ -66,9 +66,12 @@ def normalized_rel_path(path, basepath):
 def sanitized(arg):
     if arg is None or arg.strip() == '':
         return ''
-    safe_arg = '\"%s\"'%arg
-    if len(shlex.split(safe_arg)) != 1:
-        raise VcsError("Shell injection attempt detected: %s"%arg)
+    arg = str(arg.strip('"').strip())
+    safe_arg = '"%s"'%arg
+    # this also detects some false positives, like bar"";foo
+    if '"' in arg:
+        if (len(shlex.split(safe_arg, False, False)) != 1):
+            raise VcsError("Shell injection attempt detected: >%s< = %s"%(arg, shlex.split(safe_arg, False, False)))
     return safe_arg
 
 
