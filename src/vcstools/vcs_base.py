@@ -35,6 +35,7 @@ vcs support library base class.
 """
 import os
 import shlex
+import logging
 
 class VcsError(Exception):
     """To be thrown when an SCM Client faces a situation because of a
@@ -84,6 +85,7 @@ class VcsClientBase:
         """
         self._path = path
         self._vcs_type_name = vcs_type_name
+        self.logger = logging.getLogger('vcstools')
 
     @staticmethod
     def get_environment_metadata():

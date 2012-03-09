@@ -42,9 +42,26 @@ from .hg import HgClient
 from .git import GitClient
 from .tar import TarClient
 
+import logging
+
+
 # configure the VCSClient
 register_vcs("svn", SvnClient)
 register_vcs("bzr", BzrClient)
 register_vcs("git", GitClient)
 register_vcs("hg", HgClient)
 register_vcs("tar", TarClient)
+
+
+logger = logging.getLogger('vcstools')
+logger.setLevel(logging.WARN)
+ch = logging.StreamHandler()
+ch.setLevel(logging.WARN)
+
+# create formatter
+formatter = logging.Formatter('%(levelname)s[%(name)s] %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
