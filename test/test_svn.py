@@ -185,19 +185,20 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         
     def assertEqualDiffs(self, expected, actual):
         "True if actual is similar enough to expected, minus svn properties"
-        filtered = ''
+        filtered = []
         # A block starts with \nIndex, and the actual diff goes up to the first line starting with [a-zA-Z], e.g. "Properties changed:"
         for block in actual.split("\nIndex: "):
-            if filtered != '':
+            if filtered != []:
                 # restore "Index: " removed by split()
                 block = "Index: " + block
-            newblock = ''
+            newblock = []
             for line in block.splitlines():
                 if re.search("[=+-\\@ ].*", line) == None:
                     break
                 else:
-                    newblock += line + '\n'
-            filtered += newblock
+                    newblock.append(line)
+            filtered.extend(newblock)
+        filtered = "\n".join(filtered)
         self.assertEquals(expected, filtered, "Assert failed, expected something like '"+ expected+"'\n but got:\n'" + filtered +"'\n, original:\n''" + actual)
             
         
@@ -206,8 +207,8 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
 
-        self.assertEqualDiffs('Index: added.txt\n===================================================================\n--- added.txt\t(revision 0)\n+++ added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: modified-fs.txt\n===================================================================\n--- modified-fs.txt\t(revision 3)\n+++ modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: modified.txt\n===================================================================\n--- modified.txt\t(revision 3)\n+++ modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n',
-                          client.get_diff())
+        self.assertEqualDiffs('Index: added.txt\n===================================================================\n--- added.txt\t(revision 0)\n+++ added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: modified-fs.txt\n===================================================================\n--- modified-fs.txt\t(revision 3)\n+++ modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: modified.txt\n===================================================================\n--- modified.txt\t(revision 3)\n+++ modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file',
+                          client.get_diff().rstrip())
 
 
     def test_diff_relpath(self):
@@ -215,23 +216,23 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         
-        self.assertEqualDiffs('Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\n', client.get_diff(basepath=os.path.dirname(self.local_path)))
+        self.assertEqualDiffs('Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file', client.get_diff(basepath=os.path.dirname(self.local_path)).rstrip())
 
     def test_status(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status())
+        self.assertEquals('A       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt', client.get_status().rstrip())
 
     def test_status_relpath(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A       local/added.txt\nD       local/deleted.txt\nM       local/modified-fs.txt\n!       local/deleted-fs.txt\nM       local/modified.txt\n', client.get_status(basepath=os.path.dirname(self.local_path)))
+        self.assertEquals('A       local/added.txt\nD       local/deleted.txt\nM       local/modified-fs.txt\n!       local/deleted-fs.txt\nM       local/modified.txt', client.get_status(basepath=os.path.dirname(self.local_path)).rstrip())
 
     def test_status_untracked(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('?       added-fs.txt\nA       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status(untracked=True))
+        self.assertEquals('?       added-fs.txt\nA       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt', client.get_status(untracked=True).rstrip())
 

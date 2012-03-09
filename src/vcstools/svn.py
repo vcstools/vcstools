@@ -36,22 +36,22 @@ svn vcs support.
 
 import os
 import sys
-import subprocess
 
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
+
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
 
 def _get_svn_version():
     """Looks up svn version by calling svn --version.
     :raises: VcsError if svn is not installed"""
     try:
         # SVN commands produce differently formatted output for french locale
-        output = subprocess.Popen('svn --version',
-                                  shell = True,
-                                  stdout=subprocess.PIPE,
-                                  env={"LANG":"en_US.UTF-8"}).communicate()[0]
-        version = output.splitlines()[0]
-    except:
-        raise VcsError("svn not installed")
+        _, output, _ = run_shell_command('svn --version', shell=True, us_env = True)
+        if output is not None and len(output.splitlines()) > 0:
+            version = output.splitlines()[0]
+        else:
+            raise VcsError("svn not installed: %s"%e)
+    except OSError as e:
+        raise VcsError("svn not installed: %s"%e)
     return version
 
 class SvnClient(VcsClientBase):
@@ -62,10 +62,7 @@ class SvnClient(VcsClientBase):
         """
         VcsClientBase.__init__(self, 'svn', path)
         # test for svn here, we need it for status
-        try:
-            _get_svn_version()
-        except:
-            raise VcsError("svn not installed")
+        _get_svn_version()
 
 
     @staticmethod
@@ -84,7 +81,8 @@ class SvnClient(VcsClientBase):
         """
         if self.detect_presence():
             #3305: parsing not robust to non-US locales
-            output = subprocess.Popen('svn info %s'%self._path, shell=True, stdout=subprocess.PIPE, env={"LANG":"en_US.UTF-8"}).communicate()[0]
+            cmd = 'svn info %s'%self._path
+            _, output, _ = run_shell_command(cmd, shell=True)
             matches = [l for l in output.splitlines() if l.startswith('URL: ')]
             if matches:
                 return matches[0][5:]
@@ -102,10 +100,8 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn co %s %s %s'%(sanitized(version), sanitized(url), self._path)
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        p.communicate()
-        p.poll()
-        if p.returncode == 0:
+        value, _, _ = run_shell_command(cmd, shell=True)
+        if value == 0:
             return True
         return False
 
@@ -121,10 +117,8 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn up %s %s'%(sanitized(version), self._path)
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        p.communicate()
-        p.poll()
-        if p.returncode == 0:
+        value, _, _ = run_shell_command(cmd, shell=True)
+        if value == 0:
             return True
         return False
 
@@ -159,7 +153,7 @@ class SvnClient(VcsClientBase):
                 command += sanitized('-r%s'%spec)
         command += " %s"%self._path
         # #3305: parsing not robust to non-US locales
-        output = subprocess.Popen(command, shell=True, env={"LANG":"en_US.UTF-8"}, stdout=subprocess.PIPE).communicate()[0]
+        _, output, _ = run_shell_command(command, shell=True, us_env = True)
         if output != None:
             matches = [l for l in output.splitlines() if l.startswith('Revision: ')]
             if len(matches) == 1:
@@ -175,7 +169,7 @@ class SvnClient(VcsClientBase):
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
             command = 'svn diff %s'%sanitized(rel_path)
-            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
         if response != None and response.strip() == '':
             response = None
         return response
@@ -191,7 +185,7 @@ class SvnClient(VcsClientBase):
             command = 'svn status %s'%sanitized(rel_path)
             if not untracked:
                 command += " -q"
-            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
         return response
 
 
