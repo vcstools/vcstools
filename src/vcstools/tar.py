@@ -107,7 +107,7 @@ class TarClient(VcsClientBase):
         subdirectory 'version' of the tar will end up in self.path.
         """
         if self.path_exists():
-            sys.stderr.write("Error: cannot checkout into existing directory\n")
+            self.logger.error("Cannot checkout into existing directory")
             return False
         try:
             (filename, headers) = urllib.urlretrieve(url)
@@ -120,7 +120,7 @@ class TarClient(VcsClientBase):
                 raise VcsError("failed to extract: %s"%stderror)
 
             if version == '':
-                self.logger.warn("Warning: no tar subdirectory chosen via the 'version' argument.\n")
+                self.logger.warn("No tar subdirectory chosen via the 'version' argument.")
                 subdir = tempdir
             else:
                 subdir = os.path.join(tempdir, version)

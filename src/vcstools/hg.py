@@ -40,7 +40,7 @@ import os
 import sys
 import string
    
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command, run_shell_command
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
 
 
 def _get_hg_version():
@@ -177,7 +177,7 @@ class HgClient(VcsClientBase):
         token.
         """
         # detect presence only if we need path for cwd in popen
-        if self.detect_presence() and spec != None:
+        if spec != None and self.detect_presence():
             command = 'hg log -r %s'%sanitized(spec)
             _, output, _ = run_shell_command(command, shell=True, cwd=self._path, us_env = True)
             if output == None or output.strip() == '' or output.startswith("abort"):
