@@ -52,10 +52,52 @@ reasonable disambiguation, and in some cases warns.
 import subprocess
 import os
 import base64
+import string
 import sys
 from distutils.version import LooseVersion
 
 from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
+
+def _git_diff_path_submodule_change(diff, rel_path_prefix, basepath):
+    """
+    Parses git diff result and changes the filename prefixes,
+    also removes submodule entries using basepath to detect
+    diffs on directories.
+    """
+    if diff == None:
+        return None
+    INIT = 0
+    INDIFF = 1
+    # small state machine makes sure we never touch anything inside the actual diff
+    state = INIT
+    result = ""
+    s_list = [line for line in diff.split(os.linesep)]
+    subrel_path = rel_path_prefix
+    for line in s_list:
+        newline = line
+        if line.startswith("Entering '"):
+            state = INIT
+            submodulepath = line.rstrip("'")[len("Entering '"):]
+            subrel_path = os.path.join(rel_path_prefix, submodulepath)
+            continue
+        if line.startswith("diff --git "):
+            state = INIT
+        if state == INIT:
+            if line.startswith("@@"):
+                state = INDIFF
+            else:                
+                if line.startswith("---") and not line.startswith("--- /dev/null"):
+                    newline = "--- " + subrel_path + line[5:]
+                if line.startswith("+++") and not line.startswith("+++ /dev/null"):
+                    newline = "+++ " + subrel_path + line[5:]
+                if line.startswith("diff --git"):
+                    # first replacing b in case path starts with a/
+                    newline = string.replace(line, " b/", " " + subrel_path + "/", 1)
+                    newline = string.replace(newline, " a/", " " + subrel_path + "/", 1)
+        if newline != '':
+            result += newline + '\n'
+    return result
+
 
 def _get_git_version():
     """Looks up git version by calling git --version.
@@ -237,6 +279,9 @@ class GitClient(VcsClientBase):
             # injection should be impossible using relpath, but to be sure, we check
             command = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(sanitized(rel_path), sanitized(rel_path))
             response = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            if LooseVersion(self.gitversion) > LooseVersion('1.7'):
+                output = subprocess.Popen('git submodule foreach --recursive git diff HEAD', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+                response += _git_diff_path_submodule_change(output, rel_path, self._path)
         if response != None and response.strip() == '':
             response = None
         return response
@@ -259,6 +304,17 @@ class GitClient(VcsClientBase):
                 if len(line.strip()) > 0:
                     # prepend relative path
                     response_processed+=line[0:3]+rel_path+'/'+line[3:]+'\n'
+            if LooseVersion(self.gitversion) > LooseVersion('1.7'):
+                command = "git submodule foreach --recursive git status -s"
+                if not untracked:
+                    command += " -uno"
+                response2 = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+                for line in response2.split('\n'):
+                    if line.startswith("Entering"):
+                        continue
+                    if len(line.strip()) > 0:
+                        # prepend relative path
+                        response_processed+=line[0:3]+rel_path+'/'+line[3:]+'\n'
             response = response_processed
         return response
 

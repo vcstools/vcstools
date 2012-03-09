@@ -42,6 +42,8 @@ import tempfile
 import urllib
 import shutil
 
+from vcstools.git import GitClient
+
 class GitClientTestSetups(unittest.TestCase):
 
     @classmethod
@@ -130,7 +132,6 @@ class GitClientTestSetups(unittest.TestCase):
 class GitClientTest(GitClientTestSetups):
     
     def test_checkout_master_with_subs(self):
-        from vcstools.git import GitClient
         url = self.remote_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
@@ -149,7 +150,6 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(subsubclient.get_version(), self.subsubversion_final)
         
     def test_switch_branches(self):
-        from vcstools.git import GitClient
         url = self.remote_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
@@ -165,4 +165,57 @@ class GitClientTest(GitClientTestSetups):
         new_version = "test_branch"
         self.assertTrue(client.update(new_version))
         self.assertTrue(subclient2.path_exists())
+
+    def test_status(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url))
+        output = client.get_status()
+        self.assertEqual('', output, output)
         
+        with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
+            f.write(u'0123456789abcdef')
+        subprocess.check_call("touch new.txt", shell=True, cwd=self.local_path)
+        with open(os.path.join(self.sublocal_path, 'subfixed.txt'), 'a') as f:
+            f.write(u'abcdef0123456789')
+        subprocess.check_call("touch subnew.txt", shell=True, cwd=self.sublocal_path)
+        with open(os.path.join(self.subsublocal_path, 'subsubfixed.txt'), 'a') as f:
+            f.write(u'012345cdef')
+        subprocess.check_call("touch subsubnew.txt", shell=True, cwd=self.subsublocal_path)
+
+        output = client.get_status()
+        self.assertEqual(' M ./fixed.txt\n M ./submodule\n M ./subfixed.txt\n M ./subsubmodule\n M ./subsubfixed.txt', output.rstrip())
+
+        output = client.get_status(untracked = True)
+        self.assertEqual(' M ./fixed.txt\n M ./submodule\n?? ./new.txt\n M ./subfixed.txt\n M ./subsubmodule\n?? ./subnew.txt\n M ./subsubfixed.txt\n?? ./subsubnew.txt', output.rstrip())
+
+        output = client.get_status(basepath=os.path.dirname(self.local_path), untracked = True)
+        self.assertEqual(' M local/fixed.txt\n M local/submodule\n?? local/new.txt\n M local/subfixed.txt\n M local/subsubmodule\n?? local/subnew.txt\n M local/subsubfixed.txt\n?? local/subsubnew.txt', output.rstrip())
+
+        
+    def test_diff(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url))
+        output = client.get_diff()
+        self.assertEqual('', output, output)
+        
+        with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
+            f.write(u'0123456789abcdef')
+        subprocess.check_call("touch new.txt", shell=True, cwd=self.local_path)
+        with open(os.path.join(self.sublocal_path, 'subfixed.txt'), 'a') as f:
+            f.write(u'abcdef0123456789')
+        subprocess.check_call("touch subnew.txt", shell=True, cwd=self.sublocal_path)
+        with open(os.path.join(self.subsublocal_path, 'subsubfixed.txt'), 'a') as f:
+            f.write(u'012345cdef')
+        subprocess.check_call("touch subsubnew.txt", shell=True, cwd=self.subsublocal_path)
+
+        output = client.get_diff()
+        self.assertEqual(1094, len(output))
+        self.assertTrue('diff --git ./fixed.txt ./fixed.txt\nindex e69de29..454f6b3 100644\n--- ./fixed.txt\n+++ ./fixed.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file' in output)
+        self.assertTrue('diff --git ./submodule/subsubmodule/subsubfixed.txt ./submodule/subsubmodule/subsubfixed.txt\nindex e69de29..1a332dc 100644\n--- ./submodule/subsubmodule/subsubfixed.txt\n+++ ./submodule/subsubmodule/subsubfixed.txt\n@@ -0,0 +1 @@\n+012345cdef\n\\ No newline at end of file' in output)
+        
+        output = client.get_diff(basepath=os.path.dirname(self.local_path))
+        self.assertEqual(1174, len(output))
+        self.assertTrue('diff --git local/fixed.txt local/fixed.txt\nindex e69de29..454f6b3 100644\n--- local/fixed.txt\n+++ local/fixed.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\ No newline at end of file' in output, output)
+        self.assertTrue('diff --git local/submodule/subsubmodule/subsubfixed.txt local/submodule/subsubmodule/subsubfixed.txt\nindex e69de29..1a332dc 100644\n--- local/submodule/subsubmodule/subsubfixed.txt\n+++ local/submodule/subsubmodule/subsubfixed.txt\n@@ -0,0 +1 @@\n+012345cdef\n\ No newline at end of file' in output, output)
