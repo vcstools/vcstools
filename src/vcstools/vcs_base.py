@@ -35,6 +35,7 @@ vcs support library base class.
 """
 import os
 import shlex
+import subprocess
 import logging
 
 class VcsError(Exception):
@@ -74,6 +75,42 @@ def sanitized(arg):
         if (len(shlex.split(safe_arg, False, False)) != 1):
             raise VcsError("Shell injection attempt detected: >%s< = %s"%(arg, shlex.split(safe_arg, False, False)))
     return safe_arg
+
+def run_shell_command(cmd, cwd=None, shell=False, us_env = True):
+    """
+    executes a command and hides the stdout output, loggs
+    stderr output when command result is not zero. Make sure to sanitize arguments in the command.
+    :param cmd: A string to execute.
+    :param shell: Whether to use os shell, this is DANGEROUS, as vulnerable to shell injection.
+    :returns: ( returncode, stdout, stderr)
+    :raises: VcsError on OSError
+    """
+    try:
+        env = None
+        if us_env == True:
+            env = {"LANG":"en_US.UTF-8"}
+        p = subprocess.Popen(cmd,
+                             shell=shell,
+                             cwd=cwd,
+                             stderr=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             env=env)
+        output = p.communicate()
+        value = p.poll()
+        message = None
+        if value != 0 and output[1] is not None and output[1] != '':
+            logger = logging.getLogger('vcstools')
+            message = "Command failed: '%s'\n errcode: %s :\n%s"%(cmd, value, output[1])
+            logger.warn(message)
+        result = output[0]
+        if result is not None:
+            result = result.rstrip()
+        return (value, result, message)
+    except OSError as e:
+        logger = logging.getLogger('vcstools')
+        message = "Command failed with OSError. '%s' <%s, %s>:\n%s"%(cmd, shell, cwd, e)
+        logger.error(message)
+        raise VcsError(message)
 
 
 class VcsClientBase:
