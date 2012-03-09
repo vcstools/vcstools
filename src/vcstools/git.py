@@ -49,14 +49,14 @@ any object, in case of ambiguities, git attempts to take the most
 reasonable disambiguation, and in some cases warns.
 """
 
-import subprocess
 import os
 import base64
 import string
 import sys
+import logging
 from distutils.version import LooseVersion
 
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
 
 def _git_diff_path_submodule_change(diff, rel_path_prefix, basepath):
     """
@@ -105,10 +105,9 @@ def _get_git_version():
     :raises: VcsError if git is not installed or returns
     something unexpected"""
     try:
-        version = subprocess.Popen('git --version',
-                                   shell = True,
-                                   stdout = subprocess.PIPE).communicate()[0]
-    except:
+        cmd = 'git --version'
+        _, version, _ = run_shell_command(cmd, shell=True)
+    except VcsError as e:
         raise VcsError("git not installed")
     prefix = 'git version '
     if version.startswith(prefix):
@@ -143,7 +142,8 @@ class GitClient(VcsClientBase):
         :returns: GIT URL of the directory path (output of git info command), or None if it cannot be determined
         """
         if self.detect_presence():
-            output = subprocess.Popen("git config --get remote.origin.url", shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            cmd = "git config --get remote.origin.url"
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             return output.rstrip()
         return None
 
@@ -158,7 +158,8 @@ class GitClient(VcsClientBase):
         
         #since we cannot know whether refname names a branch, clone master initially
         cmd = "git clone --recursive %s %s"%(url, self._path)
-        if not subprocess.call(cmd, shell=True) == 0:
+        value, _, _ = run_shell_command(cmd, shell=True)
+        if value != 0:
             return False
 
         if refname != None and refname != "master":
@@ -171,7 +172,8 @@ class GitClient(VcsClientBase):
         # update and or init submodules too
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
             cmd = "git submodule update --init --recursive"
-            if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+            value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+            if value != 0:
                 return False
         return True
 
@@ -264,8 +266,7 @@ class GitClient(VcsClientBase):
                     self._do_fetch()
                 command += " %s"%sanitized(spec)
             command += " --format='%H'"
-            output = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
-            output = output.strip().strip("'")
+            _, output, _ = run_shell_command(command, shell=True, cwd=self._path)
             return output
 
     def get_diff(self, basepath=None):
@@ -277,10 +278,11 @@ class GitClient(VcsClientBase):
             # git needs special treatment as it only works from inside
             # use HEAD to also show staged changes. Maybe should be option?
             # injection should be impossible using relpath, but to be sure, we check
-            command = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(sanitized(rel_path), sanitized(rel_path))
-            response = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            cmd = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(sanitized(rel_path), sanitized(rel_path))
+            _, response, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if LooseVersion(self.gitversion) > LooseVersion('1.7'):
-                output = subprocess.Popen('git submodule foreach --recursive git diff HEAD', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+                cmd = 'git submodule foreach --recursive git diff HEAD'
+                _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
                 response += _git_diff_path_submodule_change(output, rel_path, self._path)
         if response != None and response.strip() == '':
             response = None
@@ -298,7 +300,7 @@ class GitClient(VcsClientBase):
             command = "git status -s "
             if not untracked:
                 command += " -uno"
-            response = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=self._path)
             response_processed = ""
             for line in response.split('\n'):
                 if len(line.strip()) > 0:
@@ -308,7 +310,7 @@ class GitClient(VcsClientBase):
                 command = "git submodule foreach --recursive git status -s"
                 if not untracked:
                     command += " -uno"
-                response2 = subprocess.Popen(command, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+                _, response2, _ = run_shell_command(command, shell=True, cwd=self._path)
                 for line in response2.split('\n'):
                     if line.startswith("Entering"):
                         continue
@@ -326,7 +328,7 @@ class GitClient(VcsClientBase):
         if self.path_exists():
             if fetch and not self._do_fetch():
                 return False
-            output = subprocess.Popen('git branch -r', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command('git branch -r', shell=True, cwd=self._path)
             for l in output.splitlines():
                 elem = l.split()[0]
                 rem_name = elem[:elem.find('/')]
@@ -338,7 +340,7 @@ class GitClient(VcsClientBase):
 
     def is_local_branch(self, branch_name):
         if self.path_exists():
-            output = subprocess.Popen('git branch', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command('git branch', shell=True, cwd=self._path)
             for l in output.splitlines():
                 elems = l.split()
                 if len(elems) == 1:
@@ -352,7 +354,7 @@ class GitClient(VcsClientBase):
     
     def get_branch(self):
         if self.path_exists():
-            output = subprocess.Popen('git branch', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command('git branch', shell=True, cwd=self._path)
             for l in output.splitlines():
                 elems = l.split()
                 if len(elems) == 2 and elems[0] == '*':
@@ -365,7 +367,11 @@ class GitClient(VcsClientBase):
         if self.path_exists():
             # get name of configured merge ref.
             branchname = self.get_branch()
-            output = subprocess.Popen('git config --get-all %s'%sanitized('branch.%s.merge'%branchname), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            if branchname is None:
+                return None
+            cmd = 'git config --get-all %s'%sanitized('branch.%s.merge'%branchname)
+            
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if not output:
                 return None
             lines = output.splitlines()
@@ -373,7 +379,8 @@ class GitClient(VcsClientBase):
                 print "vcstools unable to handle multiple merge references for branch %s:\n%s"%(branchname, output)
                 return None
             # get name of configured remote
-            output2 = subprocess.Popen('git config --get-all "branch.%s.remote"'%branchname, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0].strip()
+            cmd = 'git config --get-all "branch.%s.remote"'%branchname
+            _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if output2 != "origin":
                 print "vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(branchname, output2)
                 return None
@@ -405,8 +412,9 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         if self.path_exists():
-            output = subprocess.Popen('git tag -l %s'%sanitized(tag_name), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
-            lines =  output.splitlines()
+            cmd = 'git tag -l %s'%sanitized(tag_name)
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+            lines = output.splitlines()
             if len(lines) == 1:
                 return True
         return False
@@ -433,8 +441,8 @@ class GitClient(VcsClientBase):
         if fetch == True:
             self._do_fetch()
         if refname != None and refname != '' and version!=None and version!='':
-            output = subprocess.Popen('git rev-list %s %s --parents'%(sanitized(refname), sanitized('^%s'%version)), shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
-            #print "revlist", refname, versionlist, output
+            cmd = 'git rev-list %s %s --parents'%(sanitized(refname), sanitized('^%s'%version))
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             for line in output.splitlines():
                 # can have 1, 2 or 3 elements (commit, parent1, parent2)
                 for hash in line.split(" "):
@@ -457,7 +465,7 @@ class GitClient(VcsClientBase):
         """
         if version != None and version != '':
             cmd = 'git show-ref -s'
-            output = subprocess.Popen(cmd, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             refs = output.splitlines()
             # git log over all refs except HEAD
             cmd = 'git log '+ " ".join(refs)
@@ -467,7 +475,7 @@ class GitClient(VcsClientBase):
             else:
                 # %H: commit hash
                 cmd += " --pretty=format:%H"
-            output = subprocess.Popen(cmd, shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             count = 0
             for l in output.splitlines():
                 if l.startswith(version):
@@ -476,10 +484,8 @@ class GitClient(VcsClientBase):
         return False
 
     def _do_fetch(self):
-        if not subprocess.call("git fetch", cwd=self._path, shell=True) == 0:
-            return False
-        return True
-
+        value, _, _ = run_shell_command("git fetch", cwd=self._path, shell=True)
+        return value == 0
 
     def _do_fast_forward(self, fetch = True):
         """Execute git fetch if necessary, and if we can fast-foward,
@@ -493,13 +499,15 @@ class GitClient(VcsClientBase):
                 # --keep allows o rebase even with local changes, as long as
                 # local changes are not in files that change between versions
                 cmd = "git reset --keep remotes/origin/%s"%parent
-                if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+                value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+                if value == 0:
                     return True
             else:
                 # prior to version 1.7.1, git does not know --keep
                 # Do not merge, rebase does nothing when there are local changes
                 cmd = "git rebase remotes/origin/%s"%parent
-                if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+                value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+                if value == 0:
                     return True
             return False
         return True
@@ -516,7 +524,8 @@ class GitClient(VcsClientBase):
         if fetch == True:
             self._do_fetch()
         cmd = "git checkout %s"%(refname)
-        if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+        value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if value == 0:
             return False
         return True
 
