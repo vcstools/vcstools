@@ -59,7 +59,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.WARN)
 
 # create formatter
-formatter = logging.Formatter('%(levelname)s[%(name)s] %(message)s')
+formatter = logging.Formatter('%(levelname)s [%(name)s] %(message)s[/%(name)s]')
 # add formatter to ch
 ch.setFormatter(formatter)
 
