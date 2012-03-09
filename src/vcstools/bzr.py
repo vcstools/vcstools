@@ -36,23 +36,22 @@ bzr vcs support.
 
 import os
 import sys
-import subprocess
 import urllib
 
 
-from  vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
 
 
 def _get_bzr_version():
     """Looks up bzr version by calling bzr --version.
     :raises: VcsError if bzr is not installed"""
     try:
-        output = subprocess.Popen('bzr --version',
-                                  shell = True,
-                                  stdout=subprocess.PIPE,
-                                  env={"LANG":"en_US.UTF-8"}).communicate()[0]
-        version = output.splitlines()[0]
-    except:
+        _, output, _ = run_shell_command('bzr --version', shell=True, us_env = True)
+        if output is not None and len(output.splitlines()) > 0:
+            version = output.splitlines()[0]
+        else:
+            raise VcsError("bzr not installed")
+    except OSError:
         raise VcsError("bzr not installed")
     return version
 
@@ -80,10 +79,8 @@ class BzrClient(VcsClientBase):
         :returns: BZR URL of the branch (output of bzr info command), or None if it cannot be determined
         """
         if self.detect_presence():
-            output = subprocess.Popen('bzr info %s'%self._path,
-                                      shell = True,
-                                      env={"LANG":"en_US.UTF-8"},
-                                      stdout=subprocess.PIPE).communicate()[0]
+            cmd = 'bzr info %s'%self._path
+            _, output, _ = run_shell_command(cmd, shell=True, us_env = True)
             matches = [l for l in output.splitlines() if l.startswith('  parent branch: ')]
             if matches:
                 ppath = urllib.url2pathname(matches[0][len('  parent branch: '):])
@@ -102,17 +99,21 @@ class BzrClient(VcsClientBase):
             cmd = "bzr branch -r %s %s %s"%(version, url, self._path)
         else:
             cmd = "bzr branch %s %s"%(url, self._path)
-        if subprocess.call(cmd, shell=True) == 0:
+        value, _, _ = run_shell_command(cmd, shell=True)
+        if value == 0:
             return True
+        return False
 
     def update(self, version=''):
         if not self.detect_presence():
             return False
-        if not subprocess.call("bzr pull", cwd=self._path, shell=True) == 0:
+        value, _, _ = run_shell_command("bzr pull", cwd=self._path, shell=True)
+        if value != 0:
             return False
         if version != '':
             cmd = "bzr update -r %s"%(version)
-            if subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
+            if value == 0:
                 return True
         return False
 
@@ -129,7 +130,7 @@ class BzrClient(VcsClientBase):
         if self.detect_presence():
             if spec is not None:
                 command = ['bzr log -r %s .'%sanitized(spec)]
-                output = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+                _, output, _ = run_shell_command(command, shell=True, cwd=self._path, us_env = True)
                 if output is None or output.strip() == '' or output.startswith("bzr:"):
                     return None
                 else:
@@ -137,7 +138,7 @@ class BzrClient(VcsClientBase):
                     if len(matches) == 1:
                         return matches[0].split()[1]
             else:
-                output = subprocess.Popen('bzr revno --tree', shell=True, cwd= self._path, stdout=subprocess.PIPE).communicate()[0]
+                _, output, _ = run_shell_command('bzr revno --tree', shell=True, cwd=self._path, us_env = True)
                 return output.strip()
 
     def get_diff(self, basepath=None):
@@ -148,7 +149,7 @@ class BzrClient(VcsClientBase):
             rel_path = sanitized(normalized_rel_path(self._path, basepath))
             command = "bzr diff %s"%rel_path
             command += " -p1 --prefix %s/:%s/"%(rel_path, rel_path)
-            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
         if response != None and response.strip() == '':
             response = None
         return response
@@ -162,7 +163,7 @@ class BzrClient(VcsClientBase):
             command = "bzr status %s -S"%sanitized(rel_path)
             if not untracked:
                 command += " -V"
-            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response_processed = ""
             for line in response.split('\n'):
                 if len(line.strip()) > 0:
