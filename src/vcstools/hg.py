@@ -37,22 +37,21 @@ using ui object to redirect output into a string
 """
 
 import os
-import subprocess
 import sys
 import string
    
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path
+from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command, run_shell_command
 
 
 def _get_hg_version():
     """Looks up hg version by calling hg --version.
     :raises: VcsError if hg is not installed"""
     try:
-        output = subprocess.Popen('hg --version',
-                                  shell = True,
-                                  stdout=subprocess.PIPE,
-                                  env={"LANG":"en_US.UTF-8"}).communicate()[0]
-        version = output.splitlines()[0]
+        _, output, _ = run_shell_command('hg --version', shell=True, us_env = True)
+        if output is not None and len(output.splitlines()) > 0:
+            version = output.splitlines()[0]
+        else:
+            raise VcsError("hg not installed")
     except:
         raise VcsError("hg not installed")
     return version
@@ -121,7 +120,8 @@ class HgClient(VcsClientBase):
         :returns: HG URL of the directory path (output of hg paths command), or None if it cannot be determined
         """
         if self.detect_presence():
-            output = subprocess.Popen("hg paths default", shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            cmd = "hg paths default"
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path, us_env = True)
             return output.rstrip()
         return None
 
@@ -140,11 +140,13 @@ class HgClient(VcsClientBase):
             # OSError thrown if directory already exists this is ok
             pass
         cmd = "hg clone %s %s"%(sanitized(url), self._path)
-        if not subprocess.call(cmd, shell=True) == 0:
+        value, _, _ = run_shell_command(cmd, shell=True)
+        if value != 0:
             return False
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
-            if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
+            if value != 0:
                 return False
         return True
 
@@ -152,14 +154,15 @@ class HgClient(VcsClientBase):
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return True
-        cmd = "hg pull"
-        if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+        value, _, _ = run_shell_command("hg pull", cwd=self._path, shell=True)
+        if value != 0:
             return False
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
         else:
             cmd = "hg update"
-        if not subprocess.call(cmd, cwd=self._path, shell=True) == 0:
+        value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
+        if value != 0:
             return False
         return True
         
@@ -176,7 +179,7 @@ class HgClient(VcsClientBase):
         # detect presence only if we need path for cwd in popen
         if self.detect_presence() and spec != None:
             command = 'hg log -r %s'%sanitized(spec)
-            output = subprocess.Popen(command, shell=True, cwd=self._path, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command(command, shell=True, cwd=self._path, us_env = True)
             if output == None or output.strip() == '' or output.startswith("abort"):
                 return None
             else:
@@ -185,7 +188,7 @@ class HgClient(VcsClientBase):
                      return matches[0].split(':')[2]
         else:
             command = 'hg identify -i %s'%self._path
-            output = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE).communicate()[0]
+            _, output, _ = run_shell_command(command, shell=True, us_env = True)
             if output == None or output.strip() == '' or output.startswith("abort"):
                 return None
             # hg adds a '+' to the end if there are uncommited changes, inconsistent to hg log
@@ -198,7 +201,7 @@ class HgClient(VcsClientBase):
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
             command = "hg diff -g %s"%(sanitized(rel_path))
-            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response = _hg_diff_path_change(response, rel_path)
         if response != None and response.strip() == '':
             response = None
@@ -214,7 +217,7 @@ class HgClient(VcsClientBase):
             command = "hg status %s"%(sanitized(rel_path))
             if not untracked:
                 command += " -mard"
-            response = subprocess.Popen(command, shell=True, cwd=basepath, stdout=subprocess.PIPE).communicate()[0]
+            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             if response != None and response.startswith("abort"):
                 raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
         return response
