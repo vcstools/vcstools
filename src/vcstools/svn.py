@@ -69,7 +69,7 @@ class SvnClient(VcsClientBase):
     def get_environment_metadata():
         metadict = {}
         try:
-            metadict["version"] = _get_svn_version
+            metadict["version"] = _get_svn_version()
         except:
             metadict["version"] = "no svn installed"
         return metadict
