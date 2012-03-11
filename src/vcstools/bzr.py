@@ -46,13 +46,13 @@ def _get_bzr_version():
     """Looks up bzr version by calling bzr --version.
     :raises: VcsError if bzr is not installed"""
     try:
-        _, output, _ = run_shell_command('bzr --version', shell=True, us_env = True)
-        if output is not None and len(output.splitlines()) > 0:
+        value, output, _ = run_shell_command('bzr --version', shell=True, us_env = True)
+        if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("bzr not installed")
-    except OSError:
-        raise VcsError("bzr not installed")
+            raise VcsError("bzr --version returned %s, maybe bzr is not installed"%value)
+    except VcsError as e:
+        raise VcsError("Coud not determine whether bzr is installed: %s"%e)
     return version
 
 

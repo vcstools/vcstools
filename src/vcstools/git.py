@@ -106,14 +106,16 @@ def _get_git_version():
     something unexpected"""
     try:
         cmd = 'git --version'
-        _, version, _ = run_shell_command(cmd, shell=True)
+        value, version, _ = run_shell_command(cmd, shell=True)
+        if value != 0:
+            raise VcsError("git --version returned %s, maybe git is not installed"%(value))
+        prefix = 'git version '
+        if version is not None and version.startswith(prefix):
+            version = version[len(prefix):].strip()
+        else:
+            raise VcsError("git --version returned invalid string: '%s'"%version)
     except VcsError as e:
-        raise VcsError("git not installed")
-    prefix = 'git version '
-    if version.startswith(prefix):
-        version = version[len(prefix):].strip()
-    else:
-        raise VcsError("git --version returned invalid string: '%s'"%version)
+        raise VcsError("Could not determine whether git is installed: %s"%e)
     return version
 
 class GitClient(VcsClientBase):

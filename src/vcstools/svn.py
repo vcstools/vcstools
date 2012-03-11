@@ -45,13 +45,13 @@ def _get_svn_version():
     :raises: VcsError if svn is not installed"""
     try:
         # SVN commands produce differently formatted output for french locale
-        _, output, _ = run_shell_command('svn --version', shell=True, us_env = True)
-        if output is not None and len(output.splitlines()) > 0:
+        value, output, _ = run_shell_command('svn --version', shell=True, us_env = True)
+        if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("svn not installed: %s"%e)
-    except OSError as e:
-        raise VcsError("svn not installed: %s"%e)
+            raise VcsError("svn --version returned %s maybe svn is not installed"%value)
+    except VcsError as e:
+        raise VcsError("Could not determine whether svn is installed: %s"%e)
     return version
 
 class SvnClient(VcsClientBase):

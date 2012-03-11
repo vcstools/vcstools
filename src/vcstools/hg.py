@@ -47,13 +47,13 @@ def _get_hg_version():
     """Looks up hg version by calling hg --version.
     :raises: VcsError if hg is not installed"""
     try:
-        _, output, _ = run_shell_command('hg --version', shell=True, us_env = True)
-        if output is not None and len(output.splitlines()) > 0:
+        value, output, _ = run_shell_command('hg --version', shell=True, us_env = True)
+        if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("hg not installed")
-    except:
-        raise VcsError("hg not installed")
+            raise VcsError("hg --version returned %s, maybe hg is not installed"%value)
+    except VcsError as e:
+        raise VcsError("Could not determine whether hg is installed %s"%e)
     return version
 
 #hg diff cannot seem to be persuaded to accept a different prefix for filenames
@@ -183,7 +183,7 @@ class HgClient(VcsClientBase):
             if output == None or output.strip() == '' or output.startswith("abort"):
                 return None
             else:
-                 matches = [l for l in output.split('\n') if l.startswith('changeset: ')]
+                 matches = [l for l in output.splitlines() if l.startswith('changeset: ')]
                  if len(matches) == 1:
                      return matches[0].split(':')[2]
         else:
