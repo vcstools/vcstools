@@ -121,6 +121,8 @@ class VcsClientBase:
         subclasses may raise VcsError when a dependency is missing
         """
         self._path = path
+        if path is None:
+            raise VcsError("Cannot initialize VCSclient without path")
         self._vcs_type_name = vcs_type_name
         self.logger = logging.getLogger('vcstools')
 
