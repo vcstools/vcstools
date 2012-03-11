@@ -230,7 +230,7 @@ class GitClient(VcsClientBase):
                 # prevent commit from becoming dangling
                 if self.is_commit_in_orphaned_subtree(current_version, fetch = need_to_fetch):
                     # commit becomes dangling unless we move to one of its descendants
-                    if not self.rev_list_contains(refname, [current_version], fetch = False):
+                    if not self.rev_list_contains(refname, current_version, fetch = False):
                         # TODO: should raise error instead of printing message
                         print "vcstools refusing to move away from dangling commit, to protect your work."
                         return False
@@ -268,6 +268,7 @@ class GitClient(VcsClientBase):
             command += " --format='%H'"
             _, output, _ = run_shell_command(command, shell=True, cwd=self._path)
             return output
+        return None
 
     def get_diff(self, basepath=None):
         response = ''
