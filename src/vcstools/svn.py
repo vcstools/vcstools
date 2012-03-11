@@ -91,6 +91,7 @@ class SvnClient(VcsClientBase):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.svn'))
 
     def checkout(self, url, version=''):
+        # Need to check as SVN does not care
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False

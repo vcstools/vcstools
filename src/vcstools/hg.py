@@ -142,6 +142,8 @@ class HgClient(VcsClientBase):
         cmd = "hg clone %s %s"%(sanitized(url), self._path)
         value, _, _ = run_shell_command(cmd, shell=True)
         if value != 0:
+            if self.path_exists():
+                sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)

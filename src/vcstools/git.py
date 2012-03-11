@@ -154,14 +154,13 @@ class GitClient(VcsClientBase):
 
     def checkout(self, url, refname=None):
         """calls git clone and then, if refname was given, update(refname)"""
-        if self.path_exists():
-            sys.stderr.write("Error: cannot checkout into existing directory\n")
-            return False
         
         #since we cannot know whether refname names a branch, clone master initially
         cmd = "git clone --recursive %s %s"%(url, self._path)
         value, _, _ = run_shell_command(cmd, shell=True)
         if value != 0:
+            if self.path_exists():
+                sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
 
         if refname != None and refname != "master":
