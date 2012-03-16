@@ -117,7 +117,7 @@ class SvnClient(VcsClientBase):
                 version = "-r" + version
         elif version == None:
             version = ''
-        cmd = 'svn up %s %s'%(sanitized(version), self._path)
+        cmd = 'svn up %s %s --non-interactive'%(sanitized(version), self._path)
         value, _, _ = run_shell_command(cmd, shell=True)
         if value == 0:
             return True

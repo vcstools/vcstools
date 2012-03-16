@@ -162,7 +162,7 @@ class HgClient(VcsClientBase):
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
         else:
-            cmd = "hg update"
+            cmd = "hg update --config ui.merge=internal:fail"
         value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
         if value != 0:
             return False
