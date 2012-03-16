@@ -157,7 +157,7 @@ class GitClient(VcsClientBase):
         
         #since we cannot know whether refname names a branch, clone master initially
         cmd = "git clone --recursive %s %s"%(url, self._path)
-        value, _, _ = run_shell_command(cmd, shell=True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
@@ -173,7 +173,7 @@ class GitClient(VcsClientBase):
         # update and or init submodules too
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
             cmd = "git submodule update --init --recursive"
-            value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+            value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path, show_stdout = True)
             if value != 0:
                 return False
         return True
@@ -484,7 +484,7 @@ class GitClient(VcsClientBase):
         return False
 
     def _do_fetch(self):
-        value, _, _ = run_shell_command("git fetch", cwd=self._path, shell=True)
+        value, _, _ = run_shell_command("git fetch", cwd=self._path, shell=True, show_stdout = True)
         return value == 0
 
     def _do_fast_forward(self, fetch = True):

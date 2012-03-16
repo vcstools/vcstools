@@ -34,6 +34,7 @@
 vcs support library base class.
 """
 import os
+import time
 import shlex
 import subprocess
 import logging
@@ -76,10 +77,20 @@ def sanitized(arg):
             raise VcsError("Shell injection attempt detected: >%s< = %s"%(arg, shlex.split(safe_arg, False, False)))
     return safe_arg
 
-def run_shell_command(cmd, cwd=None, shell=False, us_env = True):
+
+def discard_line(line):
+    # the most common feedback lines of scms. We don't care about those. We let through anything unusual only.
+    discard_prefixes = ["adding ", "added ", "updating ", "requesting ", "pulling from ", "searching for ", "(", "no changes found", "0 files", "A  ", "D  ", "U  ", "At revision", "Path: "]
+    for d in discard_prefixes:
+        if line.startswith(d):
+            return True
+    return False
+
+def run_shell_command(cmd, cwd=None, silent=False, shell=False, us_env = True, show_stdout = False):
     """
     executes a command and hides the stdout output, loggs
     stderr output when command result is not zero. Make sure to sanitize arguments in the command.
+    
     :param cmd: A string to execute.
     :param shell: Whether to use os shell, this is DANGEROUS, as vulnerable to shell injection.
     :returns: ( returncode, stdout, stderr)
@@ -95,6 +106,21 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True):
                              stderr=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              env=env)
+        if show_stdout == True:
+            # listen to stdout and print
+            while 1:
+                line = p.stdout.readline()
+                time.sleep(0.1)
+                exitcode = p.poll()
+                if line != '':
+                    if not discard_line(line):
+                        print('%s'%line.rstrip('\n'))
+                line = p.stderr.readline()
+                if line != '':
+                    if not discard_line(line):
+                        print('%s'%line.rstrip('\n'))
+                if(p.returncode is not None):
+                        break
         output = p.communicate()
         value = p.poll()
         message = None

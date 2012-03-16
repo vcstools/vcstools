@@ -140,14 +140,14 @@ class HgClient(VcsClientBase):
             # OSError thrown if directory already exists this is ok
             pass
         cmd = "hg clone %s %s"%(sanitized(url), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
-            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
+            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True)
             if value != 0:
                 return False
         return True
@@ -156,7 +156,7 @@ class HgClient(VcsClientBase):
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return True
-        value, _, _ = run_shell_command("hg pull", cwd=self._path, shell=True)
+        value, _, _ = run_shell_command("hg pull", cwd=self._path, shell=True, show_stdout = True)
         if value != 0:
             return False
         if version != None and version.strip() != '':

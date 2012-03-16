@@ -115,7 +115,7 @@ class TarClient(VcsClientBase):
             tempdir = tempfile.mkdtemp()
             cmd = "tar -xf %s -C %s"%(filename, tempdir)
             #print "extract command", cmd
-            value, _, stderror = run_shell_command(cmd, shell=True)
+            value, _, stderror = run_shell_command(cmd, shell=True, show_stdout = True)
             if value != 0:
                 raise VcsError("failed to extract: %s"%stderror)
 

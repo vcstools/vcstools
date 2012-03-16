@@ -118,7 +118,7 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn up %s %s --non-interactive'%(sanitized(version), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
         if value == 0:
             return True
         return False
@@ -154,7 +154,7 @@ class SvnClient(VcsClientBase):
                 command += sanitized('-r%s'%spec)
         command += " %s"%self._path
         # #3305: parsing not robust to non-US locales
-        _, output, _ = run_shell_command(command, shell=True, us_env = True)
+        _, output, _ = run_shell_command(command, shell=True, us_env = True, show_stdout = True)
         if output != None:
             matches = [l for l in output.splitlines() if l.startswith('Revision: ')]
             if len(matches) == 1:

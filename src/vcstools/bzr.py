@@ -97,7 +97,7 @@ class BzrClient(VcsClientBase):
             cmd = "bzr branch -r %s %s %s"%(version, url, self._path)
         else:
             cmd = "bzr branch %s %s"%(url, self._path)
-        value, _, _ = run_shell_command(cmd, shell=True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
@@ -107,12 +107,12 @@ class BzrClient(VcsClientBase):
     def update(self, version=''):
         if not self.detect_presence():
             return False
-        value, _, _ = run_shell_command("bzr pull", cwd=self._path, shell=True)
+        value, _, _ = run_shell_command("bzr pull", cwd=self._path, shell=True, show_stdout = True)
         if value != 0:
             return False
         if version != '':
             cmd = "bzr update -r %s"%(version)
-            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
+            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True)
             if value == 0:
                 return True
         return False
