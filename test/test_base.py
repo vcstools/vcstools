@@ -63,7 +63,8 @@ class SvnClientTestSetups(unittest.TestCase):
             self.assertFalse(e is None)
             self.assertEqual(r, 'foo')
             # not a great test on a system where this is default
-            self.assertEqual((0, "LANG=en_US.UTF-8", None), run_shell_command("/usr/bin/env |grep LANG", shell = True, us_env = True))
+            _, env_langs, _ = run_shell_command("/usr/bin/env |grep LANG=", shell = True, us_env = True)
+            self.assertTrue("LANG=en_US.UTF-8" in env_langs.splitlines())
             try:
                   run_shell_command("two words")
                   self.fail("expected exception")

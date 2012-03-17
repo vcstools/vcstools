@@ -34,6 +34,7 @@
 vcs support library base class.
 """
 import os
+import copy
 import time
 import shlex
 import subprocess
@@ -97,9 +98,9 @@ def run_shell_command(cmd, cwd=None, silent=False, shell=False, us_env = True, s
     :raises: VcsError on OSError
     """
     try:
-        env = None
+        env = copy.copy(os.environ)
         if us_env == True:
-            env = {"LANG":"en_US.UTF-8"}
+            env ["LANG"] = "en_US.UTF-8"
         p = subprocess.Popen(cmd,
                              shell=shell,
                              cwd=cwd,
