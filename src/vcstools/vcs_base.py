@@ -35,7 +35,6 @@ vcs support library base class.
 """
 import os
 import copy
-import time
 import shlex
 import subprocess
 import logging
@@ -87,7 +86,7 @@ def discard_line(line):
             return True
     return False
 
-def run_shell_command(cmd, cwd=None, silent=False, shell=False, us_env = True, show_stdout = False):
+def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = False):
     """
     executes a command and hides the stdout output, loggs
     stderr output when command result is not zero. Make sure to sanitize arguments in the command.
@@ -99,7 +98,7 @@ def run_shell_command(cmd, cwd=None, silent=False, shell=False, us_env = True, s
     """
     try:
         env = copy.copy(os.environ)
-        if us_env == True:
+        if us_env:
             env ["LANG"] = "en_US.UTF-8"
         p = subprocess.Popen(cmd,
                              shell=shell,
@@ -107,32 +106,29 @@ def run_shell_command(cmd, cwd=None, silent=False, shell=False, us_env = True, s
                              stderr=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              env=env)
-        if show_stdout == True:
+        if show_stdout:
             # listen to stdout and print
-            while 1:
+            while True:
                 line = p.stdout.readline()
-                time.sleep(0.1)
-                exitcode = p.poll()
                 if line != '':
                     if not discard_line(line):
-                        print('%s'%line.rstrip('\n'))
+                        print(line),
                 line = p.stderr.readline()
                 if line != '':
                     if not discard_line(line):
-                        print('%s'%line.rstrip('\n'))
-                if(p.returncode is not None):
+                        print(line),
+                if(not line or p.returncode is not None):
                         break
         output = p.communicate()
-        value = p.poll()
         message = None
-        if value != 0 and output[1] is not None and output[1] != '':
+        if p.returncode != 0 and output[1] is not None and output[1] != '':
             logger = logging.getLogger('vcstools')
-            message = "Command failed: '%s'\n errcode: %s :\n%s"%(cmd, value, output[1])
+            message = "Command failed: '%s'\n errcode: %s :\n%s"%(cmd, p.returncode, output[1])
             logger.warn(message)
         result = output[0]
         if result is not None:
             result = result.rstrip()
-        return (value, result, message)
+        return (p.returncode, result, message)
     except OSError as e:
         logger = logging.getLogger('vcstools')
         message = "Command failed with OSError. '%s' <%s, %s>:\n%s"%(cmd, shell, cwd, e)
