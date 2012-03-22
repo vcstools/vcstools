@@ -47,8 +47,10 @@ try:
     import yaml
 except:
     _yaml_missing = True
+  
+from vcs_base import VcsClientBase, VcsError, run_shell_command
 
-from .vcs_base import VcsClientBase, VcsError, run_shell_command
+__pychecker__ = 'unusednames=spec'
 
 def _get_tar_version():
     """Looks up tar version by calling tar --version.
@@ -82,7 +84,7 @@ class TarClient(VcsClientBase):
         metadict = {}
         try:
             version = _get_tar_version()
-        except VcsError as e:
+        except VcsError:
             version = "No tar installed"
         metadict["version"] = version
         return metadict
@@ -153,7 +155,8 @@ class TarClient(VcsClientBase):
 
         return True
 
-    def get_version(self):
+    def get_version(self, spec = None):
+
         if self.detect_presence():
             with open(self.metadata_path, 'r') as metadata_file:
                 metadata = yaml.load(metadata_file.read())

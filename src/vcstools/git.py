@@ -50,7 +50,6 @@ reasonable disambiguation, and in some cases warns.
 """
 
 import os
-import base64
 import string
 import sys
 import logging
@@ -58,11 +57,9 @@ from distutils.version import LooseVersion
 
 from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
 
-def _git_diff_path_submodule_change(diff, rel_path_prefix, basepath):
+def _git_diff_path_submodule_change(diff, rel_path_prefix):
     """
-    Parses git diff result and changes the filename prefixes,
-    also removes submodule entries using basepath to detect
-    diffs on directories.
+    Parses git diff result and changes the filename prefixes.
     """
     if diff == None:
         return None
@@ -134,7 +131,7 @@ class GitClient(VcsClientBase):
             resetkeep =  LooseVersion(version) >= LooseVersion('1.7.1')
             submodules = LooseVersion(version) > LooseVersion('1.7')
             metadict["features"] = "'reset --keep': %s, submodules: %s"%(resetkeep, submodules)
-        except VcsError as e:
+        except VcsError:
             version = "No git installed"
         metadict["version"] = version
         return metadict
@@ -214,7 +211,7 @@ class GitClient(VcsClientBase):
             # refname can be a different branch or something else than a branch
             
             refname_is_local_branch = self.is_local_branch(refname)
-            if refname_is_local_branch == True:
+            if refname_is_local_branch:
                 # might also be remote branch, but we treat it as local
                 refname_is_remote_branch = False
             else:
@@ -285,7 +282,7 @@ class GitClient(VcsClientBase):
             if LooseVersion(self.gitversion) > LooseVersion('1.7'):
                 cmd = 'git submodule foreach --recursive git diff HEAD'
                 _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-                response += _git_diff_path_submodule_change(output, rel_path, self._path)
+                response += _git_diff_path_submodule_change(output, rel_path)
         return response
 
 
@@ -438,15 +435,15 @@ class GitClient(VcsClientBase):
         # ^baz also excludes baz itself. We could also use git
         # show --format=%P to get all parents first and use that,
         # not sure what's more performant
-        if fetch == True:
+        if fetch:
             self._do_fetch()
         if refname != None and refname != '' and version!=None and version!='':
             cmd = 'git rev-list %s %s --parents'%(sanitized(refname), sanitized('^%s'%version))
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             for line in output.splitlines():
                 # can have 1, 2 or 3 elements (commit, parent1, parent2)
-                for hash in line.split(" "):
-                    if hash.startswith(version):
+                for hashid in line.split(" "):
+                    if hashid.startswith(version):
                         return True
         return False
 
@@ -463,20 +460,21 @@ class GitClient(VcsClientBase):
         :param fetch: whether fetch should be done first for remote refs
         :returns: True if version is not recursively referenced by a branch or tag
         """
+        if fetch:
+            self._do_fetch()
         if version != None and version != '':
             cmd = 'git show-ref -s'
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             refs = output.splitlines()
             # git log over all refs except HEAD
             cmd = 'git log '+ " ".join(refs)
-            if mask_self == True:
+            if mask_self:
                 # %P: parent hashes
                 cmd += " --pretty=format:%P"
             else:
                 # %H: commit hash
                 cmd += " --pretty=format:%H"
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-            count = 0
             for l in output.splitlines():
                 if l.startswith(version):
                     return False
@@ -521,7 +519,7 @@ class GitClient(VcsClientBase):
         rules whether local changes would cause conflicts, and refuses
         to checkout else."""
         # since refname may relate to remote branch / tag we do not know about yet, do fetch if not already done
-        if fetch == True:
+        if fetch:
             self._do_fetch()
         cmd = "git checkout %s"%(refname)
         value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)

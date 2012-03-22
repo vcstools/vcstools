@@ -109,7 +109,6 @@ class HgClient(VcsClientBase):
     def get_environment_metadata():
         metadict = {}
         try:
-            import mercurial.util
             metadict["version"] = '%s'%_get_hg_version()
         except:
             metadict["version"] = "no mercurial installed"
@@ -136,7 +135,7 @@ class HgClient(VcsClientBase):
         base_path = os.path.split(self.get_path())[0]
         try:
             os.makedirs(base_path) 
-        except OSError, ex:
+        except OSError:
             # OSError thrown if directory already exists this is ok
             pass
         cmd = "hg clone %s %s"%(sanitized(url), self._path)

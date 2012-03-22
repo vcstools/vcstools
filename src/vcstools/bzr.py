@@ -68,7 +68,6 @@ class BzrClient(VcsClientBase):
     def get_environment_metadata():
         metadict = {}
         try:
-            import bzrlib
             metadict["version"] = _get_bzr_version()
         except:
             metadict["version"] = "no bzr installed"

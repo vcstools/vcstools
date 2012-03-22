@@ -39,6 +39,8 @@ import shlex
 import subprocess
 import logging
 
+__pychecker__ = 'unusednames=spec,url,version,basepath,untracked'
+
 class VcsError(Exception):
     """To be thrown when an SCM Client faces a situation because of a
     violated assumption"""
