@@ -6,6 +6,7 @@ Changelog
 
 - added this changelog
 - git get-version fetches only when local lookup fails
+- hg get-version pulls if label not found
 - Popen error message incudes cwd path
 
 0.1.12

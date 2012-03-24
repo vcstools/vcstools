@@ -155,8 +155,7 @@ class HgClient(VcsClientBase):
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return True
-        value, _, _ = run_shell_command("hg pull", cwd=self._path, shell=True, show_stdout = True)
-        if value != 0:
+        if not self._do_pull():
             return False
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
@@ -177,15 +176,26 @@ class HgClient(VcsClientBase):
           token.
         """
         # detect presence only if we need path for cwd in popen
-        if spec != None and self.detect_presence():
-            command = 'hg log -r %s'%sanitized(spec)
-            _, output, _ = run_shell_command(command, shell=True, cwd=self._path, us_env = True)
-            if output == None or output.strip() == '' or output.startswith("abort"):
-                return None
-            else:
-                 matches = [l for l in output.splitlines() if l.startswith('changeset: ')]
-                 if len(matches) == 1:
-                     return matches[0].split(':')[2]
+        if spec != None:
+            if self.detect_presence():
+                command = 'hg log -r %s'%sanitized(spec)
+                repeated = False
+                output = ''
+                # we repeat the call once after pullin if necessary
+                while output == '':
+                    _, output, _ = run_shell_command(command, shell=True, cwd=self._path, us_env = True)
+                    if (output.strip() != ''
+                        and not output.startswith("abort")
+                        or repeated is True):
+                        matches = [l for l in output.splitlines() if l.startswith('changeset: ')]
+                        if len(matches) == 1:
+                            return matches[0].split(':')[2]
+                        else:
+                            sys.stderr.write("Warning: found several candidates for hg spec %s"%spec)
+                        break
+                    self._do_pull()
+                    repeated = True
+            return None
         else:
             command = 'hg identify -i %s'%self._path
             _, output, _ = run_shell_command(command, shell=True, us_env = True)
@@ -220,5 +230,9 @@ class HgClient(VcsClientBase):
                 raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
         return response
 
+    def _do_pull(self):
+        value, _, _ = run_shell_command("hg pull", cwd=self._path, shell=True, show_stdout = True)
+        return value == 0
+    
 # backwards compat
 HGClient = HgClient
