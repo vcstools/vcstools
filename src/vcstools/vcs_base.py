@@ -125,7 +125,10 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
         message = None
         if p.returncode != 0 and output[1] is not None and output[1] != '':
             logger = logging.getLogger('vcstools')
-            message = "Command failed: '%s'\n errcode: %s :\n%s"%(cmd, p.returncode, output[1])
+            message = "Command failed: '%s'"%(cmd)
+            if cwd is not None:
+                message += "\n run at: '%s'"%(cwd)
+            message += "\n errcode: %s:\n%s"%(p.returncode, output[1])
             logger.warn(message)
         result = output[0]
         if result is not None:
