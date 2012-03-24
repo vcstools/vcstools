@@ -1,11 +1,19 @@
 Developer's Guide
 =================
 
+Changelog
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   changelog
+
 Bug reports and feature requests
 --------------------------------
 
-- `Submit a bug report <https://code.ros.org/trac/ros/newticket?component=vcstools&type=defect&&vcstools>`_
-- `Submit a feature request <https://code.ros.org/trac/ros/newticket?component=vcstools&type=enhancement&vcstools>`_
+- `Submit a bug report <https://kforge.ros.org/vcstools/trac/newticket?component=vcstools&type=defect>`_
+- `Submit a feature request <https://kforge.ros.org/vcstools/trac/newticket?component=vcstools&type=enhancement&vcstools>`_
 
 Developer Setup
 ---------------
