@@ -260,11 +260,21 @@ class GitClient(VcsClientBase):
         if self.detect_presence():
             command = "git log -1"
             if spec is not None:
-                if fetch:
-                    self._do_fetch()
                 command += " %s"%sanitized(spec)
             command += " --format='%H'"
-            _, output, _ = run_shell_command(command, shell=True, cwd=self._path)
+            repeated = False
+            output = ''
+            #we repeat the call once after fetching if necessary
+            while output == '':
+                _, output, _ = run_shell_command(command, shell=True, cwd=self._path)
+                if (output != ''
+                    or spec is None
+                    or fetch is False
+                    or repeated is True):
+                    break
+                # we try again after fetching if given spec had not been found
+                self._do_fetch()
+                repeated = True
             return output
         return None
 
