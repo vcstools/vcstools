@@ -118,13 +118,12 @@ class BzrClient(VcsClientBase):
 
     def get_version(self, spec=None):
         """
-        @param spec: (optional) revisionspec of desired version.  May
-        be any revisionspec as returned by 'bzr help revisionspec',
-        e.g. a tagname or 'revno:<number>'
-        
+        :param spec: (optional) revisionspec of desired version.  May
+          be any revisionspec as returned by 'bzr help revisionspec',
+          e.g. a tagname or 'revno:<number>'        
         :returns: the current revision number of the repository. Or if
-        spec is provided, the number of a revision specified by some
-        token. 
+          spec is provided, the number of a revision specified by some
+          token. 
         """
         if self.detect_presence():
             if spec is not None:

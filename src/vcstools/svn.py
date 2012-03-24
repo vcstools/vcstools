@@ -126,12 +126,11 @@ class SvnClient(VcsClientBase):
     def get_version(self, spec=None):
         """
         :param spec: (optional) spec can be what 'svn info --help'
-        allows, meaning a revnumber, {date}, HEAD, BASE, PREV, or
-        COMMITTED.
-
+          allows, meaning a revnumber, {date}, HEAD, BASE, PREV, or
+          COMMITTED.
         :returns: current revision number of the repository. Or if spec
-        provided, the number of a revision specified by some
-        token.
+          provided, the number of a revision specified by some
+          token.
         """
         command = 'svn info '
         if spec != None:

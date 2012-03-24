@@ -250,12 +250,11 @@ class GitClient(VcsClientBase):
     def get_version(self, spec=None, fetch = True):
         """
         :param spec: (optional) token to identify desired version. For
-        git, this may be anything accepted by git log, e.g. a tagname,
-        branchname, or sha-id.
+          git, this may be anything accepted by git log, e.g. a tagname,
+          branchname, or sha-id.
         :param fetch: When spec is given, can be used to suppress git fetch call
-        
         :returns: current SHA-ID of the repository. Or if spec is
-        provided, the SHA-ID of a commit specified by some token.
+          provided, the SHA-ID of a commit specified by some token.
         """
         if self.detect_presence():
             command = "git log -1"
@@ -434,7 +433,7 @@ class GitClient(VcsClientBase):
 
         :param refname: a git refname
         :param version: an SHA IDs (if partial, caller is responsible
-        for mismatch)
+          for mismatch)
         :returns: True if version can be found in rev-list
         """
         # to avoid listing unnecessarily many rev-ids, we cut off all

@@ -188,7 +188,7 @@ class VcsClientBase:
         :param spec: token for identifying repository revision
         :type spec: str
         :returns: current revision number of the repository.  Or if
-        spec is provided, the respective revision number.
+          spec is provided, the respective revision number.
         :rtype: str
         """
         raise NotImplementedError, "Base class get_version method must be overridden"
@@ -214,10 +214,11 @@ class VcsClientBase:
         the spec. Fails when there are uncommited changes.
         On failures (also e.g. network failure) grants the
         checked out files are in the same state as before the call.
+
         :param spec: token for identifying repository revision
-        desired.  Token might be a tagname, branchname, version-id, 
-        SHA-ID, ... depending on the VCS implementation.
-        :return True on success, False else
+           desired.  Token might be a tagname, branchname, version-id, 
+           SHA-ID, ... depending on the VCS implementation.
+        :returns: True on success, False else
         """
         raise NotImplementedError("Base class update method must be overridden")
 

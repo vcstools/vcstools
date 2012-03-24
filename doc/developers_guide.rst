@@ -1,6 +1,14 @@
 Developer's Guide
 =================
 
+Code API
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   modules
+
 Changelog
 ---------
 

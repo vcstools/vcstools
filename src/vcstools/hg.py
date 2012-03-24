@@ -170,12 +170,11 @@ class HgClient(VcsClientBase):
     def get_version(self, spec=None):
         """
         :param spec: (optional) token for identifying version. spec can be
-        a whatever is allowed by 'hg log -r', e.g. a tagname, sha-ID,
-        revision-number
-
+          a whatever is allowed by 'hg log -r', e.g. a tagname, sha-ID,
+          revision-number
         :returns: the current SHA-ID of the repository. Or if spec is
-        provided, the SHA-ID of a revision specified by some
-        token.
+          provided, the SHA-ID of a revision specified by some
+          token.
         """
         # detect presence only if we need path for cwd in popen
         if spec != None and self.detect_presence():
