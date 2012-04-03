@@ -63,6 +63,10 @@ def _get_tar_version():
         raise VcsError("tar not installed")
     if version.startswith('tar '):
         version = version.splitlines()[0][len('tar '):].strip()
+    elif version.startswith('bsdtar '):
+        # starts with bsdtar on OS X
+        # e.g.: bsdtar 2.8.3 - libarchive 2.8.3
+        version = version.splitlines()[0]
     else:
         raise VcsError("tar --version returned invalid string: '%s'"%version)
     return version
