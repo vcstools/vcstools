@@ -33,6 +33,8 @@
 """
 tar vcs support.
 
+The implementation uses the "version" argument to indicate a subfolder within a tarfile.
+Hence one can organize sources by creating one tarfile with a folder inside for each version.
 """
 
 import os
@@ -66,7 +68,8 @@ class TarClient(VcsClientBase):
 
     def get_url(self):
         """
-        :returns: TAR URL of the directory path (output of tar info command), or None if it cannot be determined
+        :returns: TAR URL of the directory path (output of tar info
+        command), or None if it cannot be determined
         """
         if self.detect_presence():
             with open(self.metadata_path, 'r') as metadata_file:
@@ -80,8 +83,11 @@ class TarClient(VcsClientBase):
 
     def checkout(self, url, version=''):
         """
-        untars from url to self.path. If version was given, only the
-        subdirectory 'version' of the tar will end up in self.path.
+        untars tar at url to self.path.
+        If version was given, only the subdirectory 'version' of the
+        tar will end up in self.path.  Also creates a file next to the
+        checkout named *.tar which is a yaml file listing origin url
+        and version arguments.
         """
         if self.path_exists():
             self.logger.error("Cannot checkout into existing directory")
@@ -116,12 +122,16 @@ class TarClient(VcsClientBase):
             return True
             
         except Exception as e:
-            self.logger.error("Tarball download unpack failed%s\n"%str(e))
+            self.logger.error("Tarball download unpack failed: %s"%str(e))
         if os.path.exists(tempdir):
             shutil.rmtree(tempdir)
         return False
 
     def update(self, version=''):
+        """
+        Does nothing except returning true if tar exists in same
+        "version" as checked out with vcstools.
+        """
         if not self.detect_presence():
             return False
 
