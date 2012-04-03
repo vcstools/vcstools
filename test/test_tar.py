@@ -86,8 +86,9 @@ class TarClientTest(unittest.TestCase):
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
-        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.checkout(url, version='exploration-0.3.0'))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), url)
+        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml'))) #make sure the tarball subdirectory was promoted correctly. 
