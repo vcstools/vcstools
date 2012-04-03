@@ -115,7 +115,7 @@ class TarClient(VcsClientBase):
             (filename, headers) = urllib.urlretrieve(url)
             #print "filename", filename
             tempdir = tempfile.mkdtemp()
-            cmd = "tar -xf %s -C %s"%(filename, tempdir)
+            cmd = "tar -xjf %s -C %s"%(filename, tempdir)
             #print "extract command", cmd
             value, _, stderror = run_shell_command(cmd, shell=True, show_stdout = True)
             if value != 0:
