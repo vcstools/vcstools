@@ -37,6 +37,7 @@ tar vcs support.
 
 import os
 import urllib
+import tarfile
 import tempfile
 import sys
 import logging
@@ -119,17 +120,18 @@ class TarClient(VcsClientBase):
             (filename, headers) = urllib.urlretrieve(url)
             #print "filename", filename
             tempdir = tempfile.mkdtemp()
-            cmd = "tar -xjf %s -C %s"%(filename, tempdir)
-            #print "extract command", cmd
-            value, _, stderror = run_shell_command(cmd, shell=True, show_stdout = True)
-            if value != 0:
-                raise VcsError("failed to extract: %s"%stderror)
-
+            t = tarfile.open(filename, 'r:*')
+            members = None
             if version == '':
-                self.logger.warn("No tar subdirectory chosen via the 'version' argument.")
-                subdir = tempdir
+                self.logger.warn("No tar subdirectory chosen via the 'version' argument for url: %s"%url)
             else:
-                subdir = os.path.join(tempdir, version)
+                print ("Get members %s"%[m.name for m in t.getmembers()])
+                members = [m for m in t.getmembers() if version in m.name]
+                if not members:
+                    raise VcsError("%s is not a subdirectory with contents\n"%version)
+            t.extractall(tempdir, members)
+
+            subdir = os.path.join(tempdir, version)
             if not os.path.isdir(subdir):
                 raise VcsError("%s is not a subdirectory\n"%subdir)
             
