@@ -97,15 +97,21 @@ class TarClient(VcsClientBase):
             #print "filename", filename
             tempdir = tempfile.mkdtemp()
             t = tarfile.open(filename, 'r:*')
-            members = None
-            if version == '':
+            members = None # means all members in extractall
+            if version == '' or version is None:
                 self.logger.warn("No tar subdirectory chosen via the 'version' argument for url: %s"%url)
             else:
-                print ("Get members %s"%[m.name for m in t.getmembers()])
-                members = [m for m in t.getmembers() if version in m.name]
+                # getmembers lists all files contained in tar with relative path
+                subdirs = []
+                members = []
+                for m in t.getmembers():
+                    if m.name.startswith(version + '/'):
+                        members.append(m)
+                    if m.name.split('/')[0] not in subdirs:
+                        subdirs.append(m.name.split('/')[0])
                 if not members:
-                    raise VcsError("%s is not a subdirectory with contents\n"%version)
-            t.extractall(tempdir, members)
+                    raise VcsError("%s is not a subdirectory with contents in members %s"%(version, subdirs))
+            t.extractall(path = tempdir, members = members)
 
             subdir = os.path.join(tempdir, version)
             if not os.path.isdir(subdir):
