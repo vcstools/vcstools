@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.1.14
+------
+
+- Added tarball uncompression. 
+
 0.1.13
 ------
 
