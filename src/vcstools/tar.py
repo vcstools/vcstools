@@ -42,12 +42,7 @@ import tempfile
 import sys
 import logging
 import shutil
-
-_yaml_missing = False
-try:
-    import yaml
-except:
-    _yaml_missing = True
+import yaml
   
 from vcs_base import VcsClientBase, VcsError, run_shell_command
 
@@ -62,8 +57,6 @@ class TarClient(VcsClientBase):
         """
         VcsClientBase.__init__(self, 'tar', path)
         self.metadata_path = os.path.join(self._path, ".tar")
-        if _yaml_missing:
-            raise VcsError("Python yaml libs could not be imported. Please install python-yaml. On debian systems sudo apt-get install python-yaml")
 
     @staticmethod
     def get_environment_metadata():

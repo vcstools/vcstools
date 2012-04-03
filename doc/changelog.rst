@@ -4,6 +4,7 @@ Changelog
 0.1.15
 ------
 
+- Added pyyaml as a proper dependency, removed detection code. 
 - remove use of tar entirely, switch to tarfile module
 - fix #36 allowing for tar being bsdtar on OSX
 
