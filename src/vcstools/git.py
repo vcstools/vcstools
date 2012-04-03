@@ -516,7 +516,6 @@ class GitClient(VcsClientBase):
                 value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
                 if value == 0:
                     return True
-            return False
         return True
 
 
@@ -536,5 +535,5 @@ class GitClient(VcsClientBase):
             return False
         return True
 
-    
+#Backwards compatability    
 GITClient=GitClient
