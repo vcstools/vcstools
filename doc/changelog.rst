@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.1.15
+------
+
+- fix #36 allowing for tar being bsdtar on OSX
+
 0.1.14
 ------
 
