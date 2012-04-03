@@ -53,24 +53,6 @@ from vcs_base import VcsClientBase, VcsError, run_shell_command
 
 __pychecker__ = 'unusednames=spec'
 
-def _get_tar_version():
-    """Looks up tar version by calling tar --version.
-
-    :raises: VcsError if git is not installed or returns
-    something unexpected"""
-    try:
-        _, version, _ = run_shell_command('tar --version', shell=True, us_env = True)
-    except OSError:
-        raise VcsError("tar not installed")
-    if version.startswith('tar '):
-        version = version.splitlines()[0][len('tar '):].strip()
-    elif version.startswith('bsdtar '):
-        # starts with bsdtar on OS X
-        # e.g.: bsdtar 2.8.3 - libarchive 2.8.3
-        version = version.splitlines()[0]
-    else:
-        raise VcsError("tar --version returned invalid string: '%s'"%version)
-    return version
 
 class TarClient(VcsClientBase):
 
@@ -80,18 +62,13 @@ class TarClient(VcsClientBase):
         """
         VcsClientBase.__init__(self, 'tar', path)
         self.metadata_path = os.path.join(self._path, ".tar")
-        _get_tar_version()
         if _yaml_missing:
             raise VcsError("Python yaml libs could not be imported. Please install python-yaml. On debian systems sudo apt-get install python-yaml")
 
     @staticmethod
     def get_environment_metadata():
         metadict = {}
-        try:
-            version = _get_tar_version()
-        except VcsError:
-            version = "No tar installed"
-        metadict["version"] = version
+        metadict["version"] = 'tarfile version: %s'%tarfile.__version__
         return metadict
 
     def get_url(self):
