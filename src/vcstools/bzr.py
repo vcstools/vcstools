@@ -83,8 +83,7 @@ class BzrClient(VcsClientBase):
             matches = [l for l in output.splitlines() if l.startswith('  parent branch: ')]
             if matches:
                 ppath = urllib.url2pathname(matches[0][len('  parent branch: '):])
-                if ppath is not None:
-                    return os.path.abspath(os.path.join(os.getcwd(), ppath))
+                return ppath
         return None
 
     def detect_presence(self):
