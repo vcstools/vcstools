@@ -63,11 +63,11 @@ class VcsClient(object):
     def get_version(self, spec=None):
         return self.vcs.get_version(spec)
 
-    def checkout(self, url, version=''):
-        return self.vcs.checkout(url, version)
+    def checkout(self, url, version='', verbose = False):
+        return self.vcs.checkout(url, version, verbose = verbose)
 
     def update(self, version, verbose = False):
-        return self.vcs.update(version, verbose)
+        return self.vcs.update(version, verbose = verbose)
 
     def detect_presence(self):
         return self.vcs.detect_presence()
