@@ -82,7 +82,16 @@ def sanitized(arg):
 
 def discard_line(line):
     # the most common feedback lines of scms. We don't care about those. We let through anything unusual only.
-    discard_prefixes = ["adding ", "added ", "updating ", "requesting ", "pulling from ", "searching for ", "(", "no changes found", "0 files", "A  ", "D  ", "U  ", "At revision", "Path: "]
+    discard_prefixes = ["adding ", "added ", "updating ", "requesting ", "pulling from ",
+                        "searching for ", "(", "no changes found",
+                        "0 files",
+                        "A  ", "D  ", "U  ", 
+                        "At revision", "Path: ", "First,",
+                        "Installing", "Using ",
+                        "No ", "Tree ",
+                        "All ", 
+                        "+N  ", "-D  ", " M  ", " M* ", "RM" # bzr
+                        ]
     for d in discard_prefixes:
         if line.startswith(d):
             return True
