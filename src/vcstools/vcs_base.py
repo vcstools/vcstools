@@ -117,6 +117,9 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
                              stderr=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              env=env)
+        # when we read output in while loop, it will not be returned in communicate()
+        stderr_buf = []
+        stdout_buf = []
         if show_stdout:
             # listen to stdout and print
             while True:
@@ -124,22 +127,28 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
                 if line != '':
                     if verbose or not discard_line(line):
                         print(line),
-                line = p.stderr.readline()
-                if line != '':
-                    if not discard_line(line):
-                        print(line),
-                if(not line or p.returncode is not None):
-                        break
-        output = p.communicate()
+                        stdout_buf.append(line)
+                line2 = p.stderr.readline()
+                if line2 != '':
+                    if verbose or not discard_line(line2):
+                        print(line2),
+                        stderr_buf.append(line2)
+                if ((not line and not line2) or p.returncode is not None):
+                    break
+        (stdout, stderr) = p.communicate()
+        stdout_buf.append(stdout)
+        stdout = "\n".join(stdout_buf)
+        stderr_buf.append(stderr)
+        stderr = "\n".join(stderr_buf)
         message = None
-        if p.returncode != 0 and output[1] is not None and output[1] != '':
+        if p.returncode != 0 and stderr is not None and stderr != '':
             logger = logging.getLogger('vcstools')
             message = "Command failed: '%s'"%(cmd)
             if cwd is not None:
                 message += "\n run at: '%s'"%(cwd)
-            message += "\n errcode: %s:\n%s"%(p.returncode, output[1])
+            message += "\n errcode: %s:\n%s"%(p.returncode, stderr)
             logger.warn(message)
-        result = output[0]
+        result = stdout
         if result is not None:
             result = result.rstrip()
         return (p.returncode, result, message)
