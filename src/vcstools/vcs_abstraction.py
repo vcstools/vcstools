@@ -66,8 +66,8 @@ class VcsClient(object):
     def checkout(self, url, version=''):
         return self.vcs.checkout(url, version)
 
-    def update(self, version):
-        return self.vcs.update(version)
+    def update(self, version, verbose = False):
+        return self.vcs.update(version, verbose)
 
     def detect_presence(self):
         return self.vcs.detect_presence()
