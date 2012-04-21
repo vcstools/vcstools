@@ -120,7 +120,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
         # when we read output in while loop, it will not be returned in communicate()
         stderr_buf = []
         stdout_buf = []
-        if show_stdout:
+        if verbose or show_stdout:
             # listen to stdout and print
             while True:
                 line = p.stdout.readline()
