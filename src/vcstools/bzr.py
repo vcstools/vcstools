@@ -83,6 +83,9 @@ class BzrClient(VcsClientBase):
             matches = [l for l in output.splitlines() if l.startswith('  parent branch: ')]
             if matches:
                 ppath = urllib.url2pathname(matches[0][len('  parent branch: '):])
+                # when it can, bzr substitues absolute path for relative paths
+                if (os.path.isdir(ppath) and not os.path.isabs(ppath)):
+                    return os.path.abspath(os.path.join(os.getcwd(), ppath))
                 return ppath
         return None
 
