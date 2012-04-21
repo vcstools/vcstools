@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.1.16
+------
+
+- All SCMs show some output when update caused changes
+- All SCMs have verbose option to show all changes done on update
+- bugfix for bazaar getUrl() being a joined abspath
+- bugfix for not all output being shown when requested
+
+
 0.1.15
 ------
 
