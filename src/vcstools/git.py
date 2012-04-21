@@ -149,12 +149,12 @@ class GitClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.git'))
 
-    def checkout(self, url, refname=None):
+    def checkout(self, url, refname=None, verbose = False):
         """calls git clone and then, if refname was given, update(refname)"""
         
         #since we cannot know whether refname names a branch, clone master initially
         cmd = "git clone --recursive %s %s"%(url, self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
@@ -165,17 +165,17 @@ class GitClient(VcsClientBase):
         else:
             return True
         
-    def update_submodules(self):
+    def update_submodules(self, verbose = False):
     
         # update and or init submodules too
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
             cmd = "git submodule update --init --recursive"
-            value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path, show_stdout = True)
+            value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path, show_stdout = True, verbose = verbose)
             if value != 0:
                 return False
         return True
 
-    def update(self, refname=None):
+    def update(self, refname=None, verbose = False):
         """interprets refname as a local branch, remote branch, tagname, hash, etc.
         If it is a branch, attempts to move to it unless already on it, and to fast-forward, unless not a tracking branch.
         Else go untracked on tag or whatever refname is. Does not leave if current commit would become dangling."""
@@ -204,7 +204,7 @@ class GitClient(VcsClientBase):
         # if same_branch and branch_parent == None:
         #   already on branch, nothing to pull as non-tracking branch
         if same_branch and branch_parent != None:
-            if not self._do_fast_forward(need_to_fetch):
+            if not self._do_fast_forward(need_to_fetch, verbose = verbose):
                 return False
             need_to_fetch = False
         elif not same_branch:
@@ -235,14 +235,14 @@ class GitClient(VcsClientBase):
                 need_to_fetch = False
 
             # git checkout makes all the decisions for us
-            self._do_checkout(refname, fetch = need_to_fetch)
+            self._do_checkout(refname, fetch = need_to_fetch, verbose = verbose)
             need_to_fetch = False
             
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
                 new_branch_parent = self.get_branch_parent(fetch = need_to_fetch)
                 if new_branch_parent != None:
-                    if not self._do_fast_forward(fetch = need_to_fetch):
+                    if not self._do_fast_forward(fetch = need_to_fetch, verbose = verbose):
                         return False
             
         return self.update_submodules()
@@ -494,7 +494,7 @@ class GitClient(VcsClientBase):
         value, _, _ = run_shell_command("git fetch", cwd=self._path, shell=True, show_stdout = True)
         return value == 0
 
-    def _do_fast_forward(self, fetch = True):
+    def _do_fast_forward(self, fetch = True, verbose = False):
         """Execute git fetch if necessary, and if we can fast-foward,
         do so to the last fetched version using git rebase. Returns
         False on command line failures"""
@@ -506,21 +506,24 @@ class GitClient(VcsClientBase):
                 # --keep allows o rebase even with local changes, as long as
                 # local changes are not in files that change between versions
                 cmd = "git reset --keep remotes/origin/%s"%parent
-                value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+                value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path, show_stdout = True, verbose = verbose)
                 if value == 0:
                     return True
             else:
+                verboseflag = ''
+                if verbose:
+                    verboseflag = '-v'
                 # prior to version 1.7.1, git does not know --keep
                 # Do not merge, rebase does nothing when there are local changes
-                cmd = "git rebase remotes/origin/%s"%parent
-                value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+                cmd = "git rebase %s remotes/origin/%s"%(verboseflag, parent)
+                value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path, show_stdout = True, verbose = verbose)
                 if value == 0:
                     return True
             return False
         return True
 
 
-    def _do_checkout(self, refname, fetch = True):
+    def _do_checkout(self, refname, fetch = True, verbose = False):
         """meaning git checkout, not vcstools checkout. This works
         for local branches, remote branches, tagnames, hashes, etc.
         git will create local branch of same name when no such local
@@ -531,7 +534,7 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         cmd = "git checkout %s"%(refname)
-        value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        value, _, _ = run_shell_command(cmd, shell=True, cwd=self._path, show_stdout = verbose, verbose = verbose)
         if value == 0:
             return False
         return True

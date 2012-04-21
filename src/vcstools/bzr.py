@@ -89,30 +89,33 @@ class BzrClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
 
-    def checkout(self, url, version=None):
+    def checkout(self, url, version=None, verbose = False):
         
         if version:
             cmd = "bzr branch -r %s %s %s"%(version, url, self._path)
         else:
             cmd = "bzr branch %s %s"%(url, self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
         return True
 
-    def update(self, version=''):
+    def update(self, version='', verbose = False):
         if not self.detect_presence():
             return False
-        value, _, _ = run_shell_command("bzr pull", cwd=self._path, shell=True, show_stdout = True)
+        value, _, _ = run_shell_command("bzr pull", cwd=self._path, shell=True, show_stdout = True, verbose = verbose)
         if value != 0:
             return False
-        if version != '':
+        # Ignore verbose param, bzr is pretty verbose on update anyway
+        if version is not None and version != '':
             cmd = "bzr update -r %s"%(version)
-            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True)
-            if value == 0:
-                return True
+        else:
+            cmd = "bzr update"
+        value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True, verbose = verbose)
+        if value == 0:
+            return True
         return False
 
     def get_version(self, spec=None):

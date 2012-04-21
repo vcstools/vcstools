@@ -127,7 +127,7 @@ class HgClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.hg'))
     
-    def checkout(self, url, version=''):
+    def checkout(self, url, version='', verbose = False):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
@@ -139,29 +139,32 @@ class HgClient(VcsClientBase):
             # OSError thrown if directory already exists this is ok
             pass
         cmd = "hg clone %s %s"%(sanitized(url), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
         if version != None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
-            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True)
+            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = verbose, verbose = verbose)
             if value != 0:
                 return False
         return True
 
-    def update(self, version = ''):
+    def update(self, version = '', verbose = False):
+        verboseflag = ''
+        if verbose:
+            verboseflag = '--verbose'
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return True
         if not self._do_pull():
             return False
         if version != None and version.strip() != '':
-            cmd = "hg checkout %s"%sanitized(version)
+            cmd = "hg checkout %s %s"%(verboseflag, sanitized(version))
         else:
-            cmd = "hg update --config ui.merge=internal:fail"
-        value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True)
+            cmd = "hg update %s --config ui.merge=internal:fail"%verboseflag
+        value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True, verbose = verbose)
         if value != 0:
             return False
         return True

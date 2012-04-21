@@ -88,7 +88,7 @@ def discard_line(line):
             return True
     return False
 
-def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = False):
+def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = False, verbose = False):
     """
     executes a command and hides the stdout output, loggs
     stderr output when command result is not zero. Make sure to sanitize arguments in the command.
@@ -113,7 +113,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
             while True:
                 line = p.stdout.readline()
                 if line != '':
-                    if not discard_line(line):
+                    if verbose or not discard_line(line):
                         print(line),
                 line = p.stderr.readline()
                 if line != '':
@@ -193,7 +193,7 @@ class VcsClientBase:
         """
         raise NotImplementedError, "Base class get_version method must be overridden"
 
-    def checkout(self, url, version):
+    def checkout(self, url, version, verbose = False):
         """
         Attempts to create a local repository given a remote
         url. Fails if a direcotry exists already in target
@@ -208,7 +208,7 @@ class VcsClientBase:
         """
         raise NotImplementedError("Base class checkout method must be overridden")
 
-    def update(self, spec):
+    def update(self, spec, verbose = False):
         """
         Sets the local copy of the repository to a version matching
         the spec. Fails when there are uncommited changes.

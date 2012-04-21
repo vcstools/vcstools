@@ -90,7 +90,7 @@ class SvnClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.svn'))
 
-    def checkout(self, url, version=''):
+    def checkout(self, url, version='', verbose = False):
         # Need to check as SVN does not care
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
@@ -101,12 +101,12 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn co %s %s %s'%(sanitized(version), sanitized(url), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
         if value == 0:
             return True
         return False
 
-    def update(self, version=None):
+    def update(self, version=None, verbose = False):
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return False
@@ -118,7 +118,7 @@ class SvnClient(VcsClientBase):
         elif version == None:
             version = ''
         cmd = 'svn up %s %s --non-interactive'%(sanitized(version), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True)
+        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True, verbose = verbose)
         if value == 0:
             return True
         return False

@@ -81,7 +81,7 @@ class TarClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.exists(self.metadata_path)
 
-    def checkout(self, url, version=''):
+    def checkout(self, url, version='', verbose = False):
         """
         untars tar at url to self.path.
         If version was given, only the subdirectory 'version' of the
@@ -133,7 +133,7 @@ class TarClient(VcsClientBase):
             shutil.rmtree(tempdir)
         return False
 
-    def update(self, version=''):
+    def update(self, version='', verbose = False):
         """
         Does nothing except returning true if tar exists in same
         "version" as checked out with vcstools.
