@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.1.17
+------
+
+- svn stdout output on get_version removed
+
 0.1.16
 ------
 
