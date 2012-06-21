@@ -50,12 +50,14 @@ The :class:`VcsClient` class provides a generic API for
         some token.
 
 
-   .. method:: checkout(url, [version=''])
+   .. method:: checkout(url, [version=''], [verbose=False], [shallow=False])
 
       Checkout the given URL to the path associated with this client.
 
       :param url: URL of source control to check out
       :param version: specific version to check out
+      :param verbose: flag to run verbosely
+      :param shallow: flag to create shallow clone without history
 
    .. method:: update(version)
 

@@ -92,12 +92,11 @@ class BzrClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
 
-    def checkout(self, url, version=None, verbose = False):
-        
+    def checkout(self, url, version=None, verbose = False, shallow = False):
+        cmd = 'bzr branch'
         if version:
-            cmd = "bzr branch -r %s %s %s"%(version, url, self._path)
-        else:
-            cmd = "bzr branch %s %s"%(url, self._path)
+            cmd += ' -r %s' % version
+        cmd += ' %s %s' % (url, self._path)
         value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
         if value != 0:
             if self.path_exists():

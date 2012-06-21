@@ -127,7 +127,7 @@ class HgClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.hg'))
     
-    def checkout(self, url, version='', verbose = False):
+    def checkout(self, url, version='', verbose = False, shallow = False):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False

@@ -63,8 +63,8 @@ class VcsClient(object):
     def get_version(self, spec=None):
         return self.vcs.get_version(spec)
 
-    def checkout(self, url, version='', verbose = False):
-        return self.vcs.checkout(url, version, verbose = verbose)
+    def checkout(self, url, version='', verbose = False, shallow = False):
+        return self.vcs.checkout(url, version, verbose = verbose, shallow = shallow)
 
     def update(self, version, verbose = False):
         return self.vcs.update(version, verbose = verbose)

@@ -81,7 +81,7 @@ class TarClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.exists(self.metadata_path)
 
-    def checkout(self, url, version='', verbose = False):
+    def checkout(self, url, version='', verbose = False, shallow = False):
         """
         untars tar at url to self.path.
         If version was given, only the subdirectory 'version' of the

@@ -149,11 +149,14 @@ class GitClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.git'))
 
-    def checkout(self, url, refname=None, verbose = False):
+    def checkout(self, url, refname=None, verbose = False, shallow = False):
         """calls git clone and then, if refname was given, update(refname)"""
         
         #since we cannot know whether refname names a branch, clone master initially
-        cmd = "git clone --recursive %s %s"%(url, self._path)
+        cmd = 'git clone'
+        if shallow:
+            cmd += ' --depth 1'
+        cmd += ' --recursive %s %s' % (url, self._path)
         value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
         if value != 0:
             if self.path_exists():
