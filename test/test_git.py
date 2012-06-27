@@ -139,6 +139,23 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), "master")
         self.assertEqual(client.get_branch_parent(), "master")
         #self.assertEqual(client.get_version(), '-r*')
+        
+    def test_checkout_shallow(self):
+        url = 'file://'+self.remote_path
+        client = GitClient(self.local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, shallow=True))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(client.get_path(), self.local_path)
+        self.assertEqual(client.get_url(), url)
+        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client.get_branch_parent(), "master")
+        po = subprocess.Popen("git log --pretty=format:%H", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        log = po.stdout.read().splitlines()
+        # shallow only contains last 2 commits
+        self.assertEqual(2, len(log), log)
 
 
     def test_checkout_specific_version_and_update(self):
