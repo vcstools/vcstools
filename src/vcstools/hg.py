@@ -229,8 +229,11 @@ class HgClient(VcsClientBase):
             if not untracked:
                 command += " -mard"
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
-            if response != None and response.startswith("abort"):
-                raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
+            if response != None:
+                if response.startswith("abort"):
+                    raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
+                if len(response) > 0 and response[-1] != '\n':
+                    response += '\n'
         return response
 
     def _do_pull(self):

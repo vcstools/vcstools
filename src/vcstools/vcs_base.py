@@ -258,9 +258,11 @@ class VcsClientBase:
 
     def get_status(self, basepath=None, untracked=False):
         """
-        Calls scm status command. semantics of untracked are difficult
-        to generalize. In SVN, this would be new files only. In git,
-        hg, bzr, this would be changesthat have not been added for
+        Calls scm status command. Output must be terminated by newline unless empty.
+
+        Semantics of untracked are difficult to generalize.
+        In SVN, this would be new files only. In git,
+        hg, bzr, this would be changes that have not been added for
         commit.
 
         :param basepath: status path will be relative to this, if any

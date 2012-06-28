@@ -184,6 +184,8 @@ class SvnClient(VcsClientBase):
             if not untracked:
                 command += " -q"
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
+            if response is not None and len(response) > 0 and response[-1] != '\n':
+                response += '\n'
         return response
 
 
