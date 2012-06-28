@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.1.19
+------
+- more unit tests
+- get_status required to end with newline, to fix #55
+
+0.1.18
+------
+- added shallow flag to API, implemented for git
+
 0.1.17
 ------
 
