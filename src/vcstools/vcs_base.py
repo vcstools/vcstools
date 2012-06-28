@@ -211,17 +211,23 @@ class VcsClientBase:
         """
         raise NotImplementedError, "Base class get_version method must be overridden"
 
-    def checkout(self, url, version, verbose = False):
+    def checkout(self, url, spec, verbose = False, shallow = False):
         """
         Attempts to create a local repository given a remote
-        url. Fails if a direcotry exists already in target
+        url. Fails if a directory exists already in target
         location. If a spec is provided, the local repository
         will be updated to that revision. It is possible that
         after a failed call to checkout, a repository still exists,
         e.g. if an invalid revision spec was given.
+        If shallow is provided, the scm client may checkout less
+        than the full repository history to svae time / disk space.
 
+        :param url: where to checkout from
+        :type url: str
         :param spec: token for identifying repository revision
         :type spec: str
+        :param shallow: hint to checkout less than a full repository
+        :type shallow: bool
         :returns: True if successful
         """
         raise NotImplementedError("Base class checkout method must be overridden")
