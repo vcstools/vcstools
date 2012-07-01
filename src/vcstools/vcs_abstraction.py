@@ -50,7 +50,7 @@ class VcsClient(object):
         self._path = path
         clientclass = get_vcs(vcs_type)
         if clientclass is None:
-            raise LookupException("No Vcs client registered for type %s"%vcs_type)
+            raise LookupError("No Vcs client registered for type %s"%vcs_type)
         self.vcs = clientclass(path)
     
     def path_exists(self):
