@@ -69,6 +69,9 @@ class VcsClient(object):
     def checkout(self, url, version='', verbose=False, shallow=False):
         return self.vcs.checkout(url, version, verbose=verbose, shallow=shallow)
 
+    def url_matches(self, url, url_or_shortcut):
+        return self.vcs.url_matches(url=url, url_or_shortcut=url_or_shortcut)
+
     def update(self, version, verbose=False):
         return self.vcs.update(version, verbose=verbose)
 

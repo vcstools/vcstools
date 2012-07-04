@@ -93,6 +93,29 @@ class BzrClient(VcsClientBase):
                     result = ppath
         return result
 
+    def url_matches(self, url, url_or_shortcut):
+        if super(BzrClient, self).url_matches(url, url_or_shortcut):
+            return True
+        # if we got a shortcut (e.g. launchpad url), we compare using
+        # bzr info and return that one if result matches.
+        result = False
+        if url_or_shortcut is not None:
+            cmd = 'bzr info %s'%url_or_shortcut
+            value, output, _ = run_shell_command(cmd, shell=True, us_env=True)
+            if value == 0:
+                for line in output.splitlines():
+                    print(line)
+                    sline = line.strip()
+                    for prefix in ['shared repository: ',
+                                   'repository branch: ',
+                                   'branch root: ']:
+                        if sline.startswith(prefix):
+                            print(sline[len(prefix):])
+                            if sline[len(prefix):] == url:
+                                result = True
+                                break
+        return result
+
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
 

@@ -88,6 +88,39 @@ class BzrClientTestSetups(unittest.TestCase):
             shutil.rmtree(self.local_path)
 
 class BzrClientTest(BzrClientTestSetups):
+
+    def test_url_matches_with_shortcut_strings(self):
+        client = BzrClient(self.local_path)
+        self.assertTrue(client.url_matches('test1234', 'test1234'))
+
+    def get_launchpad_info(self, url):
+        po = subprocess.Popen(["bzr", "info", url], stdout=subprocess.PIPE)
+        output = po.stdout.read()
+        # it is not great to use the same code for testing as in
+        # production, but relying on fixed bzr info output is just as
+        # bad.
+        for line in output.splitlines():
+            sline = line.strip()
+            for prefix in ['shared repository: ',
+                           'repository branch: ',
+                           'branch root: ']:
+                if sline.startswith(prefix):
+                    return sline[len(prefix):]
+        return None
+
+    def test_url_matches_with_shortcut(self):
+        # bzr on launchpad should have shared repository
+        client = BzrClient(self.local_path)
+        url = 'lp:bzr'
+        url2 = self.get_launchpad_info(url)
+        self.assertFalse(url2 is None)
+        self.assertTrue(client.url_matches(url2, url), "%s~=%s"%(url, url2))
+
+        # launchpad on launchpad should be a branch root
+        url = 'lp:launchpad'
+        url2 = self.get_launchpad_info(url)
+        self.assertFalse(url2 is None)
+        self.assertTrue(client.url_matches(url2, url), "%s~=%s"%(url, url2))
                                  
     def test_get_url_by_reading(self):
         client = BzrClient(self.local_path)

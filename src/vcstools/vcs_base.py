@@ -165,7 +165,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
         raise VcsError(message)
 
 
-class VcsClientBase:
+class VcsClientBase(object):
 
     def __init__(self, vcs_type_name, path):
         """
@@ -194,6 +194,15 @@ class VcsClientBase:
 
     def get_path(self):
         return self._path
+
+    def url_matches(self, url, url_or_shortcut):
+        """
+        client can decide whether the url and the other url are equivalent.
+        Checks string equality by default
+        :param url_or_shortcut: url or shortcut (e.g. bzr launchpad url)
+        :returns: bool if params are equivalent
+        """
+        return url==url_or_shortcut
 
     def get_url(self):
         """
