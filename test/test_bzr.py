@@ -49,7 +49,7 @@ class BzrClientTestSetups(unittest.TestCase):
             subprocess.check_call(["bzr", "whoami"])
         except subprocess.CalledProcessError as e:
             subprocess.check_call(["bzr", "whoami", '"ros ros@ros.org"'])
-        
+
         directory = tempfile.mkdtemp()
         self.directories = dict(setUp=directory)
         self.remote_path = os.path.join(directory, "remote")
@@ -62,14 +62,14 @@ class BzrClientTestSetups(unittest.TestCase):
         subprocess.check_call(["bzr", "commit", "-m", "initial"], cwd=self.remote_path)
         subprocess.check_call(["bzr", "tag", "test_tag"], cwd=self.remote_path)
         self.local_version_init = "1"
-        
+
         # files to be modified in "local" repo
         subprocess.check_call(["touch", "modified.txt"], cwd=self.remote_path)
         subprocess.check_call(["touch", "modified-fs.txt"], cwd=self.remote_path)
         subprocess.check_call(["bzr", "add", "modified.txt", "modified-fs.txt"], cwd=self.remote_path)
         subprocess.check_call(["bzr", "commit", "-m", "initial"], cwd=self.remote_path)
         self.local_version_second = "2"
-        
+
         subprocess.check_call(["touch", "deleted.txt"], cwd=self.remote_path)
         subprocess.check_call(["touch", "deleted-fs.txt"], cwd=self.remote_path)
         subprocess.check_call(["bzr", "add", "deleted.txt", "deleted-fs.txt"], cwd=self.remote_path)
@@ -86,9 +86,9 @@ class BzrClientTestSetups(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
-            
-class BzrClientTest(BzrClientTestSetups):
 
+class BzrClientTest(BzrClientTestSetups):
+                                 
     def test_get_url_by_reading(self):
         client = BzrClient(self.local_path)
         url = self.remote_path
@@ -101,7 +101,7 @@ class BzrClientTest(BzrClientTestSetups):
         self.assertEqual(client.get_version(), self.local_version)
         self.assertEqual(client.get_version(self.local_version_init[0:6]), self.local_version_init)
         self.assertEqual(client.get_version("test_tag"), self.local_version_init)
-        
+
     def test_get_url_nonexistant(self):
         local_path = "/tmp/dummy"
         client = BzrClient(local_path)
@@ -152,7 +152,7 @@ class BzrClientTest(BzrClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_version(), version)
-        
+
         new_version = '2'
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), new_version)
@@ -197,7 +197,7 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
     @classmethod
     def tearDownClass(self):
         BzrClientTestSetups.tearDownClass()
-        
+
     def test_diff(self):
         client = BzrClient(self.local_path)
         self.assertTrue(client.path_exists())

@@ -33,8 +33,9 @@
 """
 tar vcs support.
 
-The implementation uses the "version" argument to indicate a subfolder within a tarfile.
-Hence one can organize sources by creating one tarfile with a folder inside for each version.
+The implementation uses the "version" argument to indicate a subfolder
+within a tarfile.  Hence one can organize sources by creating one
+tarfile with a folder inside for each version.
 """
 
 import os
@@ -42,11 +43,10 @@ import urllib
 import tarfile
 import tempfile
 import sys
-import logging
 import shutil
 import yaml
-  
-from vcs_base import VcsClientBase, VcsError, run_shell_command
+
+from vcs_base import VcsClientBase, VcsError
 
 __pychecker__ = 'unusednames=spec'
 
@@ -75,13 +75,13 @@ class TarClient(VcsClientBase):
             with open(self.metadata_path, 'r') as metadata_file:
                 metadata = yaml.load(metadata_file.read())
                 if 'url' in metadata:
-                    return metadata['url']                
+                    return metadata['url']
         return None
 
     def detect_presence(self):
         return self.path_exists() and os.path.exists(self.metadata_path)
 
-    def checkout(self, url, version='', verbose = False, shallow = False):
+    def checkout(self, url, version='', verbose=False, shallow=False):
         """
         untars tar at url to self.path.
         If version was given, only the subdirectory 'version' of the
@@ -111,29 +111,29 @@ class TarClient(VcsClientBase):
                         subdirs.append(m.name.split('/')[0])
                 if not members:
                     raise VcsError("%s is not a subdirectory with contents in members %s"%(version, subdirs))
-            t.extractall(path = tempdir, members = members)
+            t.extractall(path=tempdir, members=members)
 
             subdir = os.path.join(tempdir, version)
             if not os.path.isdir(subdir):
                 raise VcsError("%s is not a subdirectory\n"%subdir)
-            
+
             try:
                 #os.makedirs(os.path.dirname(self._path))
                 shutil.move(subdir, self._path)
             except Exception as ex:
                 raise VcsError("%s failed to move %s to %s"%(ex, subdir, self._path))
-            metadata = yaml.dump({'url': url, 'version':version})
-            with open(self.metadata_path, 'w') as md:
-                md.write(metadata)
+            metadata = yaml.dump({'url': url, 'version': version})
+            with open(self.metadata_path, 'w') as mdat:
+                mdat.write(metadata)
             return True
-            
-        except Exception as e:
-            self.logger.error("Tarball download unpack failed: %s"%str(e))
+
+        except Exception as exc:
+            self.logger.error("Tarball download unpack failed: %s"%str(exc))
         if os.path.exists(tempdir):
             shutil.rmtree(tempdir)
         return False
 
-    def update(self, version='', verbose = False):
+    def update(self, version='', verbose=False):
         """
         Does nothing except returning true if tar exists in same
         "version" as checked out with vcstools.
@@ -147,7 +147,7 @@ class TarClient(VcsClientBase):
 
         return True
 
-    def get_version(self, spec = None):
+    def get_version(self, spec=None):
 
         if self.detect_presence():
             with open(self.metadata_path, 'r') as metadata_file:

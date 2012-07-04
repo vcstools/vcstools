@@ -39,15 +39,18 @@ using ui object to redirect output into a string
 import os
 import sys
 import string
-   
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
+
+from vcs_base import VcsClientBase, VcsError, sanitized
+from vcs_base import normalized_rel_path, run_shell_command
 
 
 def _get_hg_version():
     """Looks up hg version by calling hg --version.
     :raises: VcsError if hg is not installed"""
     try:
-        value, output, _ = run_shell_command('hg --version', shell=True, us_env = True)
+        value, output, _ = run_shell_command('hg --version',
+                                             shell=True,
+                                             us_env=True)
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
@@ -61,11 +64,12 @@ def _hg_diff_path_change(diff, path):
     """
     Parses hg diff result and changes the filename prefixes.
     """
-    if diff == None:
+    if diff is None:
         return None
     INIT = 0
     INDIFF = 1
-    # small state machine makes sure we never touch anything inside the actual diff
+    # small state machine makes sure we never touch anything inside
+    # the actual diff
     state = INIT
 
     s_list = [line for line in diff.split(os.linesep)]
@@ -95,9 +99,9 @@ def _hg_diff_path_change(diff, path):
     result = "\n".join(lines)
     return result
 
-        
+
 class HgClient(VcsClientBase):
-        
+
     def __init__(self, path):
         """
         :raises: VcsError if hg not detected
@@ -113,45 +117,57 @@ class HgClient(VcsClientBase):
         except:
             metadict["version"] = "no mercurial installed"
         return metadict
-   
+
     def get_url(self):
         """
-        :returns: HG URL of the directory path (output of hg paths command), or None if it cannot be determined
+        :returns: HG URL of the directory path. (output of hg paths
+        command), or None if it cannot be determined
         """
         if self.detect_presence():
             cmd = "hg paths default"
-            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path, us_env = True)
+            _, output, _ = run_shell_command(cmd,
+                                             shell=True,
+                                             cwd=self._path,
+                                             us_env=True)
             return output.rstrip()
         return None
 
     def detect_presence(self):
-        return self.path_exists() and os.path.isdir(os.path.join(self._path, '.hg'))
-    
-    def checkout(self, url, version='', verbose = False, shallow = False):
+        return (self.path_exists() and
+                os.path.isdir(os.path.join(self._path, '.hg')))
+
+    def checkout(self, url, version='', verbose=False, shallow=False):
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
         # make sure that the parent directory exists for #3497
         base_path = os.path.split(self.get_path())[0]
         try:
-            os.makedirs(base_path) 
+            os.makedirs(base_path)
         except OSError:
             # OSError thrown if directory already exists this is ok
             pass
         cmd = "hg clone %s %s"%(sanitized(url), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        show_stdout=verbose,
+                                        verbose=verbose)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-        if version != None and version.strip() != '':
+        if version is not None and version.strip() != '':
             cmd = "hg checkout %s"%sanitized(version)
-            value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = verbose, verbose = verbose)
+            value, _, _ = run_shell_command(cmd,
+                                            cwd=self._path,
+                                            shell=True,
+                                            show_stdout=verbose,
+                                            verbose=verbose)
             if value != 0:
                 return False
         return True
 
-    def update(self, version = '', verbose = False):
+    def update(self, version='', verbose=False):
         verboseflag = ''
         if verbose:
             verboseflag = '--verbose'
@@ -160,15 +176,19 @@ class HgClient(VcsClientBase):
             return True
         if not self._do_pull():
             return False
-        if version != None and version.strip() != '':
+        if version is not None and version.strip() != '':
             cmd = "hg checkout %s %s"%(verboseflag, sanitized(version))
         else:
             cmd = "hg update %s --config ui.merge=internal:fail"%verboseflag
-        value, _, _ = run_shell_command(cmd, cwd=self._path, shell=True, show_stdout = True, verbose = verbose)
+        value, _, _ = run_shell_command(cmd,
+                                        cwd=self._path,
+                                        shell=True,
+                                        show_stdout=True,
+                                        verbose=verbose)
         if value != 0:
             return False
         return True
-        
+
     def get_version(self, spec=None):
         """
         :param spec: (optional) token for identifying version. spec can be
@@ -179,17 +199,21 @@ class HgClient(VcsClientBase):
           token.
         """
         # detect presence only if we need path for cwd in popen
-        if spec != None:
+        if spec is not None:
             if self.detect_presence():
                 command = 'hg log -r %s'%sanitized(spec)
                 repeated = False
                 output = ''
                 # we repeat the call once after pullin if necessary
                 while output == '':
-                    _, output, _ = run_shell_command(command, shell=True, cwd=self._path, us_env = True)
+                    _, output, _ = run_shell_command(command,
+                                                     shell=True,
+                                                     cwd=self._path,
+                                                     us_env=True)
                     if (output.strip() != ''
                         and not output.startswith("abort")
                         or repeated is True):
+
                         matches = [l for l in output.splitlines() if l.startswith('changeset: ')]
                         if len(matches) == 1:
                             return matches[0].split(':')[2]
@@ -201,15 +225,16 @@ class HgClient(VcsClientBase):
             return None
         else:
             command = 'hg identify -i %s'%self._path
-            _, output, _ = run_shell_command(command, shell=True, us_env = True)
-            if output == None or output.strip() == '' or output.startswith("abort"):
+            _, output, _ = run_shell_command(command, shell=True, us_env=True)
+            if output is None or output.strip() == '' or output.startswith("abort"):
                 return None
-            # hg adds a '+' to the end if there are uncommited changes, inconsistent to hg log
+            # hg adds a '+' to the end if there are uncommited
+            # changes, inconsistent to hg log
             return output.strip().rstrip('+')
-        
+
     def get_diff(self, basepath=None):
         response = None
-        if basepath == None:
+        if basepath is None:
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
@@ -219,8 +244,8 @@ class HgClient(VcsClientBase):
         return response
 
     def get_status(self, basepath=None, untracked=False):
-        response=None
-        if basepath == None:
+        response = None
+        if basepath is None:
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
@@ -228,8 +253,10 @@ class HgClient(VcsClientBase):
             command = "hg status %s"%(sanitized(rel_path))
             if not untracked:
                 command += " -mard"
-            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
-            if response != None:
+            _, response, _ = run_shell_command(command,
+                                               shell=True,
+                                               cwd=basepath)
+            if response is not None:
                 if response.startswith("abort"):
                     raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
                 if len(response) > 0 and response[-1] != '\n':
@@ -237,8 +264,11 @@ class HgClient(VcsClientBase):
         return response
 
     def _do_pull(self):
-        value, _, _ = run_shell_command("hg pull", cwd=self._path, shell=True, show_stdout = True)
+        value, _, _ = run_shell_command("hg pull",
+                                        cwd=self._path,
+                                        shell=True,
+                                        show_stdout=True)
         return value == 0
-    
+
 # backwards compat
 HGClient = HgClient

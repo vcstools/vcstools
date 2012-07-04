@@ -53,15 +53,22 @@ register_vcs("hg", HgClient)
 register_vcs("tar", TarClient)
 
 
-logger = logging.getLogger('vcstools')
-logger.setLevel(logging.WARN)
-ch = logging.StreamHandler()
-ch.setLevel(logging.WARN)
+def setup_logger():
+    """
+    creates a logger 'vcstools'
+    """
+    logger = logging.getLogger('vcstools')
+    logger.setLevel(logging.WARN)
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.WARN)
 
-# create formatter
-formatter = logging.Formatter('%(levelname)s [%(name)s] %(message)s[/%(name)s]')
-# add formatter to ch
-ch.setFormatter(formatter)
+    # create formatter
+    template = '%(levelname)s [%(name)s] %(message)s[/%(name)s]'
+    formatter = logging.Formatter(template)
+    # add formatter to handler
+    handler.setFormatter(formatter)
 
-# add ch to logger
-logger.addHandler(ch)
+    # add handler to logger
+    logger.addHandler(handler)
+
+setup_logger()

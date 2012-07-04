@@ -34,11 +34,14 @@ import os
 
 _vcs_types = {}
 
+
 def register_vcs(vcs_type, clazz):
     _vcs_types[vcs_type] = clazz
-  
+
+
 def get_vcs(vcs_type):
     return _vcs_types[vcs_type]
+
 
 class VcsClient(object):
     """
@@ -52,7 +55,7 @@ class VcsClient(object):
         if clientclass is None:
             raise LookupError("No Vcs client registered for type %s"%vcs_type)
         self.vcs = clientclass(path)
-    
+
     def path_exists(self):
         return os.path.exists(self._path)
 
@@ -63,11 +66,11 @@ class VcsClient(object):
     def get_version(self, spec=None):
         return self.vcs.get_version(spec)
 
-    def checkout(self, url, version='', verbose = False, shallow = False):
-        return self.vcs.checkout(url, version, verbose = verbose, shallow = shallow)
+    def checkout(self, url, version='', verbose=False, shallow=False):
+        return self.vcs.checkout(url, version, verbose=verbose, shallow=shallow)
 
-    def update(self, version, verbose = False):
-        return self.vcs.update(version, verbose = verbose)
+    def update(self, version, verbose=False):
+        return self.vcs.update(version, verbose=verbose)
 
     def detect_presence(self):
         return self.vcs.detect_presence()

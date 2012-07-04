@@ -38,21 +38,26 @@ import os
 import sys
 
 
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
+from vcs_base import VcsClientBase, VcsError, sanitized
+from vcs_base import normalized_rel_path, run_shell_command
+
 
 def _get_svn_version():
     """Looks up svn version by calling svn --version.
     :raises: VcsError if svn is not installed"""
     try:
         # SVN commands produce differently formatted output for french locale
-        value, output, _ = run_shell_command('svn --version', shell=True, us_env = True)
+        value, output, _ = run_shell_command('svn --version',
+                                             shell=True,
+                                             us_env=True)
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
             raise VcsError("svn --version returned %s maybe svn is not installed"%value)
-    except VcsError as e:
-        raise VcsError("Could not determine whether svn is installed: %s"%e)
+    except VcsError as exc:
+        raise VcsError("Could not determine whether svn is installed: %s"%exc)
     return version
+
 
 class SvnClient(VcsClientBase):
 
@@ -90,35 +95,41 @@ class SvnClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.svn'))
 
-    def checkout(self, url, version='', verbose = False, shallow = False):
+    def checkout(self, url, version='', verbose=False, shallow=False):
         # Need to check as SVN does not care
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
-        if version != None and version != '':
+        if version is not None and version != '':
             if not version.startswith("-r"):
                 version = "-r%s"%version
-        elif version == None:
+        elif version is None:
             version = ''
         cmd = 'svn co %s %s %s'%(sanitized(version), sanitized(url), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = verbose, verbose = verbose)
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        show_stdout=verbose,
+                                        verbose=verbose)
         if value == 0:
             return True
         return False
 
-    def update(self, version=None, verbose = False):
+    def update(self, version=None, verbose=False):
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return False
         # protect against shell injection
 
-        if version != None and version != '':
+        if version is not None and version != '':
             if not version.startswith("-r"):
                 version = "-r" + version
-        elif version == None:
+        elif version is None:
             version = ''
         cmd = 'svn up %s %s --non-interactive'%(sanitized(version), self._path)
-        value, _, _ = run_shell_command(cmd, shell=True, show_stdout = True, verbose = verbose)
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        show_stdout=True,
+                                        verbose=verbose)
         if value == 0:
             return True
         return False
@@ -133,7 +144,7 @@ class SvnClient(VcsClientBase):
           token.
         """
         command = 'svn info '
-        if spec != None:
+        if spec is not None:
             if spec.isdigit():
                 # looking up svn with "-r" takes long, and if spec is
                 # a number, all we get from svn is the same number,
@@ -141,9 +152,9 @@ class SvnClient(VcsClientBase):
                 # which case either get the same number, or an error
                 # if the rev does not exist). So we first do a very
                 # quick svn info, and check revision numbers.
-                currentversion = self.get_version(spec = None)
+                currentversion = self.get_version(spec=None)
                 # currentversion is like '-r12345'
-                if currentversion != None and int(currentversion[2:]) > int(spec):
+                if currentversion is not None and int(currentversion[2:]) > int(spec):
                     # so if we know revision exist, just return the
                     # number, avoid the long call to svn server
                     return '-r'+spec
@@ -153,8 +164,8 @@ class SvnClient(VcsClientBase):
                 command += sanitized('-r%s'%spec)
         command += " %s"%self._path
         # #3305: parsing not robust to non-US locales
-        _, output, _ = run_shell_command(command, shell=True, us_env = True)
-        if output != None:
+        _, output, _ = run_shell_command(command, shell=True, us_env=True)
+        if output is not None:
             matches = [l for l in output.splitlines() if l.startswith('Revision: ')]
             if len(matches) == 1:
                 split_str = matches[0].split()
@@ -164,18 +175,19 @@ class SvnClient(VcsClientBase):
 
     def get_diff(self, basepath=None):
         response = None
-        if basepath == None:
+        if basepath is None:
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
             command = 'svn diff %s'%sanitized(rel_path)
-            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
+            _, response, _ = run_shell_command(command,
+                                               shell=True,
+                                               cwd=basepath)
         return response
- 
- 
+
     def get_status(self, basepath=None, untracked=False):
         response=None
-        if basepath == None:
+        if basepath is None:
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
@@ -183,11 +195,12 @@ class SvnClient(VcsClientBase):
             command = 'svn status %s'%sanitized(rel_path)
             if not untracked:
                 command += " -q"
-            _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
+            _, response, _ = run_shell_command(command,
+                                               shell=True,
+                                               cwd=basepath)
             if response is not None and len(response) > 0 and response[-1] != '\n':
                 response += '\n'
         return response
 
 
-        
 SVNClient = SvnClient

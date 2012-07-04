@@ -41,6 +41,7 @@ import logging
 
 __pychecker__ = 'unusednames=spec,url,version,basepath,untracked'
 
+
 class VcsError(Exception):
     """To be thrown when an SCM Client faces a situation because of a
     violated assumption"""
@@ -53,10 +54,10 @@ class VcsError(Exception):
 def normalized_rel_path(path, basepath):
     """
     Utility function for subclasses.
-    
+
     If path is absolute, return relative path to it from
     basepath. If relative, return it normalized.
-    
+
     :param path: an absolute or relative path
     :param basepath: if path is absolute, shall be made relative to this
     :returns: a normalized relative path
@@ -67,6 +68,7 @@ def normalized_rel_path(path, basepath):
     if os.path.isabs(path) and basepath is not None:
         return os.path.normpath(os.path.relpath(os.path.realpath(path), os.path.realpath(basepath)))
     return os.path.normpath(path)
+
 
 def sanitized(arg):
     if arg is None or arg.strip() == '':
@@ -85,11 +87,11 @@ def discard_line(line):
     discard_prefixes = ["adding ", "added ", "updating ", "requesting ", "pulling from ",
                         "searching for ", "(", "no changes found",
                         "0 files",
-                        "A  ", "D  ", "U  ", 
+                        "A  ", "D  ", "U  ",
                         "At revision", "Path: ", "First,",
                         "Installing", "Using ",
                         "No ", "Tree ",
-                        "All ", 
+                        "All ",
                         "+N  ", "-D  ", " M  ", " M* ", "RM" # bzr
                         ]
     for d in discard_prefixes:
@@ -97,13 +99,16 @@ def discard_line(line):
             return True
     return False
 
-def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = False, verbose = False):
+
+def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False, verbose=False):
     """
-    executes a command and hides the stdout output, loggs
-    stderr output when command result is not zero. Make sure to sanitize arguments in the command.
-    
+    executes a command and hides the stdout output, loggs stderr
+    output when command result is not zero. Make sure to sanitize
+    arguments in the command.
+
     :param cmd: A string to execute.
-    :param shell: Whether to use os shell, this is DANGEROUS, as vulnerable to shell injection.
+    :param shell: Whether to use os shell.
+    this is DANGEROUS, as vulnerable to shell injection.
     :returns: ( returncode, stdout, stderr)
     :raises: VcsError on OSError
     """
@@ -111,47 +116,48 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
         env = copy.copy(os.environ)
         if us_env:
             env ["LANG"] = "en_US.UTF-8"
-        p = subprocess.Popen(cmd,
-                             shell=shell,
-                             cwd=cwd,
-                             stderr=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             env=env)
-        # when we read output in while loop, it will not be returned in communicate()
+        proc = subprocess.Popen(cmd,
+                                shell=shell,
+                                cwd=cwd,
+                                stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                env=env)
+        # when we read output in while loop, it will not be returned
+        # in communicate()
         stderr_buf = []
         stdout_buf = []
         if verbose or show_stdout:
             # listen to stdout and print
             while True:
-                line = p.stdout.readline()
+                line = proc.stdout.readline()
                 if line != '':
                     if verbose or not discard_line(line):
                         print(line),
                         stdout_buf.append(line)
-                line2 = p.stderr.readline()
+                line2 = proc.stderr.readline()
                 if line2 != '':
                     if verbose or not discard_line(line2):
                         print(line2),
                         stderr_buf.append(line2)
-                if ((not line and not line2) or p.returncode is not None):
+                if ((not line and not line2) or proc.returncode is not None):
                     break
-        (stdout, stderr) = p.communicate()
+        (stdout, stderr) = proc.communicate()
         stdout_buf.append(stdout)
         stdout = "\n".join(stdout_buf)
         stderr_buf.append(stderr)
         stderr = "\n".join(stderr_buf)
         message = None
-        if p.returncode != 0 and stderr is not None and stderr != '':
+        if proc.returncode != 0 and stderr is not None and stderr != '':
             logger = logging.getLogger('vcstools')
             message = "Command failed: '%s'"%(cmd)
             if cwd is not None:
                 message += "\n run at: '%s'"%(cwd)
-            message += "\n errcode: %s:\n%s"%(p.returncode, stderr)
+            message += "\n errcode: %s:\n%s"%(proc.returncode, stderr)
             logger.warn(message)
         result = stdout
         if result is not None:
             result = result.rstrip()
-        return (p.returncode, result, message)
+        return (proc.returncode, result, message)
     except OSError as e:
         logger = logging.getLogger('vcstools')
         message = "Command failed with OSError. '%s' <%s, %s>:\n%s"%(cmd, shell, cwd, e)
@@ -161,7 +167,6 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env = True, show_stdout = F
 
 class VcsClientBase:
 
-    
     def __init__(self, vcs_type_name, path):
         """
         subclasses may raise VcsError when a dependency is missing
@@ -183,10 +188,10 @@ class VcsClientBase:
         :rtype: dict
         """
         raise NotImplementedError("Base class get_environment_metadata method must be overridden")
-    
+
     def path_exists(self):
         return os.path.exists(self._path)
-        
+
     def get_path(self):
         return self._path
 
@@ -211,7 +216,7 @@ class VcsClientBase:
         """
         raise NotImplementedError, "Base class get_version method must be overridden"
 
-    def checkout(self, url, spec, verbose = False, shallow = False):
+    def checkout(self, url, spec, verbose=False, shallow=False):
         """
         Attempts to create a local repository given a remote
         url. Fails if a directory exists already in target
@@ -232,7 +237,7 @@ class VcsClientBase:
         """
         raise NotImplementedError("Base class checkout method must be overridden")
 
-    def update(self, spec, verbose = False):
+    def update(self, spec, verbose=False):
         """
         Sets the local copy of the repository to a version matching
         the spec. Fails when there are uncommited changes.
@@ -240,7 +245,7 @@ class VcsClientBase:
         checked out files are in the same state as before the call.
 
         :param spec: token for identifying repository revision
-           desired.  Token might be a tagname, branchname, version-id, 
+           desired.  Token might be a tagname, branchname, version-id,
            SHA-ID, ... depending on the VCS implementation.
         :returns: True on success, False else
         """
