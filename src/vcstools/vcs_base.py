@@ -94,8 +94,8 @@ def discard_line(line):
                         "All ",
                         "+N  ", "-D  ", " M  ", " M* ", "RM" # bzr
                         ]
-    for d in discard_prefixes:
-        if line.startswith(d):
+    for pre in discard_prefixes:
+        if line.startswith(pre):
             return True
     return False
 
@@ -158,9 +158,9 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
         if result is not None:
             result = result.rstrip()
         return (proc.returncode, result, message)
-    except OSError as e:
+    except OSError as ose:
         logger = logging.getLogger('vcstools')
-        message = "Command failed with OSError. '%s' <%s, %s>:\n%s"%(cmd, shell, cwd, e)
+        message = "Command failed with OSError. '%s' <%s, %s>:\n%s"%(cmd, shell, cwd, ose)
         logger.error(message)
         raise VcsError(message)
 

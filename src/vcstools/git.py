@@ -364,7 +364,7 @@ class GitClient(VcsClientBase):
                 rem_name = elem[:elem.find('/')]
                 br_name = elem[elem.find('/') + 1:]
                 if rem_name == "origin" and br_name == branch_name:
-                        return True
+                    return True
         return False
 
 
