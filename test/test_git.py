@@ -39,7 +39,6 @@ import sys
 import unittest
 import subprocess
 import tempfile
-import urllib
 import shutil
 
 from vcstools import GitClient

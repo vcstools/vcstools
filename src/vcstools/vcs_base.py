@@ -111,7 +111,7 @@ class VcsClientBase(object):
           spec is provided, the respective revision number.
         :rtype: str
         """
-        raise NotImplementedError, "Base class get_version method must be overridden"
+        raise NotImplementedError("Base class get_version method must be overridden")
 
     def checkout(self, url, spec, verbose=False, shallow=False):
         """

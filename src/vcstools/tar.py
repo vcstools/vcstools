@@ -38,15 +38,20 @@ within a tarfile.  Hence one can organize sources by creating one
 tarfile with a folder inside for each version.
 """
 
+
 import os
-import urllib
+# first try python3, then python2
+try:
+    from urllib.request import urlretrieve
+except ImportError:
+    from urllib import urlretrieve
 import tarfile
 import tempfile
 import sys
 import shutil
 import yaml
 
-from vcs_base import VcsClientBase, VcsError
+from vcstools.vcs_base import VcsClientBase, VcsError
 
 __pychecker__ = 'unusednames=spec'
 
@@ -92,8 +97,10 @@ class TarClient(VcsClientBase):
         if self.path_exists():
             self.logger.error("Cannot checkout into existing directory")
             return False
+        tempdir = None
+        result = False
         try:
-            (filename, headers) = urllib.urlretrieve(url)
+            (filename, headers) = urlretrieve(url)
             #print "filename", filename
             tempdir = tempfile.mkdtemp()
             t = tarfile.open(filename, 'r:*')
@@ -125,13 +132,14 @@ class TarClient(VcsClientBase):
             metadata = yaml.dump({'url': url, 'version': version})
             with open(self.metadata_path, 'w') as mdat:
                 mdat.write(metadata)
-            return True
+            result = True
 
         except Exception as exc:
             self.logger.error("Tarball download unpack failed: %s"%str(exc))
-        if os.path.exists(tempdir):
-            shutil.rmtree(tempdir)
-        return False
+        finally:
+            if tempdir is not None and os.path.exists(tempdir):
+                shutil.rmtree(tempdir)
+        return result
 
     def update(self, version='', verbose=False):
         """

@@ -50,13 +50,14 @@ of ambiguities, git attempts to take the most reasonable
 disambiguation, and in some cases warns.
 """
 
+
 import os
 import string
 import sys
 from distutils.version import LooseVersion
 
-from vcs_base import VcsClientBase, VcsError
-from common import sanitized, normalized_rel_path, run_shell_command
+from vcstools.vcs_base import VcsClientBase, VcsError
+from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
 def _git_diff_path_submodule_change(diff, rel_path_prefix):
     """
@@ -244,7 +245,7 @@ class GitClient(VcsClientBase):
                     # commit becomes dangling unless we move to one of its descendants
                     if not self.rev_list_contains(refname, current_version, fetch=False):
                         # TODO: should raise error instead of printing message
-                        print "vcstools refusing to move away from dangling commit, to protect your work."
+                        print("vcstools refusing to move away from dangling commit, to protect your work.")
                         return False
                 need_to_fetch = False
 
@@ -409,13 +410,13 @@ class GitClient(VcsClientBase):
                 return None
             lines = output.splitlines()
             if len(lines) > 1:
-                print "vcstools unable to handle multiple merge references for branch %s:\n%s"%(branchname, output)
+                print("vcstools unable to handle multiple merge references for branch %s:\n%s"%(branchname, output))
                 return None
             # get name of configured remote
             cmd = 'git config --get-all "branch.%s.remote"'%branchname
             _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if output2 != "origin":
-                print "vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(branchname, output2)
+                print("vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(branchname, output2))
                 return None
             output = lines[0]
             # output is either refname, or /refs/heads/refname, or

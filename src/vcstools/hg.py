@@ -36,12 +36,13 @@ hg vcs support.
 using ui object to redirect output into a string
 """
 
+
 import os
 import sys
 import string
 
-from vcs_base import VcsClientBase, VcsError
-from common import sanitized, normalized_rel_path, run_shell_command
+from vcstools.vcs_base import VcsClientBase, VcsError
+from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
 
 def _get_hg_version():

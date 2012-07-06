@@ -34,13 +34,17 @@
 bzr vcs support.
 """
 
+
 import os
 import sys
-import urllib
+# first try python3, then python2
+try:
+    from urllib.request import url2pathname
+except ImportError:
+    from urllib2 import url2pathname
 
-
-from vcs_base import VcsClientBase, VcsError
-from common import sanitized, normalized_rel_path, run_shell_command
+from vcstools.vcs_base import VcsClientBase, VcsError
+from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
 
 def _get_bzr_version():
@@ -86,7 +90,7 @@ class BzrClient(VcsClientBase):
             _, output, _ = run_shell_command(cmd, shell=True, us_env=True)
             matches = [l for l in output.splitlines() if l.startswith('  parent branch: ')]
             if matches:
-                ppath = urllib.url2pathname(matches[0][len('  parent branch: '):])
+                ppath = url2pathname(matches[0][len('  parent branch: '):])
                 # when it can, bzr substitues absolute path for relative paths
                 if (ppath is not None and os.path.isdir(ppath) and not os.path.isabs(ppath)):
                     result = os.path.abspath(os.path.join(os.getcwd(), ppath))

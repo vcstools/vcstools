@@ -30,13 +30,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+
 import os
 import copy
 import shlex
 import subprocess
 import logging
 
-from vcs_base import VcsError
+from vcstools.vcs_base import VcsError
 
 def normalized_rel_path(path, basepath):
     """
@@ -136,9 +137,9 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
                 if ((not line and not line2) or proc.returncode is not None):
                     break
         (stdout, stderr) = proc.communicate()
-        stdout_buf.append(stdout)
+        stdout_buf.append(stdout.decode('utf-8'))
         stdout = "\n".join(stdout_buf)
-        stderr_buf.append(stderr)
+        stderr_buf.append(stderr.decode('utf-8'))
         stderr = "\n".join(stderr_buf)
         message = None
         if proc.returncode != 0 and stderr is not None and stderr != '':
