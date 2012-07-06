@@ -105,13 +105,11 @@ class BzrClient(VcsClientBase):
             value, output, _ = run_shell_command(cmd, shell=True, us_env=True)
             if value == 0:
                 for line in output.splitlines():
-                    print(line)
                     sline = line.strip()
                     for prefix in ['shared repository: ',
                                    'repository branch: ',
                                    'branch root: ']:
                         if sline.startswith(prefix):
-                            print(sline[len(prefix):])
                             if super(BzrClient, self).url_matches(url, sline[len(prefix):]):
                                 result = True
                                 break
