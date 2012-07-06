@@ -38,9 +38,8 @@ import os
 import sys
 
 
-from vcs_base import VcsClientBase, VcsError, sanitized
-from vcs_base import normalized_rel_path, run_shell_command
-
+from vcs_base import VcsClientBase, VcsError
+from common import sanitized, normalized_rel_path, run_shell_command
 
 def _get_svn_version():
     """Looks up svn version by calling svn --version.

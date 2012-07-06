@@ -3,7 +3,8 @@ import sys
 import io
 import unittest
 
-from vcstools.vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
+from vcstools.vcs_base import VcsClientBase, VcsError
+from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
 class SvnClientTestSetups(unittest.TestCase):
 

@@ -55,9 +55,8 @@ import string
 import sys
 from distutils.version import LooseVersion
 
-from vcs_base import VcsClientBase, VcsError, sanitized
-from vcs_base import normalized_rel_path, run_shell_command
-
+from vcs_base import VcsClientBase, VcsError
+from common import sanitized, normalized_rel_path, run_shell_command
 
 def _git_diff_path_submodule_change(diff, rel_path_prefix):
     """
@@ -590,4 +589,4 @@ class GitClient(VcsClientBase):
         return True
 
 #Backwards compatability
-GITClient=GitClient
+GITClient = GitClient

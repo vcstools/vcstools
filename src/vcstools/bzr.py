@@ -39,7 +39,8 @@ import sys
 import urllib
 
 
-from vcs_base import VcsClientBase, VcsError, sanitized, normalized_rel_path, run_shell_command
+from vcs_base import VcsClientBase, VcsError
+from common import sanitized, normalized_rel_path, run_shell_command
 
 
 def _get_bzr_version():
@@ -189,7 +190,7 @@ class BzrClient(VcsClientBase):
 
     def get_diff(self, basepath=None):
         response = None
-        if basepath == None:
+        if basepath is None:
             basepath = self._path
         if self.path_exists():
             rel_path = sanitized(normalized_rel_path(self._path, basepath))
@@ -200,7 +201,7 @@ class BzrClient(VcsClientBase):
 
     def get_status(self, basepath=None, untracked=False):
         response = None
-        if basepath == None:
+        if basepath is None:
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
@@ -215,4 +216,4 @@ class BzrClient(VcsClientBase):
             response = response_processed
         return response
 
-BZRClient=BzrClient
+BZRClient = BzrClient

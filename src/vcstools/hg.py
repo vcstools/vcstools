@@ -40,8 +40,8 @@ import os
 import sys
 import string
 
-from vcs_base import VcsClientBase, VcsError, sanitized
-from vcs_base import normalized_rel_path, run_shell_command
+from vcs_base import VcsClientBase, VcsError
+from common import sanitized, normalized_rel_path, run_shell_command
 
 
 def _get_hg_version():
@@ -58,6 +58,7 @@ def _get_hg_version():
     except VcsError as e:
         raise VcsError("Could not determine whether hg is installed %s"%e)
     return version
+
 
 #hg diff cannot seem to be persuaded to accept a different prefix for filenames
 def _hg_diff_path_change(diff, path):
