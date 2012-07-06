@@ -427,7 +427,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
             self.fail("expected Exception")
         except VcsError: pass
         try:
-            client.get_version('foo"; echo bar"', fetch = False)
+            client.get_version('foo"; echo bar"')
             self.fail("expected Exception")
         except VcsError: pass
         
