@@ -202,7 +202,7 @@ class VcsClientBase(object):
         :param url_or_shortcut: url or shortcut (e.g. bzr launchpad url)
         :returns: bool if params are equivalent
         """
-        return url==url_or_shortcut
+        return url.rstrip('/') == url_or_shortcut.rstrip('/')
 
     def get_url(self):
         """

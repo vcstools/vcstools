@@ -111,7 +111,7 @@ class BzrClient(VcsClientBase):
                                    'branch root: ']:
                         if sline.startswith(prefix):
                             print(sline[len(prefix):])
-                            if sline[len(prefix):] == url:
+                            if super(BzrClient, self).url_matches(url, sline[len(prefix):]):
                                 result = True
                                 break
         return result

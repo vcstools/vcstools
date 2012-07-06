@@ -93,6 +93,12 @@ class BzrClientTest(BzrClientTestSetups):
         client = BzrClient(self.local_path)
         self.assertTrue(client.url_matches('test1234', 'test1234'))
 
+    def test_url_matches_with_shortcut_strings_slashes(self):
+        client = BzrClient(self.local_path)
+        self.assertTrue(client.url_matches('test1234/', 'test1234'))
+        self.assertTrue(client.url_matches('test1234', 'test1234/'))
+        self.assertTrue(client.url_matches('test1234/', 'test1234/'))
+
     def get_launchpad_info(self, url):
         po = subprocess.Popen(["bzr", "info", url], stdout=subprocess.PIPE)
         output = po.stdout.read()
