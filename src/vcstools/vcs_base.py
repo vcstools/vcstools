@@ -88,6 +88,8 @@ class VcsClientBase(object):
         :param url_or_shortcut: url or shortcut (e.g. bzr launchpad url)
         :returns: bool if params are equivalent
         """
+        if url is None or url_or_shortcut is None:
+            return False
         return url.rstrip('/') == url_or_shortcut.rstrip('/')
 
     def get_url(self):
