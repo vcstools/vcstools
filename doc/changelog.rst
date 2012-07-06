@@ -3,6 +3,9 @@ Changelog
 
 0.1.19
 ------
+- python3 compatibility
+- code style improved
+- match_url to compare bzr shortcuts to real urls
 - more unit tests
 - get_status required to end with newline, to fix #55
 
