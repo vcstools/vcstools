@@ -1,7 +1,22 @@
 from setuptools import setup
 
+import imp
+
+
+def get_version():
+    ver_file = None
+    try:
+        ver_file, pathname, description = imp.find_module('__version__', ['src/vcstools'])
+        vermod = imp.load_module('__version__', ver_file, pathname, description)
+        version = vermod.version
+        return version
+    finally:
+        if ver_file is not None:
+            ver_file.close()
+
+
 setup(name='vcstools',
-      version='0.1.18',
+      version=get_version(),
       packages=['vcstools'],
       package_dir={'': 'src'},
       scripts=[],
