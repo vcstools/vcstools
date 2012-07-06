@@ -32,15 +32,15 @@
 
 import os
 
-_vcs_types = {}
+_VCS_TYPES = {}
 
 
 def register_vcs(vcs_type, clazz):
-    _vcs_types[vcs_type] = clazz
+    _VCS_TYPES[vcs_type] = clazz
 
 
 def get_vcs(vcs_type):
-    return _vcs_types[vcs_type]
+    return _VCS_TYPES[vcs_type]
 
 
 class VcsClient(object):
@@ -94,4 +94,4 @@ class VcsClient(object):
         return self.vcs.get_status(basepath, untracked)
 
 # backwards compat
-VCSClient=VcsClient
+VCSClient = VcsClient
