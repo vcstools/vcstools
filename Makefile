@@ -1,22 +1,20 @@
 .PHONY: all setup clean_dist distro clean install deb_dist upload-packages upload-building upload testsetup test
 
 NAME=vcstools
-VERSION=$(shell grep version= ./src/vcstools/__version__.py | sed 's,version=,,')
+VERSION=$(shell grep version ./src/vcstools/__version__.py | sed 's,version = ,,')
 
 all:
 	echo "noop for debbuild"
 
 setup:
-	@echo "Confirming version numbers are all consistently taged with ${VERSION}"
-	@grep ${VERSION} setup.py 1> /dev/null
-	@echo "Confirmed: all files reference version ${VERSION}"
+	echo "building version ${VERSION}"
 
 clean_dist:
 	-rm -f MANIFEST
 	-rm -rf dist
 	-rm -rf deb_dist
 
-distro: setup clean_dist
+distro: clean_dist
 	python setup.py sdist
 
 push: distro
