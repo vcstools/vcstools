@@ -14,7 +14,7 @@ clean_dist:
 	-rm -rf dist
 	-rm -rf deb_dist
 
-distro: clean_dist
+distro: clean_dist setup
 	python setup.py sdist
 
 push: distro
