@@ -3,6 +3,9 @@
 NAME=vcstools
 VERSION=$(shell grep version ./src/vcstools/__version__.py | sed 's,version = ,,')
 
+OUTPUT_DIR=deb_dist
+
+
 all:
 	echo "noop for debbuild"
 
