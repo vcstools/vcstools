@@ -31,6 +31,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import unicode_literals
+
 import os
 import io
 import stat
@@ -65,7 +67,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
         
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
-        self.readonly_version_init = po.stdout.read().rstrip('"').lstrip('"')
+        self.readonly_version_init = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # files to be modified in "local" repo
         subprocess.check_call("touch modified.txt", shell=True, cwd=self.remote_path)
@@ -73,14 +75,14 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
         subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
-        self.readonly_version_second = po.stdout.read().rstrip('"').lstrip('"')
+        self.readonly_version_second = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
         
         subprocess.check_call("touch deleted.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
         subprocess.check_call("git commit -m modified", shell=True, cwd=self.remote_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
-        self.readonly_version = po.stdout.read().rstrip('"').lstrip('"')
+        self.readonly_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
         subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
 
 
@@ -152,7 +154,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), "master")
         self.assertEqual(client.get_branch_parent(), "master")
         po = subprocess.Popen("git log --pretty=format:%H", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
-        log = po.stdout.read().splitlines()
+        log = po.stdout.read().decode('UTF-8').splitlines()
         # shallow only contains last 2 commits
         self.assertEqual(2, len(log), log)
 
@@ -285,7 +287,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git commit -m my_branch", shell=True, cwd=self.local_path)
         subprocess.check_call("git tag my_branch_tag", shell=True, cwd=self.local_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
-        self.untracked_version = po.stdout.read().rstrip('"').lstrip('"')
+        self.untracked_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
         
         # Go detached to create some dangling commits
         subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
@@ -300,7 +302,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git commit -m dangling", shell=True, cwd=self.local_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
-        self.dangling_version = po.stdout.read().rstrip('"').lstrip('"')
+        self.dangling_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # go back to master to make head point somewhere else
         subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
@@ -443,17 +445,17 @@ class GitDiffStatClientTest(GitClientTestSetups):
         subprocess.check_call("rm deleted-fs.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("git rm deleted.txt", shell=True, cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         subprocess.check_call("git add modified.txt", shell=True, cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         subprocess.check_call("git add added.txt", shell=True, cwd=self.local_path)
 

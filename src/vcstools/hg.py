@@ -39,7 +39,6 @@ using ui object to redirect output into a string
 
 import os
 import sys
-import string
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
@@ -90,8 +89,8 @@ def _hg_diff_path_change(diff, path):
                     newline = "+++ %s%s"%(path, line[5:])
                 elif line.startswith("diff --git"):
                     # first replacing b in case path starts with a/
-                    newline = string.replace(line, " b/", " " + path + "/", 1)
-                    newline = string.replace(newline, " a/", " " + path + "/", 1)
+                    newline = line.replace(" b/", " " + path + "/", 1)
+                    newline = newline.replace(" a/", " " + path + "/", 1)
                 else:
                     newline = line
         else:

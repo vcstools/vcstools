@@ -52,7 +52,6 @@ disambiguation, and in some cases warns.
 
 
 import os
-import string
 import sys
 from distutils.version import LooseVersion
 
@@ -92,8 +91,8 @@ def _git_diff_path_submodule_change(diff, rel_path_prefix):
                     newline = "+++ " + subrel_path + line[5:]
                 if line.startswith("diff --git"):
                     # first replacing b in case path starts with a/
-                    newline = string.replace(line, " b/", " " + subrel_path + "/", 1)
-                    newline = string.replace(newline, " a/", " " + subrel_path + "/", 1)
+                    newline = line.replace(" b/", " " + subrel_path + "/", 1)
+                    newline = newline.replace(" a/", " " + subrel_path + "/", 1)
         if newline != '':
             result += newline + '\n'
     return result

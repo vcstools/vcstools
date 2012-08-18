@@ -31,6 +31,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import unicode_literals
+
 import os
 import sys
 import io
@@ -106,7 +108,7 @@ class BzrClientTest(BzrClientTestSetups):
         # production, but relying on fixed bzr info output is just as
         # bad.
         for line in output.splitlines():
-            sline = line.strip()
+            sline = line.decode('UTF-8').strip()
             for prefix in ['shared repository: ',
                            'repository branch: ',
                            'branch root: ']:
@@ -217,16 +219,16 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
         subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.local_path)
         subprocess.check_call(["bzr", "rm", "deleted.txt"], cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         subprocess.check_call(["bzr", "add", "added.txt"], cwd=self.local_path)
 

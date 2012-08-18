@@ -31,6 +31,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import unicode_literals
+
 import os
 import io
 import sys
@@ -175,16 +177,16 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         subprocess.check_call("rm deleted-fs.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("svn rm deleted.txt", shell=True, cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         subprocess.check_call("svn add added.txt", shell=True, cwd=self.local_path)
 
