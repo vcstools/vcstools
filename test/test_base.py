@@ -71,4 +71,8 @@ class BaseTest(unittest.TestCase):
             self.fail("expected exception")
         except: pass
 
+    def test_shell_command_verbose(self):
+        # just check no Exception happens due to decoding
+        run_shell_command("echo %s"%(b'\xc3\xa4'.decode('UTF-8')), shell=True, verbose=True)
+        run_shell_command(["echo", b'\xc3\xa4'.decode('UTF-8')], verbose=True)
 

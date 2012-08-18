@@ -124,12 +124,12 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
         if verbose or show_stdout:
             # listen to stdout and print
             while True:
-                line = proc.stdout.readline()
+                line = proc.stdout.readline().decode('UTF-8')
                 if line != '':
                     if verbose or not _discard_line(line):
                         print(line),
                         stdout_buf.append(line)
-                line2 = proc.stderr.readline()
+                line2 = proc.stderr.readline().decode('UTF-8')
                 if line2 != '':
                     if verbose or not _discard_line(line2):
                         print(line2),
