@@ -1,9 +1,15 @@
 Changelog
 =========
 
+0.1.20
+------
+
+- bugfix #64: unicode decoding problems
+- improved python3 compatibility
+
 0.1.19
 ------
-- python3 compatibility
+- more python3 compatibility
 - code style improved
 - match_url to compare bzr shortcuts to real urls
 - more unit tests
