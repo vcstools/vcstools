@@ -54,7 +54,7 @@ def _get_hg_version():
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("hg --version returned %s, maybe hg is not installed"%value)
+            raise VcsError("hg --version returned %s, output '%s', maybe hg is not installed"%(value, output))
     except VcsError as e:
         raise VcsError("Could not determine whether hg is installed %s"%e)
     return version
@@ -151,8 +151,7 @@ class HgClient(VcsClientBase):
         cmd = "hg clone %s %s"%(sanitized(url), self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
-                                        show_stdout=verbose,
-                                        verbose=verbose)
+                                        no_filter=True)
         if value != 0:
             if self.path_exists():
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
@@ -162,8 +161,7 @@ class HgClient(VcsClientBase):
             value, _, _ = run_shell_command(cmd,
                                             cwd=self._path,
                                             shell=True,
-                                            show_stdout=verbose,
-                                            verbose=verbose)
+                                            no_filter=True)
             if value != 0:
                 return False
         return True
@@ -184,8 +182,7 @@ class HgClient(VcsClientBase):
         value, _, _ = run_shell_command(cmd,
                                         cwd=self._path,
                                         shell=True,
-                                        show_stdout=True,
-                                        verbose=verbose)
+                                        no_filter=True)
         if value != 0:
             return False
         return True
@@ -268,7 +265,7 @@ class HgClient(VcsClientBase):
         value, _, _ = run_shell_command("hg pull",
                                         cwd=self._path,
                                         shell=True,
-                                        show_stdout=True)
+                                        no_filter=True)
         return value == 0
 
 # backwards compat

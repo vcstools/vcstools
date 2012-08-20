@@ -4,6 +4,7 @@ Changelog
 0.1.20
 ------
 
+- bugfix #66: hg http username prompt hidden
 - bugfix #64: unicode decoding problems
 - improved python3 compatibility
 
