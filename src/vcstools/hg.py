@@ -56,9 +56,9 @@ def _get_hg_version():
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("hg --version returned %s, output '%s', maybe hg is not installed"%(value, output))
+            raise VcsError("hg --version returned %s, output '%s', maybe hg is not installed" % (value, output))
     except VcsError as e:
-        raise VcsError("Could not determine whether hg is installed %s"%e)
+        raise VcsError("Could not determine whether hg is installed %s" % e)
     return version
 
 
@@ -86,9 +86,9 @@ def _hg_diff_path_change(diff, path):
                 newline = line
             else:
                 if line.startswith("---") and not line.startswith("--- /dev/null"):
-                    newline = "--- %s%s"%(path, line[5:])
+                    newline = "--- %s%s" % (path, line[5:])
                 elif line.startswith("+++") and not line.startswith("+++ /dev/null"):
-                    newline = "+++ %s%s"%(path, line[5:])
+                    newline = "+++ %s%s" % (path, line[5:])
                 elif line.startswith("diff --git"):
                     # first replacing b in case path starts with a/
                     newline = line.replace(" b/", " " + path + "/", 1)
@@ -116,7 +116,7 @@ class HgClient(VcsClientBase):
     def get_environment_metadata():
         metadict = {}
         try:
-            metadict["version"] = '%s'%_get_hg_version()
+            metadict["version"] = '%s' % _get_hg_version()
         except:
             metadict["version"] = "no mercurial installed"
         return metadict
@@ -150,7 +150,7 @@ class HgClient(VcsClientBase):
         except OSError:
             # OSError thrown if directory already exists this is ok
             pass
-        cmd = "hg clone %s %s"%(sanitized(url), self._path)
+        cmd = "hg clone %s %s" % (sanitized(url), self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
                                         no_filter=True)
@@ -159,7 +159,7 @@ class HgClient(VcsClientBase):
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
         if version is not None and version.strip() != '':
-            cmd = "hg checkout %s"%sanitized(version)
+            cmd = "hg checkout %s" % sanitized(version)
             value, _, _ = run_shell_command(cmd,
                                             cwd=self._path,
                                             shell=True,
@@ -178,9 +178,9 @@ class HgClient(VcsClientBase):
         if not self._do_pull():
             return False
         if version is not None and version.strip() != '':
-            cmd = "hg checkout %s %s"%(verboseflag, sanitized(version))
+            cmd = "hg checkout %s %s" % (verboseflag, sanitized(version))
         else:
-            cmd = "hg update %s --config ui.merge=internal:fail"%verboseflag
+            cmd = "hg update %s --config ui.merge=internal:fail" % verboseflag
         value, _, _ = run_shell_command(cmd,
                                         cwd=self._path,
                                         shell=True,
@@ -201,7 +201,7 @@ class HgClient(VcsClientBase):
         # detect presence only if we need path for cwd in popen
         if spec is not None:
             if self.detect_presence():
-                command = 'hg log -r %s'%sanitized(spec)
+                command = 'hg log -r %s' % sanitized(spec)
                 repeated = False
                 output = ''
                 # we repeat the call once after pullin if necessary
@@ -218,13 +218,13 @@ class HgClient(VcsClientBase):
                         if len(matches) == 1:
                             return matches[0].split(':')[2]
                         else:
-                            sys.stderr.write("Warning: found several candidates for hg spec %s"%spec)
+                            sys.stderr.write("Warning: found several candidates for hg spec %s" % spec)
                         break
                     self._do_pull()
                     repeated = True
             return None
         else:
-            command = 'hg identify -i %s'%self._path
+            command = 'hg identify -i %s' % self._path
             _, output, _ = run_shell_command(command, shell=True, us_env=True)
             if output is None or output.strip() == '' or output.startswith("abort"):
                 return None
@@ -238,7 +238,7 @@ class HgClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
-            command = "hg diff -g %s"%(sanitized(rel_path))
+            command = "hg diff -g %s" % (sanitized(rel_path))
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response = _hg_diff_path_change(response, rel_path)
         return response
@@ -250,7 +250,7 @@ class HgClient(VcsClientBase):
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
             # protect against shell injection
-            command = "hg status %s"%(sanitized(rel_path))
+            command = "hg status %s" % (sanitized(rel_path))
             if not untracked:
                 command += " -mard"
             _, response, _ = run_shell_command(command,
@@ -258,7 +258,7 @@ class HgClient(VcsClientBase):
                                                cwd=basepath)
             if response is not None:
                 if response.startswith("abort"):
-                    raise VcsError("Probable Bug; Could not call %s, cwd=%s"%(command, basepath))
+                    raise VcsError("Probable Bug; Could not call %s, cwd=%s" % (command, basepath))
                 if len(response) > 0 and response[-1] != '\n':
                     response += '\n'
         return response
