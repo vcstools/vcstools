@@ -35,51 +35,50 @@ from __future__ import unicode_literals
 
 import os
 import io
-import sys
 import unittest
 import subprocess
 import tempfile
 import shutil
 import re
 from vcstools.svn import SvnClient
-        
+
+
 class SvnClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        directory = tempfile.mkdtemp()
-        self.directories = dict(setUp=directory)
-        self.remote_path = os.path.join(directory, "remote")
-        init_path = os.path.join(directory, "init")
-        
+        self.root_directory = tempfile.mkdtemp()
+        self.directories = dict(setUp=self.root_directory)
+        self.remote_path = os.path.join(self.root_directory, "remote")
+        init_path = os.path.join(self.root_directory, "init")
+
         # create a "remote" repo
-        subprocess.check_call("svnadmin create %s"%self.remote_path, shell=True, cwd=directory)
-        self.local_url = "file://localhost"+self.remote_path
-        
+        subprocess.check_call("svnadmin create %s" % self.remote_path, shell=True, cwd=self.root_directory)
+        self.local_url = "file://localhost" + self.remote_path
+
         # create an "init" repo to populate remote repo
-        subprocess.check_call("svn checkout %s %s"%(self.local_url, init_path), shell=True, cwd=directory)
-        
+        subprocess.check_call("svn checkout %s %s" % (self.local_url, init_path), shell=True, cwd=self.root_directory)
+
         subprocess.check_call("touch fixed.txt", shell=True, cwd=init_path)
         subprocess.check_call("svn add fixed.txt", shell=True, cwd=init_path)
         subprocess.check_call("svn commit -m initial", shell=True, cwd=init_path)
-                
+
         self.local_version_init = "-r1"
-        
+
         # files to be modified in "local" repo
         subprocess.check_call("touch modified.txt", shell=True, cwd=init_path)
         subprocess.check_call("touch modified-fs.txt", shell=True, cwd=init_path)
         subprocess.check_call("svn add modified.txt modified-fs.txt", shell=True, cwd=init_path)
         subprocess.check_call("svn commit -m initial", shell=True, cwd=init_path)
-        
+
         self.local_version_second = "-r2"
-        
+
         subprocess.check_call("touch deleted.txt", shell=True, cwd=init_path)
         subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=init_path)
         subprocess.check_call("svn add deleted.txt deleted-fs.txt", shell=True, cwd=init_path)
         subprocess.check_call("svn commit -m modified", shell=True, cwd=init_path)
-        
-        self.local_path = os.path.join(directory, "local")
-        
+
+        self.local_path = os.path.join(self.root_directory, "local")
 
     @classmethod
     def tearDownClass(self):
@@ -89,6 +88,7 @@ class SvnClientTestSetups(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
+
 
 class SvnClientTest(SvnClientTestSetups):
 
@@ -104,9 +104,8 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertEqual(client.get_version("-r2"), "-r2")
         # test invalid cient and repo without url
         client = SvnClient(os.path.join(self.remote_path, 'foo'))
-        self.assertEqual( None, client.get_url())
-        
-        
+        self.assertEqual(None, client.get_url())
+
     def test_get_type_name(self):
         local_path = "/tmp/dummy"
         client = SvnClient(local_path)
@@ -165,7 +164,8 @@ class SvnClientTest(SvnClientTestSetups):
     def testStatusClean(self):
         client = SvnClient(self.remote_path)
         self.assertEquals('', client.get_status())
-        
+
+
 class SvnDiffStatClientTest(SvnClientTestSetups):
 
     @classmethod
@@ -192,7 +192,7 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
 
     def tearDown(self):
         pass
-        
+
     def assertEqualDiffs(self, expected, actual):
         "True if actual is similar enough to expected, minus svn properties"
         filtered = []
@@ -209,9 +209,8 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
                     newblock.append(line)
             filtered.extend(newblock)
         filtered = "\n".join(filtered)
-        self.assertEquals(expected, filtered, "Assert failed, expected something like '"+ expected+"'\n but got:\n'" + filtered +"'\n, original:\n''" + actual)
-            
-        
+        self.assertEquals(expected, filtered, "Assert failed, expected something like '" + expected + "'\n but got:\n'" + filtered + "'\n, original:\n''" + actual)
+
     def test_diff(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
@@ -220,12 +219,11 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         self.assertEqualDiffs('Index: added.txt\n===================================================================\n--- added.txt\t(revision 0)\n+++ added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: modified-fs.txt\n===================================================================\n--- modified-fs.txt\t(revision 3)\n+++ modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: modified.txt\n===================================================================\n--- modified.txt\t(revision 3)\n+++ modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file',
                           client.get_diff().rstrip())
 
-
     def test_diff_relpath(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        
+
         self.assertEqualDiffs('Index: local/added.txt\n===================================================================\n--- local/added.txt\t(revision 0)\n+++ local/added.txt\t(revision 0)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified-fs.txt\n===================================================================\n--- local/modified-fs.txt\t(revision 3)\n+++ local/modified-fs.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\nIndex: local/modified.txt\n===================================================================\n--- local/modified.txt\t(revision 3)\n+++ local/modified.txt\t(working copy)\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file', client.get_diff(basepath=os.path.dirname(self.local_path)).rstrip())
 
     def test_status(self):
@@ -246,3 +244,27 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEquals('?       added-fs.txt\nA       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status(untracked=True))
 
+
+class SvnExportRepositoryClientTest(SvnClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        SvnClientTestSetups.setUpClass()
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+
+        self.basepath_export = os.path.join(self.root_directory, 'export')
+
+    def tearDown(self):
+        pass
+
+    def test_export_repository(self):
+        client = SvnClient(self.local_path)
+        self.assertTrue(
+          client.export_repository(self.local_version_second,
+            self.basepath_export)
+        )
+
+        self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
+        self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
+        self.assertFalse(os.path.exists(self.basepath_export))

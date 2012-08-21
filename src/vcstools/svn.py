@@ -208,7 +208,7 @@ class SvnClient(VcsClientBase):
         # Run the svn export cmd
         cmd = 'svn export {0} {1}'.format(self._path, basepath)
         result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if not result:
+        if result:
             return False
         # tar gzip the exported repo
         targzip_file = tarfile.open(basepath + '.tar.gz', 'w:gz')
