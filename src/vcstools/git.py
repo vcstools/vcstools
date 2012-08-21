@@ -532,7 +532,7 @@ class GitClient(VcsClientBase):
         # Use the git archive function
         cmd = "git archive -o {0}.tar {1}".format(basepath, version)
         result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if not result:
+        if result:
             return False
         # Gzip the tar file
         tar_file = open(basepath + '.tar', 'rb')

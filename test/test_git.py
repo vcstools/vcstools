@@ -35,9 +35,6 @@ from __future__ import unicode_literals
 
 import os
 import io
-import stat
-import struct
-import sys
 import unittest
 import subprocess
 import tempfile
@@ -45,6 +42,7 @@ import shutil
 
 from vcstools import GitClient
 from vcstools.vcs_base import VcsError
+
 
 class GitClientTestSetups(unittest.TestCase):
 
@@ -56,7 +54,7 @@ class GitClientTestSetups(unittest.TestCase):
         self.remote_path = os.path.join(self.root_directory, "remote")
         self.local_path = os.path.join(self.root_directory, "ros")
         os.makedirs(self.remote_path)
-        
+
         # create a "remote" repo
         subprocess.check_call("git init", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
@@ -65,7 +63,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
         # other branch
         subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
-        
+
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version_init = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
@@ -76,7 +74,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version_second = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
-        
+
         subprocess.check_call("touch deleted.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
@@ -84,7 +82,6 @@ class GitClientTestSetups(unittest.TestCase):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.readonly_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
         subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
-
 
     @classmethod
     def tearDownClass(self):
@@ -94,10 +91,10 @@ class GitClientTestSetups(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
-            
-    
+
+
 class GitClientTest(GitClientTestSetups):
-    
+
     def test_get_url_by_reading(self):
         url = self.remote_path
         client = GitClient(self.local_path)
@@ -118,12 +115,12 @@ class GitClientTest(GitClientTestSetups):
         self.assertFalse(client.is_tag("test_branch"))
 
     def test_get_url_nonexistant(self):
-        local_path = "/tmp/dummy"
+        # local_path = "/tmp/dummy"
         client = GitClient(self.local_path)
         self.assertEqual(client.get_url(), None)
 
     def test_get_type_name(self):
-        local_path = "/tmp/dummy"
+        # local_path = "/tmp/dummy"
         client = GitClient(self.local_path)
         self.assertEqual(client.get_vcs_type_name(), 'git')
 
@@ -140,9 +137,9 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), "master")
         self.assertEqual(client.get_branch_parent(), "master")
         #self.assertEqual(client.get_version(), '-r*')
-        
+
     def test_checkout_shallow(self):
-        url = 'file://'+self.remote_path
+        url = 'file://' + self.remote_path
         client = GitClient(self.local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
@@ -158,7 +155,6 @@ class GitClientTest(GitClientTestSetups):
         # shallow only contains last 2 commits
         self.assertEqual(2, len(log), log)
 
-
     def test_checkout_specific_version_and_update(self):
         url = self.remote_path
         version = self.readonly_version
@@ -171,14 +167,13 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_version(), version)
-        
+
         new_version = self.readonly_version_second
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), new_version)
 
-
     def test_checkout_master_branch_and_update(self):
-        subdir = "checkout_specific_version_test"
+        # subdir = "checkout_specific_version_test"
         url = self.remote_path
         branch = "master"
         client = GitClient(self.local_path)
@@ -190,13 +185,12 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_branch_parent(), branch)
-        
+
         self.assertTrue(client.update(branch))
         self.assertEqual(client.get_branch_parent(), branch)
 
-
     def test_checkout_specific_branch_and_update(self):
-        subdir = "checkout_specific_version_test"
+        # subdir = "checkout_specific_version_test"
         url = self.remote_path
         branch = "test_branch"
         client = GitClient(self.local_path)
@@ -212,21 +206,20 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_branch_parent(), branch)
 
-        self.assertTrue(client.update())# no arg
+        self.assertTrue(client.update())  # no arg
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_version(), self.readonly_version_init)
         self.assertEqual(client.get_branch_parent(), branch)
 
-        self.assertTrue(client.update(branch))# same branch arg
+        self.assertTrue(client.update(branch))  # same branch arg
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_version(), self.readonly_version_init)
         self.assertEqual(client.get_branch_parent(), branch)
-        
+
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
         self.assertEqual(client.get_branch(), new_branch)
         self.assertEqual(client.get_branch_parent(), new_branch)
-
 
     def test_checkout_specific_tag_and_update(self):
         url = self.remote_path
@@ -243,7 +236,7 @@ class GitClientTest(GitClientTestSetups):
         tag = "test_tag"
         self.assertTrue(client.update(tag))
         self.assertEqual(client.get_branch_parent(), None)
-        
+
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
         self.assertEqual(client.get_branch_parent(), new_branch)
@@ -264,7 +257,7 @@ class GitClientTest(GitClientTestSetups):
         subprocess.check_call("git reset --hard test_tag", shell=True, cwd=self.local_path)
         # replace "refs/head/master" with just "master"
         subprocess.check_call("git config --replace-all branch.master.merge master", shell=True, cwd=self.local_path)
-        
+
         self.assertTrue(client.get_branch_parent() is not None)
 
     def testDiffClean(self):
@@ -274,7 +267,8 @@ class GitClientTest(GitClientTestSetups):
     def testStatusClean(self):
         client = GitClient(self.remote_path)
         self.assertEquals('', client.get_status())
-           
+
+
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def setUp(self):
@@ -288,7 +282,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git tag my_branch_tag", shell=True, cwd=self.local_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.untracked_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
-        
+
         # Go detached to create some dangling commits
         subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
         # create a commit only referenced by tag
@@ -307,10 +301,9 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         # go back to master to make head point somewhere else
         subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
 
-        
     def test_protect_dangling(self):
         client = GitClient(self.local_path)
-        url = self.remote_path
+        # url = self.remote_path
         self.assertEqual(client.get_branch(), "master")
         tag = "no_br_tag"
         self.assertTrue(client.update(tag))
@@ -335,13 +328,13 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def test_detached_to_branch(self):
         client = GitClient(self.local_path)
-        url = self.remote_path
+        # url = self.remote_path
         self.assertEqual(client.get_branch(), "master")
         tag = "no_br_tag"
         self.assertTrue(client.update(tag))
         self.assertEqual(client.get_branch(), None)
         self.assertEqual(client.get_branch_parent(), None)
-        
+
         tag = "test_tag"
         self.assertTrue(client.update(tag))
         self.assertEqual(client.get_branch(), None)
@@ -349,19 +342,17 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         self.assertEqual(client.get_branch_parent(), None)
 
         #update should not change anything
-        self.assertTrue(client.update()) #no arg
+        self.assertTrue(client.update())  # no arg
         self.assertEqual(client.get_branch(), None)
         self.assertEqual(client.get_version(), self.readonly_version_init)
         self.assertEqual(client.get_branch_parent(), None)
 
-        
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
         self.assertEqual(client.get_branch(), new_branch)
         self.assertEqual(client.get_version(), self.readonly_version)
         self.assertEqual(client.get_branch_parent(), new_branch)
 
-        
     def test_checkout_untracked_branch_and_update(self):
         # difference to tracked branches is that branch parent is None, and we may hop outside lineage
         client = GitClient(self.local_path)
@@ -378,12 +369,12 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_branch_parent(), None)
 
-        self.assertTrue(client.update())# no arg
+        self.assertTrue(client.update())  # no arg
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_version(), self.untracked_version)
         self.assertEqual(client.get_branch_parent(), None)
 
-        self.assertTrue(client.update(branch))# same branch arg
+        self.assertTrue(client.update(branch))  # same branch arg
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_version(), self.untracked_version)
         self.assertEqual(client.get_branch_parent(), None)
@@ -396,7 +387,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         self.assertEqual(client.get_branch_parent(), new_branch)
 
         # and back
-        self.assertTrue(client.update(branch))# same branch arg
+        self.assertTrue(client.update(branch))  # same branch arg
         self.assertEqual(client.get_branch(), branch)
         self.assertEqual(client.get_version(), self.untracked_version)
         self.assertEqual(client.get_branch_parent(), None)
@@ -416,29 +407,33 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
     def test_inject_protection(self):
         client = GitClient(self.local_path)
         try:
-            client.is_tag('foo"; bar"', fetch = False)
+            client.is_tag('foo"; bar"', fetch=False)
             self.fail("expected Exception")
-        except VcsError: pass
+        except VcsError:
+            pass
         try:
-            client.rev_list_contains('foo"; echo bar"', "foo", fetch = False)
+            client.rev_list_contains('foo"; echo bar"', "foo", fetch=False)
             self.fail("expected Exception")
-        except VcsError: pass
+        except VcsError:
+            pass
         try:
-            client.rev_list_contains('foo', 'foo"; echo bar"', fetch = False)
+            client.rev_list_contains('foo', 'foo"; echo bar"', fetch=False)
             self.fail("expected Exception")
-        except VcsError: pass
+        except VcsError:
+            pass
         try:
             client.get_version('foo"; echo bar"')
             self.fail("expected Exception")
-        except VcsError: pass
-        
+        except VcsError:
+            pass
+
 
 class GitDiffStatClientTest(GitClientTestSetups):
 
     @classmethod
     def setUpClass(self):
         GitClientTestSetups.setUpClass()
-        
+
         client = GitClient(self.local_path)
         client.checkout(self.remote_path, self.readonly_version)
         # after setting up "readonly" repo, change files and make some changes
@@ -461,7 +456,7 @@ class GitDiffStatClientTest(GitClientTestSetups):
 
     def tearDown(self):
         pass
-        
+
     def testDiff(self):
         client = GitClient(self.local_path)
         self.assertTrue(client.path_exists())
@@ -493,4 +488,26 @@ class GitDiffStatClientTest(GitClientTestSetups):
         self.assertEquals('A  ./added.txt\n D ./deleted-fs.txt\nD  ./deleted.txt\n M ./modified-fs.txt\nM  ./modified.txt\n?? ./added-fs.txt\n', client.get_status(untracked=True))
 
 
+class GitExportClientTest(GitClientTestSetups):
 
+    @classmethod
+    def setUpClass(self):
+        GitClientTestSetups.setUpClass()
+
+        client = GitClient(self.local_path)
+        client.checkout(self.remote_path, self.readonly_version)
+
+        self.basepath_export = os.path.join(self.root_directory, 'export')
+
+    def tearDown(self):
+        pass
+
+    def testExportRepository(self):
+        client = GitClient(self.local_path)
+        self.assertTrue(
+          client.export_repository(self.readonly_version, self.basepath_export)
+        )
+
+        self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
+        self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
+        self.assertFalse(os.path.exists(self.basepath_export))
