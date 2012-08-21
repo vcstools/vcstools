@@ -57,9 +57,9 @@ def _get_bzr_version():
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("bzr --version returned %s, maybe bzr is not installed"%value)
+            raise VcsError("bzr --version returned %s, maybe bzr is not installed" % value)
     except VcsError as e:
-        raise VcsError("Coud not determine whether bzr is installed: %s"%e)
+        raise VcsError("Coud not determine whether bzr is installed: %s" % e)
     return version
 
 
@@ -86,7 +86,7 @@ class BzrClient(VcsClientBase):
         """
         result = None
         if self.detect_presence():
-            cmd = 'bzr info %s'%self._path
+            cmd = 'bzr info %s' % self._path
             _, output, _ = run_shell_command(cmd, shell=True, us_env=True)
             matches = [l for l in output.splitlines() if l.startswith('  parent branch: ')]
             if matches:
@@ -105,7 +105,7 @@ class BzrClient(VcsClientBase):
         # bzr info and return that one if result matches.
         result = False
         if url_or_shortcut is not None:
-            cmd = 'bzr info %s'%url_or_shortcut
+            cmd = 'bzr info %s' % url_or_shortcut
             value, output, _ = run_shell_command(cmd, shell=True, us_env=True)
             if value == 0:
                 for line in output.splitlines():
@@ -149,7 +149,7 @@ class BzrClient(VcsClientBase):
             return False
         # Ignore verbose param, bzr is pretty verbose on update anyway
         if version is not None and version != '':
-            cmd = "bzr update -r %s"%(version)
+            cmd = "bzr update -r %s" % (version)
         else:
             cmd = "bzr update"
         value, _, _ = run_shell_command(cmd,
@@ -172,7 +172,7 @@ class BzrClient(VcsClientBase):
         """
         if self.detect_presence():
             if spec is not None:
-                command = ['bzr log -r %s .'%sanitized(spec)]
+                command = ['bzr log -r %s .' % sanitized(spec)]
                 _, output, _ = run_shell_command(command,
                                                  shell=True,
                                                  cwd=self._path,
@@ -196,8 +196,8 @@ class BzrClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = sanitized(normalized_rel_path(self._path, basepath))
-            command = "bzr diff %s"%rel_path
-            command += " -p1 --prefix %s/:%s/"%(rel_path, rel_path)
+            command = "bzr diff %s" % rel_path
+            command += " -p1 --prefix %s/:%s/" % (rel_path, rel_path)
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
         return response
 
@@ -207,15 +207,25 @@ class BzrClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
-            command = "bzr status %s -S"%sanitized(rel_path)
+            command = "bzr status %s -S" % sanitized(rel_path)
             if not untracked:
                 command += " -V"
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response_processed = ""
             for line in response.split('\n'):
                 if len(line.strip()) > 0:
-                    response_processed+=line[0:4]+rel_path+'/'+line[4:]+'\n'
+                    response_processed += line[0:4] + rel_path + '/'
+                    response_processed += line[4:] + '\n'
             response = response_processed
         return response
+
+    def export_repository(self, version, basepath):
+        # execute the bzr export cmd
+        cmd = 'bzr export --format=tgz {0} '.format(basepath + '.tar.gz')
+        cmd += '{0}'.format(version)
+        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if not result:
+            return False
+        return True
 
 BZRClient = BzrClient
