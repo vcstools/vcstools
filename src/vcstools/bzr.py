@@ -224,7 +224,7 @@ class BzrClient(VcsClientBase):
         cmd = 'bzr export --format=tgz {0} '.format(basepath + '.tar.gz')
         cmd += '{0}'.format(version)
         result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if not result:
+        if result:
             return False
         return True
 
