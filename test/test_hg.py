@@ -35,8 +35,6 @@ from __future__ import unicode_literals
 
 import os
 import io
-import struct
-import sys
 import unittest
 import subprocess
 import tempfile
@@ -44,14 +42,15 @@ import shutil
 
 from vcstools.hg import HgClient
 
+
 class HGClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
 
-        directory = tempfile.mkdtemp()
-        self.directories = dict(setUp=directory)
-        self.remote_path = os.path.join(directory, "remote")
+        self.root_directory = tempfile.mkdtemp()
+        self.directories = dict(setUp=self.root_directory)
+        self.remote_path = os.path.join(self.root_directory, "remote")
         os.makedirs(self.remote_path)
 
         # create a "remote" repo
@@ -59,13 +58,12 @@ class HGClientTestSetups(unittest.TestCase):
         subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("hg add fixed.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("hg commit -m initial", shell=True, cwd=self.remote_path)
-        
+
         po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.local_version_init = po.stdout.read().decode('UTF-8').rstrip("'").lstrip("'")
         # in hg, tagging creates an own changeset, so we need to fetch version before tagging
         subprocess.check_call("hg tag test_tag", shell=True, cwd=self.remote_path)
 
-        
         # files to be modified in "local" repo
         subprocess.check_call("touch modified.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch modified-fs.txt", shell=True, cwd=self.remote_path)
@@ -73,7 +71,7 @@ class HGClientTestSetups(unittest.TestCase):
         subprocess.check_call("hg commit -m initial", shell=True, cwd=self.remote_path)
         po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.local_version_second = po.stdout.read().decode('UTF-8').rstrip("'").lstrip("'")
-        
+
         subprocess.check_call("touch deleted.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("hg add deleted.txt deleted-fs.txt", shell=True, cwd=self.remote_path)
@@ -81,9 +79,8 @@ class HGClientTestSetups(unittest.TestCase):
         po = subprocess.Popen("hg log --template '{node|short}' -l1", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.local_version = po.stdout.read().decode('UTF-8').rstrip("'").lstrip("'")
 
-        self.local_path = os.path.join(directory, "local")
+        self.local_path = os.path.join(self.root_directory, "local")
         self.local_url = self.remote_path
-        
 
     @classmethod
     def tearDownClass(self):
@@ -93,6 +90,7 @@ class HGClientTestSetups(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
+
 
 class HGClientTest(HGClientTestSetups):
 
@@ -135,8 +133,9 @@ class HGClientTest(HGClientTestSetups):
         client = HgClient(self.local_path)
         self.assertTrue(client.checkout(url, ''))
         self.assertEqual(client.get_version(), self.local_version)
-        
-    def test_checkout_into_subdir_without_existing_parent(self): # test for #3497
+
+    # test for #3497
+    def test_checkout_into_subdir_without_existing_parent(self):
         local_path = os.path.join(self.local_path, "nonexistant_subdir")
         url = self.local_url
         client = HgClient(local_path)
@@ -161,7 +160,7 @@ class HGClientTest(HGClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_version(), version)
-        
+
         new_version = self.local_version_second
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), new_version)
@@ -174,14 +173,15 @@ class HGClientTest(HGClientTestSetups):
 
         self.assertTrue(client.update(''))
         self.assertEqual(client.get_version(), self.local_version)
-        
+
     def testDiffClean(self):
         client = HgClient(self.remote_path)
         self.assertEquals('', client.get_diff())
 
     def testStatusClean(self):
         client = HgClient(self.remote_path)
-        self.assertEquals('', client.get_status())       
+        self.assertEquals('', client.get_status())
+
 
 class HGDiffStatClientTest(HGClientTestSetups):
 
@@ -210,7 +210,7 @@ class HGDiffStatClientTest(HGClientTestSetups):
 
     def tearDown(self):
         pass
-        
+
     def test_diff(self):
 
         client = HgClient(self.local_path)
@@ -229,7 +229,7 @@ class HGDiffStatClientTest(HGClientTestSetups):
     def test_get_version_modified(self):
         client = HgClient(self.local_path)
         self.assertFalse(client.get_version().endswith('+'))
-    
+
     def test_status(self):
         client = HgClient(self.local_path)
         self.assertTrue(client.path_exists())
@@ -248,8 +248,31 @@ class HGDiffStatClientTest(HGClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEquals('M modified-fs.txt\nM modified.txt\nA added.txt\nR deleted.txt\n! deleted-fs.txt\n? added-fs.txt\n', client.get_status(untracked=True))
 
-
     def test_hg_diff_path_change_None(self):
         from vcstools.hg import _hg_diff_path_change
         self.assertEqual(_hg_diff_path_change(None, '/tmp/dummy'), None)
 
+
+class HGExportRepositoryClientTest(HGClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        HGClientTestSetups.setUpClass()
+        url = self.local_url
+        client = HgClient(self.local_path)
+        client.checkout(url)
+
+        self.basepath_export = os.path.join(self.root_directory, 'export')
+
+    def tearDown(self):
+        pass
+
+    def test_export_repository(self):
+        client = HgClient(self.local_path)
+        self.assertTrue(
+          client.export_repository(self.local_version, self.basepath_export)
+        )
+
+        self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
+        self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
+        self.assertFalse(os.path.exists(self.basepath_export))

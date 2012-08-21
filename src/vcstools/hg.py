@@ -267,7 +267,7 @@ class HgClient(VcsClientBase):
         # execute the hg archive cmd
         cmd = 'hg archive -t tar -r {0} {1}.tar'.format(version, basepath)
         result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if not result:
+        if result:
             return False
         # gzip the tar file
         tar_file = open(basepath + '.tar', 'rb')
