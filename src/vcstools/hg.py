@@ -40,6 +40,8 @@ using ui object to redirect output into a string
 import os
 import sys
 
+import gzip
+
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
@@ -260,6 +262,22 @@ class HgClient(VcsClientBase):
                 if len(response) > 0 and response[-1] != '\n':
                     response += '\n'
         return response
+
+    def export_repository(self, version, basepath):
+        # execute the hg archive cmd
+        cmd = 'hg archive -t tar -r {0} {1}.tar'.format(version, basepath)
+        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if not result:
+            return False
+        # gzip the tar file
+        tar_file = open(basepath + '.tar', 'rb')
+        gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
+        gzip_file.writelines(tar_file)
+        tar_file.close()
+        gzip_file.close()
+        # clean up
+        os.remove(basepath + '.tar')
+        return True
 
     def _do_pull(self):
         value, _, _ = run_shell_command("hg pull",

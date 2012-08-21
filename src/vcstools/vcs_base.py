@@ -180,3 +180,12 @@ class VcsClientBase(object):
         """
         raise NotImplementedError("Base class get_status method must be overridden")
 
+    def export_repository(self, version, basepath):
+        """
+        Calls scm equivalent to `svn export`, removing scm meta information and tar gzip'ing the repository at a given version to the given basepath.
+
+        :param version: version of the repository to export
+        :param basepath: this is the path to the tar gzip, excluding the extension which will be .tar.gz
+        :returns: True on success, False otherwise.
+        """
+        raise NotImplementedError("Base class export_repository method must be overridden")

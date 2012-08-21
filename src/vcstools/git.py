@@ -53,6 +53,7 @@ disambiguation, and in some cases warns.
 
 import os
 import sys
+import gzip
 from distutils.version import LooseVersion
 
 from vcstools.vcs_base import VcsClientBase, VcsError
@@ -527,6 +528,22 @@ class GitClient(VcsClientBase):
             return True
         return False
 
+    def export_repository(self, version, basepath):
+        # Use the git archive function
+        cmd = "git archive -o {0}.tar {1}".format(basepath, version)
+        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if not result:
+            return False
+        # Gzip the tar file
+        tar_file = open(basepath + '.tar', 'rb')
+        gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
+        gzip_file.writelines(tar_file)
+        tar_file.close()
+        gzip_file.close()
+        # Clean up
+        os.remove(basepath + '.tar')
+        return True
+
     def _do_fetch(self):
         """calls git fetch"""
         value, _, _ = run_shell_command("git fetch",
@@ -540,7 +557,7 @@ class GitClient(VcsClientBase):
         do so to the last fetched version using git rebase. Returns
         False on command line failures"""
         parent = self.get_branch_parent(fetch=fetch)
-        if parent is not None and self.rev_list_contains("remotes/origin/%s"%parent,
+        if parent is not None and self.rev_list_contains("remotes/origin/%s" % parent,
                                                          self.get_version(),
                                                          fetch=False):
             if verbose:
