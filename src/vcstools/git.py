@@ -52,8 +52,8 @@ disambiguation, and in some cases warns.
 
 
 import os
-import string
 import sys
+import gzip
 from distutils.version import LooseVersion
 
 from vcstools.vcs_base import VcsClientBase, VcsError
@@ -92,8 +92,8 @@ def _git_diff_path_submodule_change(diff, rel_path_prefix):
                     newline = "+++ " + subrel_path + line[5:]
                 if line.startswith("diff --git"):
                     # first replacing b in case path starts with a/
-                    newline = string.replace(line, " b/", " " + subrel_path + "/", 1)
-                    newline = string.replace(newline, " a/", " " + subrel_path + "/", 1)
+                    newline = line.replace(" b/", " " + subrel_path + "/", 1)
+                    newline = newline.replace(" a/", " " + subrel_path + "/", 1)
         if newline != '':
             result += newline + '\n'
     return result
@@ -171,7 +171,7 @@ class GitClient(VcsClientBase):
             return False
 
         if refname is not None and refname != "master":
-            return self.update(refname)
+            return self.update(refname, verbose=verbose)
         else:
             return True
 
@@ -190,9 +190,15 @@ class GitClient(VcsClientBase):
         return True
 
     def update(self, refname=None, verbose=False):
-        """interprets refname as a local branch, remote branch, tagname, hash, etc.
-        If it is a branch, attempts to move to it unless already on it, and to fast-forward, unless not a tracking branch.
-        Else go untracked on tag or whatever refname is. Does not leave if current commit would become dangling."""
+        """
+        interprets refname as a local branch, remote branch, tagname,
+        hash, etc.
+
+        If it is a branch, attempts to move to it unless
+        already on it, and to fast-forward, unless not a tracking
+        branch. Else go untracked on tag or whatever refname is. Does
+        not leave if current commit would become dangling.
+        """
         # try calling git fetch just once per call to update()
         need_to_fetch = True
         if not self.detect_presence():
@@ -210,7 +216,7 @@ class GitClient(VcsClientBase):
             refname = branch_parent
         if refname is None:
             # we are neither tracking, nor did we get any refname to update to
-            return self.update_submodules()
+            return self.update_submodules(verbose=verbose)
 
         # local branch might be named differently from remote by user, we respect that
         same_branch = (refname == branch_parent) or (refname == current_branch)
@@ -236,7 +242,7 @@ class GitClient(VcsClientBase):
 
             # shortcut if version is the same as requested
             if not refname_is_branch and self.get_version() == refname:
-                return self.update_submodules()
+                return self.update_submodules(verbose=verbose)
 
             if current_branch is None:
                 current_version = self.get_version()
@@ -261,7 +267,7 @@ class GitClient(VcsClientBase):
                                                  verbose=verbose):
                         return False
 
-        return self.update_submodules()
+        return self.update_submodules(verbose=verbose)
 
     def get_version(self, spec=None):
         """
@@ -522,6 +528,22 @@ class GitClient(VcsClientBase):
             return True
         return False
 
+    def export_repository(self, version, basepath):
+        # Use the git archive function
+        cmd = "git archive -o {0}.tar {1}".format(basepath, version)
+        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if result:
+            return False
+        # Gzip the tar file
+        tar_file = open(basepath + '.tar', 'rb')
+        gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
+        gzip_file.writelines(tar_file)
+        tar_file.close()
+        gzip_file.close()
+        # Clean up
+        os.remove(basepath + '.tar')
+        return True
+
     def _do_fetch(self):
         """calls git fetch"""
         value, _, _ = run_shell_command("git fetch",
@@ -535,9 +557,11 @@ class GitClient(VcsClientBase):
         do so to the last fetched version using git rebase. Returns
         False on command line failures"""
         parent = self.get_branch_parent(fetch=fetch)
-        if parent is not None and self.rev_list_contains("remotes/origin/%s"%parent,
+        if parent is not None and self.rev_list_contains("remotes/origin/%s" % parent,
                                                          self.get_version(),
                                                          fetch=False):
+            if verbose:
+                print("Rebasing repository")
             # Rebase, do not pull, because somebody could have
             # commited in the meantime.
             if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):

@@ -54,7 +54,7 @@ class VcsClient(object):
         self._path = path
         clientclass = get_vcs(vcs_type)
         if clientclass is None:
-            raise LookupError("No Vcs client registered for type %s"%vcs_type)
+            raise LookupError("No Vcs client registered for type %s" % vcs_type)
         self.vcs = clientclass(path)
 
     def path_exists(self):
@@ -93,6 +93,9 @@ class VcsClient(object):
 
     def get_status(self, basepath=None, untracked=False):
         return self.vcs.get_status(basepath, untracked)
+
+    def export_repository(self, version, basepath):
+        return self.vcs.export_repository(version, basepath)
 
 # backwards compat
 VCSClient = VcsClient

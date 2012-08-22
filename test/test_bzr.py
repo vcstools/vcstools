@@ -31,8 +31,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import unicode_literals
+
 import os
-import sys
 import io
 import fnmatch
 import shutil
@@ -41,18 +42,19 @@ import tempfile
 import unittest
 from vcstools.bzr import BzrClient
 
+
 class BzrClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
         try:
             subprocess.check_call(["bzr", "whoami"])
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             subprocess.check_call(["bzr", "whoami", '"ros ros@ros.org"'])
 
-        directory = tempfile.mkdtemp()
-        self.directories = dict(setUp=directory)
-        self.remote_path = os.path.join(directory, "remote")
+        self.root_directory = tempfile.mkdtemp()
+        self.directories = dict(setUp=self.root_directory)
+        self.remote_path = os.path.join(self.root_directory, "remote")
         os.makedirs(self.remote_path)
 
         # create a "remote" repo
@@ -76,7 +78,7 @@ class BzrClientTestSetups(unittest.TestCase):
         subprocess.check_call(["bzr", "commit", "-m", "modified"], cwd=self.remote_path)
         self.local_version = "3"
 
-        self.local_path = os.path.join(directory, "local")
+        self.local_path = os.path.join(self.root_directory, "local")
 
     @classmethod
     def tearDownClass(self):
@@ -86,6 +88,7 @@ class BzrClientTestSetups(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
+
 
 class BzrClientTest(BzrClientTestSetups):
 
@@ -106,7 +109,7 @@ class BzrClientTest(BzrClientTestSetups):
         # production, but relying on fixed bzr info output is just as
         # bad.
         for line in output.splitlines():
-            sline = line.strip()
+            sline = line.decode('UTF-8').strip()
             for prefix in ['shared repository: ',
                            'repository branch: ',
                            'branch root: ']:
@@ -120,14 +123,14 @@ class BzrClientTest(BzrClientTestSetups):
         url = 'lp:bzr'
         url2 = self.get_launchpad_info(url)
         self.assertFalse(url2 is None)
-        self.assertTrue(client.url_matches(url2, url), "%s~=%s"%(url, url2))
+        self.assertTrue(client.url_matches(url2, url), "%s~=%s" % (url, url2))
 
         # launchpad on launchpad should be a branch root
         url = 'lp:launchpad'
         url2 = self.get_launchpad_info(url)
         self.assertFalse(url2 is None)
-        self.assertTrue(client.url_matches(url2, url), "%s~=%s"%(url, url2))
-                                 
+        self.assertTrue(client.url_matches(url2, url), "%s~=%s" % (url, url2))
+
     def test_get_url_by_reading(self):
         client = BzrClient(self.local_path)
         url = self.remote_path
@@ -178,7 +181,6 @@ class BzrClientTest(BzrClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
 
-
     def test_checkout_specific_version_and_update(self):
         url = self.remote_path
         version = "1"
@@ -204,6 +206,7 @@ class BzrClientTest(BzrClientTestSetups):
         client = BzrClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+
 class BzrDiffStatClientTest(BzrClientTestSetups):
 
     @classmethod
@@ -217,16 +220,16 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
         subprocess.check_call(["rm", "deleted-fs.txt"], cwd=self.local_path)
         subprocess.check_call(["bzr", "rm", "deleted.txt"], cwd=self.local_path)
         f = io.open(os.path.join(self.local_path, "modified.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "modified-fs.txt"), 'a')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added-fs.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         f = io.open(os.path.join(self.local_path, "added.txt"), 'w')
-        f.write(u'0123456789abcdef')
+        f.write('0123456789abcdef')
         f.close()
         subprocess.check_call(["bzr", "add", "added.txt"], cwd=self.local_path)
 
@@ -242,9 +245,9 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         # using fnmatch because date and time change (remove when bzr reaches diff --format)
-        diff=client.get_diff()
+        diff = client.get_diff()
         self.assertTrue(diff is not None)
-        self.assertTrue(fnmatch.fnmatch(diff,"=== added file 'added.txt'\n--- ./added.txt\t????-??-?? ??:??:?? +0000\n+++ ./added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- ./modified.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file"))
+        self.assertTrue(fnmatch.fnmatch(diff, "=== added file 'added.txt'\n--- ./added.txt\t????-??-?? ??:??:?? +0000\n+++ ./added.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== removed file 'deleted-fs.txt'\n=== removed file 'deleted.txt'\n=== modified file 'modified-fs.txt'\n--- ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified-fs.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file\n\n=== modified file 'modified.txt'\n--- ./modified.txt\t????-??-?? ??:??:?? +0000\n+++ ./modified.txt\t????-??-?? ??:??:?? +0000\n@@ -0,0 +1,1 @@\n+0123456789abcdef\n\\ No newline at end of file"))
 
     def test_diff_relpath(self):
         client = BzrClient(self.local_path)
@@ -272,3 +275,33 @@ class BzrDiffStatClientTest(BzrClientTestSetups):
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEquals('?   ./added-fs.txt\n+N  ./added.txt\n D  ./deleted-fs.txt\n-D  ./deleted.txt\n M  ./modified-fs.txt\n M  ./modified.txt\n', client.get_status(untracked=True))
+
+
+class BzrDiffStatClientTest(BzrClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        # setup a local repo once for all diff and status test
+        BzrClientTestSetups.setUpClass()
+        url = self.remote_path
+        client = BzrClient(self.local_path)
+        client.checkout(url)
+
+        self.basepath_export = os.path.join(self.root_directory, 'export')
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(self):
+        BzrClientTestSetups.tearDownClass()
+
+    def test_export_repository(self):
+        client = BzrClient(self.local_path)
+        self.assertTrue(
+          client.export_repository(self.local_version, self.basepath_export)
+        )
+
+        self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
+        self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
+        self.assertFalse(os.path.exists(self.basepath_export))

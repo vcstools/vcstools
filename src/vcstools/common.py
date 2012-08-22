@@ -78,6 +78,8 @@ def sanitized(arg):
 
 
 def _discard_line(line):
+    if line is None:
+        return True
     # the most common feedback lines of scms. We don't care about those. We let through anything unusual only.
     discard_prefixes = ["adding ", "added ", "updating ", "requesting ", "pulling from ",
                         "searching for ", "(", "no changes found",
@@ -95,7 +97,7 @@ def _discard_line(line):
     return False
 
 
-def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False, verbose=False):
+def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False, verbose=False, no_filter=False):
     """
     executes a command and hides the stdout output, loggs stderr
     output when command result is not zero. Make sure to sanitize
@@ -103,43 +105,64 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
 
     :param cmd: A string to execute.
     :param shell: Whether to use os shell.
+    :param us_env: changes env var LANG before running command, can influence program output
+    :param show_stdout: show some of the output (except for discarded lines in _discard_line()), ignored if no_filter
+    :param verbose: show all output, ignored if no_filter
+    :param no_filter: does not wrap stdout, so invoked command prints everything outside our knowledge
     this is DANGEROUS, as vulnerable to shell injection.
-    :returns: ( returncode, stdout, stderr)
+    :returns: ( returncode, stdout, stderr); stdout is None if no_filter==True
     :raises: VcsError on OSError
     """
     try:
         env = copy.copy(os.environ)
         if us_env:
             env ["LANG"] = "en_US.UTF-8"
+        if no_filter:
+            # in no_filter mode, we cannot pipe stdin, as this
+            # causes some prompts to be hidden (e.g. mercurial over
+            # http)
+            stdout_target = None
+        else:
+            stdout_target = subprocess.PIPE
         proc = subprocess.Popen(cmd,
                                 shell=shell,
                                 cwd=cwd,
+                                stdout=stdout_target,
                                 stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
                                 env=env)
-        # when we read output in while loop, it will not be returned
+        # when we read output in while loop, it would not be returned
         # in communicate()
-        stderr_buf = []
         stdout_buf = []
-        if verbose or show_stdout:
-            # listen to stdout and print
+        stderr_buf = []
+        if not no_filter and (verbose or show_stdout):
+            # this loop runs until proc is done
+            # it listen to the pipe, print and stores result in buffer for returning
+            # this allows proc to run while we still can filter out output we don't care about
+            # readline() blocks
             while True:
-                line = proc.stdout.readline()
-                if line != '':
+                line = proc.stdout.readline().decode('UTF-8')
+                if line is not None and line != '':
                     if verbose or not _discard_line(line):
                         print(line),
                         stdout_buf.append(line)
-                line2 = proc.stderr.readline()
-                if line2 != '':
-                    if verbose or not _discard_line(line2):
-                        print(line2),
-                        stderr_buf.append(line2)
-                if ((not line and not line2) or proc.returncode is not None):
+                if (not line or proc.returncode is not None):
                     break
+        # stderr was swallowed in pipe, in verbose mode print lines
+        if verbose:
+            while True:
+                line = proc.stderr.readline().decode('UTF-8')
+                if line != '':
+                    print(line),
+                    stderr_buf.append(line)
+                if not line:
+                    break    
+            
         (stdout, stderr) = proc.communicate()
-        stdout_buf.append(stdout.decode('utf-8'))
+        if stdout is not None:
+            stdout_buf.append(stdout.decode('utf-8'))
         stdout = "\n".join(stdout_buf)
-        stderr_buf.append(stderr.decode('utf-8'))
+        if stderr is not None:
+            stderr_buf.append(stderr.decode('utf-8'))
         stderr = "\n".join(stderr_buf)
         message = None
         if proc.returncode != 0 and stderr is not None and stderr != '':

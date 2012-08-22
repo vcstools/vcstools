@@ -31,6 +31,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import unicode_literals
+
 import os
 import io
 import stat
@@ -70,7 +72,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
         subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
-        self.version_init = po.stdout.read().rstrip('"').lstrip('"')
+        self.version_init = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # create a submodule repo
         subprocess.check_call("git init", shell=True, cwd=self.submodule_path)
@@ -93,10 +95,10 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git commit -m subsubmodule", shell=True, cwd=self.submodule_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.subsubmodule_path, stdout=subprocess.PIPE)
-        self.subsubversion_final = po.stdout.read().rstrip('"').lstrip('"')
+        self.subsubversion_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.submodule_path, stdout=subprocess.PIPE)
-        self.subversion_final = po.stdout.read().rstrip('"').lstrip('"')
+        self.subversion_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # attach submodule to remote
         subprocess.check_call("git submodule add %s %s"%(self.submodule_path, "submodule"), shell=True, cwd=self.remote_path)
@@ -105,7 +107,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
-        self.version_final = po.stdout.read().rstrip('"').lstrip('"')
+        self.version_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
         subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
 
         # attach submodule somewhere else in test_branch
@@ -173,13 +175,13 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual('', output, output)
         
         with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
-            f.write(u'0123456789abcdef')
+            f.write('0123456789abcdef')
         subprocess.check_call("touch new.txt", shell=True, cwd=self.local_path)
         with open(os.path.join(self.sublocal_path, 'subfixed.txt'), 'a') as f:
-            f.write(u'abcdef0123456789')
+            f.write('abcdef0123456789')
         subprocess.check_call("touch subnew.txt", shell=True, cwd=self.sublocal_path)
         with open(os.path.join(self.subsublocal_path, 'subsubfixed.txt'), 'a') as f:
-            f.write(u'012345cdef')
+            f.write('012345cdef')
         subprocess.check_call("touch subsubnew.txt", shell=True, cwd=self.subsublocal_path)
 
         output = client.get_status()
@@ -200,13 +202,13 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual('', output, output)
         
         with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
-            f.write(u'0123456789abcdef')
+            f.write('0123456789abcdef')
         subprocess.check_call("touch new.txt", shell=True, cwd=self.local_path)
         with open(os.path.join(self.sublocal_path, 'subfixed.txt'), 'a') as f:
-            f.write(u'abcdef0123456789')
+            f.write('abcdef0123456789')
         subprocess.check_call("touch subnew.txt", shell=True, cwd=self.sublocal_path)
         with open(os.path.join(self.subsublocal_path, 'subsubfixed.txt'), 'a') as f:
-            f.write(u'012345cdef')
+            f.write('012345cdef')
         subprocess.check_call("touch subsubnew.txt", shell=True, cwd=self.subsublocal_path)
 
         output = client.get_diff()

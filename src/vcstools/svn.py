@@ -38,6 +38,8 @@ svn vcs support.
 import os
 import sys
 
+import tarfile
+
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
@@ -201,6 +203,21 @@ class SvnClient(VcsClientBase):
             if response is not None and len(response) > 0 and response[-1] != '\n':
                 response += '\n'
         return response
+
+    def export_repository(self, version, basepath):
+        # Run the svn export cmd
+        cmd = 'svn export {0} {1}'.format(self._path, basepath)
+        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if result:
+            return False
+        # tar gzip the exported repo
+        targzip_file = tarfile.open(basepath + '.tar.gz', 'w:gz')
+        targzip_file.add(basepath)
+        targzip_file.close()
+        # clean up
+        from shutil import rmtree
+        rmtree(basepath)
+        return True
 
 
 SVNClient = SvnClient
