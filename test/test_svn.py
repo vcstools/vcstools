@@ -261,7 +261,7 @@ class SvnExportRepositoryClientTest(SvnClientTestSetups):
     def test_export_repository(self):
         client = SvnClient(self.local_path)
         self.assertTrue(
-          client.export_repository(self.local_version_second,
+          client.export_repository('',
             self.basepath_export)
         )
 
