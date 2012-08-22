@@ -1,12 +1,17 @@
 Changelog
 =========
 
+0.1.21
+------
+
+- bugfix #66: hg http username prompt hidden
+- add export_repository method to vcs_base and all implementations with tests
+- bugfix #64: unicode decoding problems
+
 0.1.20
 ------
 
 - rosws update --verbose for git prints small message when rebasing
-- bugfix #66: hg http username prompt hidden
-- bugfix #64: unicode decoding problems
 - improved python3 compatibility
 
 0.1.19
