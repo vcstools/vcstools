@@ -184,7 +184,7 @@ class VcsClientBase(object):
         """
         Calls scm equivalent to `svn export`, removing scm meta information and tar gzip'ing the repository at a given version to the given basepath.
 
-        :param version: version of the repository to export
+        :param version: version of the repository to export.  This can be a branch, tag, or path (svn).  When specifying the version as a path for svn, the path should be relative to the root of the svn repository, i.e. 'trunk', or 'tags/1.2.3', or './' for the root.
         :param basepath: this is the path to the tar gzip, excluding the extension which will be .tar.gz
         :returns: True on success, False otherwise.
         """
