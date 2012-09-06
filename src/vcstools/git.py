@@ -298,6 +298,8 @@ class GitClient(VcsClientBase):
                 # we try again after fetching if given spec had not been found
                 self._do_fetch()
                 repeated = True
+            # On Windows the version can have single quotes around it
+            output = output.strip("'")
             return output
         return None
 
