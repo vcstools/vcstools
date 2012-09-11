@@ -122,7 +122,7 @@ class VcsClientBase(object):
         after a failed call to checkout, a repository still exists,
         e.g. if an invalid revision spec was given.
         If shallow is provided, the scm client may checkout less
-        than the full repository history to svae time / disk space.
+        than the full repository history to save time / disk space.
 
         :param url: where to checkout from
         :type url: str
