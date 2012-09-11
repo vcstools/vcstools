@@ -224,8 +224,10 @@ class SvnClient(VcsClientBase):
             return False
         # tar gzip the exported repo
         targzip_file = tarfile.open(basepath + '.tar.gz', 'w:gz')
-        targzip_file.add(basepath, '')
-        targzip_file.close()
+        try:
+            targzip_file.add(basepath, '')
+        finally:
+            targzip_file.close()
         # clean up
         from shutil import rmtree
         rmtree(basepath)

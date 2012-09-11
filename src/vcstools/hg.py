@@ -270,11 +270,12 @@ class HgClient(VcsClientBase):
         if result:
             return False
         # gzip the tar file
-        tar_file = open(basepath + '.tar', 'rb')
-        gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
-        gzip_file.writelines(tar_file)
-        tar_file.close()
-        gzip_file.close()
+        with open(basepath + '.tar', 'rb') as tar_file:
+            gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
+            try:
+                gzip_file.writelines(tar_file)
+            finally:
+                gzip_file.close()
         # clean up
         os.remove(basepath + '.tar')
         return True
