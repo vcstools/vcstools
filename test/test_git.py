@@ -859,6 +859,30 @@ class GitExportClientTest(GitClientTestSetups):
         self.assertFalse(os.path.exists(self.basepath_export))
 
 
+class GitGetBranchesClientTest(GitClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        GitClientTestSetups.setUpClass()
+
+    def tearDown(self):
+        pass
+
+    def testGetBranches(self):
+        client = GitClient(self.local_path)
+        client.checkout(self.remote_path)
+        self.assertEqual(client.get_branches(True), ['master'])
+        self.assertEqual(client.get_branches(),
+                         ['master', 'remotes/origin/master',
+                          'remotes/origin/test_branch'])
+        subprocess.check_call('git checkout test_branch', shell=True,
+                              cwd=self.local_path, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        self.assertEqual(client.get_branches(True), ['master', 'test_branch'])
+        self.assertEqual(client.get_branches(),
+                         ['master', 'test_branch', 'remotes/origin/master',
+                          'remotes/origin/test_branch'])
+
 class GitTimeoutTest(unittest.TestCase):
 
     class MuteHandler(BaseRequestHandler):
@@ -882,6 +906,7 @@ class GitTimeoutTest(unittest.TestCase):
         url = 'ssh://test@127.0.0.1:{0}/test'.format(self.mute_port)
         client = GitClient(self.local_path)
         start = time.time()
+                          
         self.assertFalse(client.checkout(url, timeout=2.0))
         stop = time.time()
         self.assertTrue(stop - start > 1.9)
