@@ -283,3 +283,13 @@ class VcsClientBase(object):
         """
         raise NotImplementedError("Base class export_repository method must be overridden for client type %s " %
                                   self._vcs_type_name)
+
+    def get_branches(self, local_only=False):
+        """
+        Returns a list of all branches in the vcs repository.
+
+        :param local_only: if True it will only list local branches
+        :returns: list of branches in the repository, [] if none exist
+        """
+        raise NotImplementedError("Base class get_branches method must "
+                                  "be overridden")
