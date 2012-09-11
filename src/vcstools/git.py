@@ -525,7 +525,7 @@ class GitClient(VcsClientBase):
                 cmd += " --pretty=format:%H"
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             for line in output.splitlines():
-                if line.startswith(version):
+                if line.strip("'").startswith(version):
                     return False
             return True
         return False
