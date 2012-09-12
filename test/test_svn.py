@@ -40,7 +40,72 @@ import subprocess
 import tempfile
 import shutil
 import re
-from vcstools.svn import SvnClient
+from vcstools.svn import SvnClient, canonical_svn_url_split, get_remote_contents
+
+
+class SvnClientUtilTest(unittest.TestCase):
+
+    def test_canonical_svn_url_split(self):
+        self.assertEqual({'root': 'foo',
+                          'type': None,
+                          'name': None, 'subfolder': None,
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('foo'))
+        self.assertEqual({'root': None,
+                          'type': None,
+                          'name': None, 'subfolder': None,
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split(None))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'branches',
+                          'name': 'foo', 'subfolder': None,
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/branches/foo'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'branches',
+                          'name': 'foo', 'subfolder': None,
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/branches/foo/'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'branches',
+                          'name': 'foo', 'subfolder': 'sub/bar',
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/branches/foo/sub/bar'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'trunk',
+                          'name': None, 'subfolder': None,
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/trunk'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'trunk',
+                          'name': None, 'subfolder': 'sub',
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/trunk/sub'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'trunk',
+                          'name': None, 'subfolder': 'sub/foo',
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/trunk/sub/foo'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'tags',
+                          'name': '1.2.3', 'subfolder': None,
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/tags/1.2.3'))
+        self.assertEqual({'root': 'svn://gcc.gnu.org/svn/gcc',
+                          'type': 'tags',
+                          'name': '1.2.3', 'subfolder': 'sub/foo',
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('svn://gcc.gnu.org/svn/gcc/tags/1.2.3/sub/foo'))
+        self.assertEqual({'root': 'file://localhost/svn/gcc',
+                          'type': 'tags',
+                          'name': '1.2.3', 'subfolder': 'sub/foo',
+                          'query': None, 'fragment': None},
+                         canonical_svn_url_split('file://localhost/svn/gcc/tags/1.2.3/sub/foo'))
+        self.assertEqual({'root': 'https://frodo@gcc.gnu.org/svn/gcc',
+                          'type': 'tags',
+                          'name': '1.2.3', 'subfolder': 'sub/foo',
+                          'query': 'pw=guest', 'fragment': 'today'},
+                         canonical_svn_url_split('https://frodo@gcc.gnu.org/svn/gcc/tags/1.2.3/sub/foo?pw=guest#today'))
 
 
 class SvnClientTestSetups(unittest.TestCase):
@@ -383,3 +448,59 @@ class SvnExportRepositoryClientTest(SvnClientTestSetups):
         self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
         self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
         self.assertFalse(os.path.exists(self.basepath_export))
+
+
+class SvnGetBranchesClientTest(SvnClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        SvnClientTestSetups.setUpClass()
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+
+    # def tearDown(self):
+    #     pass
+
+    def test_get_remote_contents(self):
+        self.assertEqual(['branches', 'tags', 'trunk'], get_remote_contents(self.local_root_url))
+
+    def test_get_branches_non_canonical(self):
+        remote_path = os.path.join(self.root_directory, "remote_nc")
+        init_path = os.path.join(self.root_directory, "init_nc")
+        local_path = os.path.join(self.root_directory, "local_nc")
+        # create a "remote" repo
+        subprocess.check_call("svnadmin create %s" % remote_path, shell=True, cwd=self.root_directory)
+        local_root_url = "file://localhost/" + remote_path
+        local_url = local_root_url + "/footest"
+        # create an "init" repo to populate remote repo
+        subprocess.check_call("svn checkout %s %s" % (local_root_url, init_path), shell=True, cwd=self.root_directory)
+        for cmd in [
+            "mkdir footest",
+            "mkdir footest/foosub",
+            "touch footest/foosub/fixed.txt",
+            "svn add footest",
+            "svn commit -m initial"]:
+            subprocess.check_call(cmd, shell=True, cwd=init_path)
+        client = SvnClient(local_path)
+        client.checkout(local_url)
+        self.assertEqual([], client.get_branches())
+
+    def test_get_branches(self):
+        client = SvnClient(self.local_path)
+
+        self.assertEqual(['foo'], client.get_branches())
+
+        # slyly create some empty branches
+        subprocess.check_call("mkdir -p branches/foo2", shell=True, cwd=self.init_path)
+        subprocess.check_call("mkdir -p branches/bar", shell=True, cwd=self.init_path)
+        subprocess.check_call("svn add branches/foo2", shell=True, cwd=self.init_path)
+        subprocess.check_call("svn add branches/bar", shell=True, cwd=self.init_path)
+        subprocess.check_call("svn commit -m newbranches", shell=True, cwd=self.init_path)
+        self.assertEqual([], client.get_branches(local_only=True))
+        self.assertEqual(['bar', 'foo', 'foo2'], client.get_branches())
+
+        # checkout branch foo
+        local_path2 = os.path.join(self.root_directory, "local_foo")
+        client = SvnClient(local_path2)
+        client.checkout(self.local_root_url + '/branches/foo')
+        self.assertEqual(['foo'], client.get_branches(local_only=True))
