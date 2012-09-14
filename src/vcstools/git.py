@@ -151,7 +151,10 @@ class GitClient(VcsClientBase):
         return None
 
     def detect_presence(self):
-        return self.path_exists() and os.path.isdir(os.path.join(self._path, '.git'))
+        # There is a proposed implementation of detect_presence which might be
+        # more future proof, but would depend on parsing the output of git
+        # See: https://github.com/vcstools/vcstools/pull/10
+        return self.path_exists() and os.path.exists(os.path.join(self._path, '.git'))
 
     def checkout(self, url, refname=None, verbose=False, shallow=False):
         """calls git clone and then, if refname was given, update(refname)"""
