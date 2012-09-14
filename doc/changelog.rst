@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Upcoming
+--------
+
+- Changed the way that git implements detect_presence to fix a bug with submodules in newer versions of git
+
 0.1.21
 ------
 
