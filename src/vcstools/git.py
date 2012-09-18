@@ -259,7 +259,10 @@ class GitClient(VcsClientBase):
                 need_to_fetch = False
 
             # git checkout makes all the decisions for us
-            self._do_checkout(refname, fetch=need_to_fetch, verbose=verbose)
+            checkout_result = self._do_checkout(refname, fetch=need_to_fetch,
+                                                verbose=verbose)
+            if not checkout_result:
+                return checkout_result
             need_to_fetch = False
 
             if refname_is_local_branch:
@@ -615,8 +618,8 @@ class GitClient(VcsClientBase):
                                         show_stdout=verbose,
                                         verbose=verbose)
         if value == 0:
-            return False
-        return True
+            return True
+        return False
 
 #Backwards compatability
 GITClient = GitClient
