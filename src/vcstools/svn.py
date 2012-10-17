@@ -116,8 +116,7 @@ class SvnClient(VcsClientBase):
                                    self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
-                                        show_stdout=verbose,
-                                        verbose=verbose)
+                                        no_filter=True)
         if value == 0:
             return True
         return False
@@ -137,8 +136,7 @@ class SvnClient(VcsClientBase):
                                                   self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
-                                        show_stdout=True,
-                                        verbose=verbose)
+                                        no_filter=True)
         if value == 0:
             return True
         return False
