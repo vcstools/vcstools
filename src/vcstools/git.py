@@ -565,40 +565,40 @@ class GitClient(VcsClientBase):
         do so to the last fetched version using git rebase. Returns
         False on command line failures"""
         parent = self.get_branch_parent(fetch=fetch)
-        if parent is not None and self.rev_list_contains("remotes/origin/%s" % parent,
-                                                         self.get_version(),
-                                                         fetch=False):
-            if verbose:
-                print("Rebasing repository")
-            # Rebase, do not pull, because somebody could have
-            # commited in the meantime.
-            if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
-                # --keep allows o rebase even with local changes, as long as
-                # local changes are not in files that change between versions
-                cmd = "git reset --keep remotes/origin/%s"%parent
-                value, _, _ = run_shell_command(cmd,
-                                                shell=True,
-                                                cwd=self._path,
-                                                show_stdout=True,
-                                                verbose=verbose)
-                if value == 0:
-                    return True
-            else:
-                verboseflag = ''
-                if verbose:
-                    verboseflag = '-v'
-                # prior to version 1.7.1, git does not know --keep
-                # Do not merge, rebase does nothing when there are local changes
-                cmd = "git rebase %s remotes/origin/%s"%(verboseflag, parent)
-                value, _, _ = run_shell_command(cmd,
-                                                shell=True,
-                                                cwd=self._path,
-                                                show_stdout=True,
-                                                verbose=verbose)
-                if value == 0:
-                    return True
+        if parent is None or not self.rev_list_contains("remotes/origin/%s" % parent,
+                                                        self.get_version(),
+                                                        fetch=False):
             return False
-        return True
+        if verbose:
+            print("Rebasing repository")
+        # Rebase, do not pull, because somebody could have
+        # commited in the meantime.
+        if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
+            # --keep allows o rebase even with local changes, as long as
+            # local changes are not in files that change between versions
+            cmd = "git reset --keep remotes/origin/%s"%parent
+            value, _, _ = run_shell_command(cmd,
+                                            shell=True,
+                                            cwd=self._path,
+                                            show_stdout=True,
+                                            verbose=verbose)
+            if value == 0:
+                return True
+        else:
+            verboseflag = ''
+            if verbose:
+                verboseflag = '-v'
+            # prior to version 1.7.1, git does not know --keep
+            # Do not merge, rebase does nothing when there are local changes
+            cmd = "git rebase %s remotes/origin/%s"%(verboseflag, parent)
+            value, _, _ = run_shell_command(cmd,
+                                            shell=True,
+                                            cwd=self._path,
+                                            show_stdout=True,
+                                            verbose=verbose)
+            if value == 0:
+                return True
+        return False
 
     def _do_checkout(self, refname, fetch=True, verbose=False):
         """meaning git checkout, not vcstools checkout. This works
