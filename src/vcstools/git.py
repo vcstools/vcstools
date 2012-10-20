@@ -480,7 +480,7 @@ class GitClient(VcsClientBase):
         :param refname: a git refname
         :param version: an SHA IDs (if partial, caller is responsible
           for mismatch)
-        :returns: True if version can be found in rev-list
+        :returns: True if version is an ancestor commit from refname
         """
         # to avoid listing unnecessarily many rev-ids, we cut off all
         # those we are definitely not interested in
@@ -497,7 +497,7 @@ class GitClient(VcsClientBase):
             version is not None and
             version!=''):
 
-            cmd = 'git rev-list %s %s --parents'%(sanitized(refname), sanitized('^%s'%version))
+            cmd = 'git rev-list %s ^%s --parents'%(sanitized(refname), sanitized(version))
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             for line in output.splitlines():
                 # can have 1, 2 or 3 elements (commit, parent1, parent2)
@@ -565,15 +565,28 @@ class GitClient(VcsClientBase):
 
     def _do_fast_forward(self, fetch=True, branch_parent=None, verbose=False):
         """Execute git fetch if necessary, and if we can fast-foward,
-        do so to the last fetched version using git rebase. Returns
-        False on command line failures
+        do so to the last fetched version using git rebase.
 
         :param branch_parent: name of branch we track
         :param fetch: whether fetch should be done first for remote refs
+        :returns: True if up-to-date or after succesful fast-forward
         """
-        if branch_parent is None or not self.rev_list_contains("remotes/origin/%s" % branch_parent,
-                                                        self.get_version(),
-                                                        fetch=False):
+        assert branch_parent is not None
+        current_version = self.get_version()
+        parent_version = self.get_version("remotes/origin/%s" % branch_parent)
+        if current_version == parent_version:
+            return True
+        # check if we are true ancestor of tracked branch
+        if not self.rev_list_contains(parent_version,
+                                      current_version,
+                                      fetch=fetch):
+            # if not rev_list_contains this version, we are on same
+            # commit (checked before), have advanced, or have diverged.
+            # Now check whether tracked branch is a true ancestor of us
+            if self.rev_list_contains(current_version,
+                                      parent_version,
+                                      fetch=False):
+                return True
             return False
         if verbose:
             print("Rebasing repository")

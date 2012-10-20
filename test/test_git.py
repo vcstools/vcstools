@@ -250,6 +250,17 @@ class GitClientTest(GitClientTestSetups):
         subprocess.check_call("git reset --hard test_tag", shell=True, cwd=self.local_path)
         self.assertTrue(client.update())
 
+    def test_fast_forward_diverged(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url, "master"))
+        subprocess.check_call("git reset --hard test_tag", shell=True, cwd=self.local_path)
+        subprocess.check_call("touch diverged.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m diverge", shell=True, cwd=self.local_path)
+        # fail because we have diverged
+        self.assertFalse(client.update('master'))
+
     def test_fast_forward_simple_ref(self):
         url = self.remote_path
         client = GitClient(self.local_path)
