@@ -201,6 +201,8 @@ class GitClient(VcsClientBase):
         already on it, and to fast-forward, unless not a tracking
         branch. Else go untracked on tag or whatever refname is. Does
         not leave if current commit would become dangling.
+
+        :return: True if already up-to-date with remote or after successful fast_foward
         """
         # try calling git fetch just once per call to update()
         need_to_fetch = True
@@ -227,7 +229,7 @@ class GitClient(VcsClientBase):
         # if same_branch and branch_parent is None:
         #   already on branch, nothing to pull as non-tracking branch
         if same_branch and branch_parent is not None:
-            if not self._do_fast_forward(need_to_fetch, verbose=verbose):
+            if not self._do_fast_forward(need_to_fetch, branch_parent=branch_parent, verbose=verbose):
                 return False
             need_to_fetch = False
         elif not same_branch:
@@ -270,6 +272,7 @@ class GitClient(VcsClientBase):
                 new_branch_parent = self.get_branch_parent(fetch=need_to_fetch)
                 if new_branch_parent is not None:
                     if not self._do_fast_forward(fetch=need_to_fetch,
+                                                 branch_parent=new_branch_parent,
                                                  verbose=verbose):
                         return False
 
@@ -560,12 +563,15 @@ class GitClient(VcsClientBase):
                                         show_stdout=True)
         return value == 0
 
-    def _do_fast_forward(self, fetch=True, verbose=False):
+    def _do_fast_forward(self, fetch=True, branch_parent=None, verbose=False):
         """Execute git fetch if necessary, and if we can fast-foward,
         do so to the last fetched version using git rebase. Returns
-        False on command line failures"""
-        parent = self.get_branch_parent(fetch=fetch)
-        if parent is None or not self.rev_list_contains("remotes/origin/%s" % parent,
+        False on command line failures
+
+        :param branch_parent: name of branch we track
+        :param fetch: whether fetch should be done first for remote refs
+        """
+        if branch_parent is None or not self.rev_list_contains("remotes/origin/%s" % branch_parent,
                                                         self.get_version(),
                                                         fetch=False):
             return False
@@ -576,7 +582,7 @@ class GitClient(VcsClientBase):
         if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
             # --keep allows o rebase even with local changes, as long as
             # local changes are not in files that change between versions
-            cmd = "git reset --keep remotes/origin/%s"%parent
+            cmd = "git reset --keep remotes/origin/%s" % branch_parent
             value, _, _ = run_shell_command(cmd,
                                             shell=True,
                                             cwd=self._path,
@@ -590,7 +596,7 @@ class GitClient(VcsClientBase):
                 verboseflag = '-v'
             # prior to version 1.7.1, git does not know --keep
             # Do not merge, rebase does nothing when there are local changes
-            cmd = "git rebase %s remotes/origin/%s"%(verboseflag, parent)
+            cmd = "git rebase %s remotes/origin/%s" % (verboseflag, branch_parent)
             value, _, _ = run_shell_command(cmd,
                                             shell=True,
                                             cwd=self._path,
