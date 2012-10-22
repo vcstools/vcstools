@@ -116,8 +116,7 @@ class SvnClient(VcsClientBase):
                                    self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
-                                        show_stdout=verbose,
-                                        verbose=verbose)
+                                        no_filter=True)
         if value == 0:
             return True
         return False
@@ -137,8 +136,7 @@ class SvnClient(VcsClientBase):
                                                   self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
-                                        show_stdout=True,
-                                        verbose=verbose)
+                                        no_filter=True)
         if value == 0:
             return True
         return False
@@ -224,8 +222,10 @@ class SvnClient(VcsClientBase):
             return False
         # tar gzip the exported repo
         targzip_file = tarfile.open(basepath + '.tar.gz', 'w:gz')
-        targzip_file.add(basepath, '')
-        targzip_file.close()
+        try:
+            targzip_file.add(basepath, '')
+        finally:
+            targzip_file.close()
         # clean up
         from shutil import rmtree
         rmtree(basepath)

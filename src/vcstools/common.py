@@ -122,13 +122,15 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
             # causes some prompts to be hidden (e.g. mercurial over
             # http)
             stdout_target = None
+            stderr_target = None
         else:
             stdout_target = subprocess.PIPE
+            stderr_target = subprocess.PIPE
         proc = subprocess.Popen(cmd,
                                 shell=shell,
                                 cwd=cwd,
                                 stdout=stdout_target,
-                                stderr=subprocess.PIPE,
+                                stderr=stderr_target,
                                 env=env)
         # when we read output in while loop, it would not be returned
         # in communicate()
