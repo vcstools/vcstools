@@ -192,7 +192,7 @@ class GitClient(VcsClientBase):
                 return False
         return True
 
-    def update(self, refname=None, verbose=False):
+    def update(self, refname=None, verbose=False, force_fetch=False):
         """
         interprets refname as a local branch, remote branch, tagname,
         hash, etc.
@@ -208,6 +208,9 @@ class GitClient(VcsClientBase):
         need_to_fetch = True
         if not self.detect_presence():
             return False
+
+        if force_fetch:
+            self._do_fetch(True)
 
         # are we on any branch?
         current_branch = self.get_branch()
@@ -556,9 +559,12 @@ class GitClient(VcsClientBase):
         os.remove(basepath + '.tar')
         return True
 
-    def _do_fetch(self):
+    def _do_fetch(self, with_tags=False):
         """calls git fetch"""
-        value, _, _ = run_shell_command("git fetch",
+        cmd = "git fetch"
+        if with_tags:
+            cmd += " --tags"
+        value, _, _ = run_shell_command(cmd,
                                         cwd=self._path,
                                         shell=True,
                                         show_stdout=True)
