@@ -210,6 +210,7 @@ class GitClient(VcsClientBase):
             return False
 
         if force_fetch:
+            need_to_fetch = False
             self._do_fetch(True)
 
         # are we on any branch?
