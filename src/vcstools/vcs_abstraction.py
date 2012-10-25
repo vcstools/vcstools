@@ -85,9 +85,6 @@ class VcsClient(object):
     def get_url(self):
         return self.vcs.get_url()
 
-    def get_branch_parent(self):
-        return self.vcs.get_branch_parent()
-
     def get_diff(self, basepath=None):
         return self.vcs.get_diff(basepath)
 
