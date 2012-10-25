@@ -1,10 +1,19 @@
 Changelog
 =========
 
-Upcoming
---------
+0.1.24
+------
+
+- fix git update return value to False when fast-forward not possible due to diverge
+- fix. svn certificate prompt invisible, svn checkout and update become verbose due to this
+
+0.1.22
+------
 
 - Changed the way that git implements detect_presence to fix a bug with submodules in newer versions of git
+- fix for git single quotes on Windows
+- minor internal api bug where a git function always returned True
+- fix gub in svn export_repository
 
 0.1.21
 ------
