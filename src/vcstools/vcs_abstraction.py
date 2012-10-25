@@ -30,8 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 import os
+import warnings
 
 _VCS_TYPES = {}
 
@@ -72,16 +72,14 @@ def get_vcs_client(vcs_type, path):
 
 class VcsClient(object):
     """
-    API for interacting with source-controlled paths independent of
+    *DEPRECATED* API for interacting with source-controlled paths independent of
     actual version-control implementation.
     """
 
     def __init__(self, vcs_type, path):
         self._path = path
-        clientclass = get_vcs(vcs_type)
-        if clientclass is None:
-            raise LookupError("No Vcs client registered for type %s" % vcs_type)
-        self.vcs = clientclass(path)
+        warnings.warn("Class VcsClient is deprecated, use get_vcs_client() instead")
+        self.vcs = get_vcs_client(vcs_type, path)
 
     def path_exists(self):
         return os.path.exists(self._path)
