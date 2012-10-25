@@ -113,7 +113,7 @@ class VcsClientBase(object):
         """
         raise NotImplementedError("Base class get_version method must be overridden")
 
-    def checkout(self, url, spec, verbose=False, shallow=False):
+    def checkout(self, url, spec=None, verbose=False, shallow=False):
         """
         Attempts to create a local repository given a remote
         url. Fails if a directory exists already in target
@@ -134,7 +134,7 @@ class VcsClientBase(object):
         """
         raise NotImplementedError("Base class checkout method must be overridden")
 
-    def update(self, spec, verbose=False):
+    def update(self, spec=None, verbose=False):
         """
         Sets the local copy of the repository to a version matching
         the spec. Fails when there are uncommited changes.
