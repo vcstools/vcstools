@@ -37,11 +37,37 @@ _VCS_TYPES = {}
 
 
 def register_vcs(vcs_type, clazz):
+    """
+    :param vcs_type: id, ``str``
+    :param clazz: class extending VcsClientBase
+    """
     _VCS_TYPES[vcs_type] = clazz
 
 
 def get_vcs(vcs_type):
-    return _VCS_TYPES[vcs_type]
+    """
+    Returns the class interfacing with vcs of given type
+
+    :param vcs_type: id of the tpye, e.g. git, svn, hg, bzr
+    :returns: class extending VcsClientBase
+    :raises: ValueError for unknown vcs_type
+    """
+    vcs_class = _VCS_TYPES.get(vcs_type, None)
+    if not vcs_class:
+        raise ValueError('No Client type registered for vcs type "%s"' % vcs_type)
+    return vcs_class
+
+
+def get_vcs_client(vcs_type, path):
+    """
+    Returns a client with which to interact with the vcs at given path
+
+    :param vcs_type: id of the tpye, e.g. git, svn, hg, bzr
+    :returns: instance of VcsClientBase
+    :raises: ValueError for unknown vcs_type
+    """
+    clientclass = get_vcs(vcs_type)
+    return clientclass(path)
 
 
 class VcsClient(object):
