@@ -44,6 +44,13 @@ def register_vcs(vcs_type, clazz):
     _VCS_TYPES[vcs_type] = clazz
 
 
+def get_registered_vcs_types():
+    """
+    :returns: list of valid key to use as vcs_type
+    """
+    return list(_VCS_TYPES.keys())
+
+
 def get_vcs(vcs_type):
     """
     Returns the class interfacing with vcs of given type
