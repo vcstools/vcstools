@@ -50,33 +50,44 @@ class SvnClientTestSetups(unittest.TestCase):
         self.root_directory = tempfile.mkdtemp()
         self.directories = dict(setUp=self.root_directory)
         self.remote_path = os.path.join(self.root_directory, "remote")
-        init_path = os.path.join(self.root_directory, "init")
+        self.init_path = os.path.join(self.root_directory, "init")
 
         # create a "remote" repo
         subprocess.check_call("svnadmin create %s" % self.remote_path, shell=True, cwd=self.root_directory)
-        self.local_url = "file://localhost" + self.remote_path
+        self.local_root_url = "file://localhost" + self.remote_path
+        self.local_url = self.local_root_url + "/trunk"
 
         # create an "init" repo to populate remote repo
-        subprocess.check_call("svn checkout %s %s" % (self.local_url, init_path), shell=True, cwd=self.root_directory)
+        subprocess.check_call("svn checkout %s %s" % (self.local_root_url, self.init_path), shell=True, cwd=self.root_directory)
 
-        subprocess.check_call("touch fixed.txt", shell=True, cwd=init_path)
-        subprocess.check_call("svn add fixed.txt", shell=True, cwd=init_path)
-        subprocess.check_call("svn commit -m initial", shell=True, cwd=init_path)
+        for cmd in [
+            "mkdir trunk",
+            "mkdir branches",
+            "mkdir tags",
+            "svn add trunk branches tags",
+            "touch trunk/fixed.txt",
+            "svn add trunk/fixed.txt",
+            "svn commit -m initial"]:
+            subprocess.check_call(cmd, shell=True, cwd=self.init_path)
 
         self.local_version_init = "-r1"
 
+
         # files to be modified in "local" repo
-        subprocess.check_call("touch modified.txt", shell=True, cwd=init_path)
-        subprocess.check_call("touch modified-fs.txt", shell=True, cwd=init_path)
-        subprocess.check_call("svn add modified.txt modified-fs.txt", shell=True, cwd=init_path)
-        subprocess.check_call("svn commit -m initial", shell=True, cwd=init_path)
+        for cmd in [
+            "touch trunk/modified.txt",
+            "touch trunk/modified-fs.txt",
+            "svn add trunk/modified.txt trunk/modified-fs.txt",
+            "svn commit -m initial"]:
+            subprocess.check_call(cmd, shell=True, cwd=self.init_path)
 
         self.local_version_second = "-r2"
-
-        subprocess.check_call("touch deleted.txt", shell=True, cwd=init_path)
-        subprocess.check_call("touch deleted-fs.txt", shell=True, cwd=init_path)
-        subprocess.check_call("svn add deleted.txt deleted-fs.txt", shell=True, cwd=init_path)
-        subprocess.check_call("svn commit -m modified", shell=True, cwd=init_path)
+        for cmd in [
+            "touch trunk/deleted.txt",
+            "touch trunk/deleted-fs.txt",
+            "svn add trunk/deleted.txt trunk/deleted-fs.txt",
+            "svn commit -m modified"]:
+            subprocess.check_call(cmd, shell=True, cwd=self.init_path)
 
         self.local_path = os.path.join(self.root_directory, "local")
 
