@@ -104,7 +104,7 @@ class SvnClient(VcsClientBase):
         # Need to check as SVN does not care
         if self.path_exists():
             sys.stderr.write("Error: cannot checkout into existing "
-                           + "directory\n")
+                           + "directory %s\n" % self._path)
             return False
         if version is not None and version != '':
             if not version.startswith("-r"):
