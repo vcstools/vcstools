@@ -122,6 +122,9 @@ class VcsClient(object):
     def get_status(self, basepath=None, untracked=False):
         return self.vcs.get_status(basepath, untracked)
 
+    def get_log(self, relpath=None, limit=None):
+        return self.vcs.get_log(relpath, limit)
+
     def export_repository(self, version, basepath):
         return self.vcs.export_repository(version, basepath)
 

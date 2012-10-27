@@ -180,6 +180,25 @@ class VcsClientBase(object):
         """
         raise NotImplementedError("Base class get_status method must be overridden for client type %s " % self._vcs_type_name)
 
+    def get_log(self, relpath=None, limit=None):
+        """
+        Calls scm log command.
+
+        This returns a list of dictionaries with the following fields:
+            - id: the commit SHA or revision number
+            - date: the date the commit was made (python datetime)
+            - author: the name of the author of the commit, if available
+            - email: the e-mail address of the author of the commit, if available
+            - message: the commit message, if any
+
+        :param relpath: (optional) restrict logs to events on this resource
+            path (folder or file) relative to the root of the repository. If None
+            (default), this is the root of the repository.
+        :param limit: (optional) the maximum number of log entries that should
+            be retrieved. If None (default), there is no limit.
+        """
+        raise NotImplementedError("Base class get_log method must be overridden")
+
     def export_repository(self, version, basepath):
         """
         Calls scm equivalent to `svn export`, removing scm meta information and tar gzip'ing the repository at a given version to the given basepath.

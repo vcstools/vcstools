@@ -177,6 +177,39 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertEquals('', client.get_status())
 
 
+class SvnClientLogTest(SvnClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        SvnClientTestSetups.setUpClass()
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+
+    def test_get_log_defaults(self):
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log()
+        self.assertEquals(3, len(log))
+        self.assertEquals('modified', log[0]['message'])
+        for key in ['id', 'author', 'date', 'message']:
+            self.assertTrue(log[0][key] is not None, key)
+        # svn logs don't have email, but key should be in dict
+        self.assertTrue(log[0]['email'] is None)
+
+    def test_get_log_limit(self):
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log(limit=1)
+        self.assertEquals(1, len(log))
+        self.assertEquals('modified', log[0]['message'])
+
+    def test_get_log_path(self):
+        client = SvnClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log(relpath='fixed.txt')
+        self.assertEquals('initial', log[0]['message'])
+
+
 class SvnDiffStatClientTest(SvnClientTestSetups):
 
     @classmethod

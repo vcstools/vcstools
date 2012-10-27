@@ -42,6 +42,9 @@ import sys
 
 import gzip
 
+import dateutil.parser # For parsing date strings
+import xml.dom.minidom # For parsing logfiles
+
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
@@ -241,6 +244,40 @@ class HgClient(VcsClientBase):
             command = "hg diff -g %s" % (sanitized(rel_path))
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response = _hg_diff_path_change(response, rel_path)
+        return response
+
+    def get_log(self, relpath=None, limit=None):
+        response = []
+
+        if relpath == None:
+            relpath = ''
+
+        if self.path_exists() and os.path.exists(os.path.join(self._path,relpath)):
+            # Get the log
+            limit_cmd = (("--limit %d" % (int(limit))) if limit else "")
+            command = "hg log %s --style xml %s" % (sanitized(relpath), limit_cmd)
+            return_code, xml_response, stderr = run_shell_command(command, shell=True, cwd=self._path)
+
+            if return_code == 0:
+                # Parse response
+                dom = xml.dom.minidom.parseString(xml_response)
+                log_entries = dom.getElementsByTagName("logentry")
+
+                # Extract the entries
+                for log_entry in log_entries:
+                    author_tag = log_entry.getElementsByTagName("author")[0]
+                    date_tag = log_entry.getElementsByTagName("date")[0]
+                    msg_tag = log_entry.getElementsByTagName("msg")[0]
+
+                    log_data = dict()
+                    log_data['id'] = log_entry.getAttribute("node")
+                    log_data['author'] = author_tag.firstChild.nodeValue
+                    log_data['email'] = author_tag.getAttribute("email")
+                    log_data['message'] = msg_tag.firstChild.nodeValue
+                    log_data['date'] = dateutil.parser.parse(str(date_tag.firstChild.nodeValue))
+
+                    response.append(log_data)
+
         return response
 
     def get_status(self, basepath=None, untracked=False):
