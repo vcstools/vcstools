@@ -549,15 +549,17 @@ class GitClient(VcsClientBase):
         result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
         if result:
             return False
-        # Gzip the tar file
-        with open(basepath + '.tar', 'rb') as tar_file:
-            gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
-            try:
-                gzip_file.writelines(tar_file)
-            finally:
-                gzip_file.close()
-        # Clean up
-        os.remove(basepath + '.tar')
+        try:
+            # Gzip the tar file
+            with open(basepath + '.tar', 'rb') as tar_file:
+                gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
+                try:
+                    gzip_file.writelines(tar_file)
+                finally:
+                    gzip_file.close()
+        finally:
+            # Clean up
+            os.remove(basepath + '.tar')
         return True
 
     def _do_fetch(self, with_tags=False):
