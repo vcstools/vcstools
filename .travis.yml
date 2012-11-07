@@ -5,10 +5,8 @@ python:
   - "3.2"
 # command to install dependencies
 install:
-  - sudo apt-get update -qq
   - python setup.py build
   - sudo pip install pyyaml
-  - sudo apt-get install -qq git mercurial subversion
 # Set git config to silence some stuff in the tests
   - git config --global user.email "foo@example.com"
   - git config --global user.name "Foo Bar"
