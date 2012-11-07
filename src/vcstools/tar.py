@@ -55,6 +55,8 @@ from vcstools.vcs_base import VcsClientBase, VcsError
 
 __pychecker__ = 'unusednames=spec'
 
+_METADATA_FILENAME = ".tar"
+
 
 class TarClient(VcsClientBase):
 
@@ -63,7 +65,7 @@ class TarClient(VcsClientBase):
         @raise VcsError if tar not detected
         """
         VcsClientBase.__init__(self, 'tar', path)
-        self.metadata_path = os.path.join(self._path, ".tar")
+        self.metadata_path = os.path.join(self._path, _METADATA_FILENAME)
 
     @staticmethod
     def get_environment_metadata():
@@ -163,6 +165,16 @@ class TarClient(VcsClientBase):
                 if 'version' in metadata:
                     return metadata['version']
         return None
+
+    def get_diff(self, basepath=None):
+        return ''
+
+    def get_status(self, basepath=None, untracked=False):
+        return ''
+
+    def export_repository(self, version, basepath):
+        raise VcsError('export repository not implemented for extracted tars')
+
 
 # backwards compatibility
 TARClient = TarClient
