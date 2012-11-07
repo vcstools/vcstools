@@ -97,7 +97,7 @@ class VcsClientBase(object):
         :returns: The source control url for the path
         :rtype: str
         """
-        raise NotImplementedError("Base class get_url method must be overridden")
+        raise NotImplementedError("Base class get_url method must be overridden for client type %s " % self._vcs_type_name)
 
     def get_version(self, spec=None):
         """
@@ -111,7 +111,7 @@ class VcsClientBase(object):
           spec is provided, the respective revision number.
         :rtype: str
         """
-        raise NotImplementedError("Base class get_version method must be overridden")
+        raise NotImplementedError("Base class get_version method must be overridden for client type %s " % self._vcs_type_name)
 
     def checkout(self, url, spec=None, verbose=False, shallow=False):
         """
@@ -132,7 +132,7 @@ class VcsClientBase(object):
         :type shallow: bool
         :returns: True if successful
         """
-        raise NotImplementedError("Base class checkout method must be overridden")
+        raise NotImplementedError("Base class checkout method must be overridden for client type %s " % self._vcs_type_name)
 
     def update(self, spec=None, verbose=False):
         """
@@ -146,7 +146,7 @@ class VcsClientBase(object):
            SHA-ID, ... depending on the VCS implementation.
         :returns: True on success, False else
         """
-        raise NotImplementedError("Base class update method must be overridden")
+        raise NotImplementedError("Base class update method must be overridden for client type %s " % self._vcs_type_name)
 
     def detect_presence(self):
         """For auto detection"""
@@ -178,7 +178,7 @@ class VcsClientBase(object):
         :returns: A string summarizing locally modified files
         :rtype: str
         """
-        raise NotImplementedError("Base class get_status method must be overridden")
+        raise NotImplementedError("Base class get_status method must be overridden for client type %s " % self._vcs_type_name)
 
     def export_repository(self, version, basepath):
         """
@@ -188,4 +188,4 @@ class VcsClientBase(object):
         :param basepath: this is the path to the tar gzip, excluding the extension which will be .tar.gz
         :returns: True on success, False otherwise.
         """
-        raise NotImplementedError("Base class export_repository method must be overridden")
+        raise NotImplementedError("Base class export_repository method must be overridden for client type %s " % self._vcs_type_name)
