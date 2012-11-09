@@ -204,6 +204,15 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
     def tearDown(self):
         pass
 
+    def assertStatusListEqual(self, listexpect, listactual):
+          """helper fun to check scm status output while discarding file ordering differences"""
+          lines_expect = listexpect.splitlines()
+          lines_actual = listactual.splitlines()
+          for line in lines_expect:
+               self.assertTrue(line in lines_actual, 'Missing entry %s in output %s' % (line, listactual))
+          for line in lines_actual:
+               self.assertTrue(line in lines_expect, 'Superflous entry %s in output %s' % (line, listactual))
+
     def assertEqualDiffs(self, expected, actual):
         "True if actual is similar enough to expected, minus svn properties"
 
@@ -253,19 +262,19 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status())
+        self.assertStatusListEqual('A       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status())
 
     def test_status_relpath(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A       local/added.txt\nD       local/deleted.txt\nM       local/modified-fs.txt\n!       local/deleted-fs.txt\nM       local/modified.txt\n', client.get_status(basepath=os.path.dirname(self.local_path)))
+        self.assertStatusListEqual('A       local/added.txt\nD       local/deleted.txt\nM       local/modified-fs.txt\n!       local/deleted-fs.txt\nM       local/modified.txt\n', client.get_status(basepath=os.path.dirname(self.local_path)))
 
     def test_status_untracked(self):
         client = SvnClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('?       added-fs.txt\nA       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status(untracked=True))
+        self.assertStatusListEqual('?       added-fs.txt\nA       added.txt\nD       deleted.txt\nM       modified-fs.txt\n!       deleted-fs.txt\nM       modified.txt\n', client.get_status(untracked=True))
 
 
 class SvnExportRepositoryClientTest(SvnClientTestSetups):
