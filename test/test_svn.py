@@ -206,21 +206,33 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
 
     def assertEqualDiffs(self, expected, actual):
         "True if actual is similar enough to expected, minus svn properties"
-        filtered = []
-        # A block starts with \nIndex, and the actual diff goes up to the first line starting with [a-zA-Z], e.g. "Properties changed:"
-        for block in actual.split("\nIndex: "):
-            if filtered != []:
-                # restore "Index: " removed by split()
-                block = "Index: " + block
+
+        def filter_block(block):
+            """removes property information that varies between systems, not relevant fo runit test"""
             newblock = []
             for line in block.splitlines():
                 if re.search("[=+-\\@ ].*", line) == None:
                     break
                 else:
                     newblock.append(line)
-            filtered.extend(newblock)
-        filtered = "\n".join(filtered)
-        self.assertEquals(expected, filtered, "Assert failed, expected something like '" + expected + "'\n but got:\n'" + filtered + "'\n, original:\n''" + actual)
+            return "\n".join(newblock)
+
+        filtered_actual_blocks = []
+        # A block starts with \nIndex, and the actual diff goes up to the first line starting with [a-zA-Z], e.g. "Properties changed:"
+        for block in actual.split("\nIndex: "):
+            if filtered_actual_blocks != []:
+                # restore "Index: " removed by split()
+                block = "Index: " + block
+            block = filter_block(block)
+            filtered_actual_blocks.append(block)
+        expected_blocks = []
+        for block in expected.split("\nIndex: "):
+            if expected_blocks != []:
+                block = "Index: " + block
+            expected_blocks.append(block)
+        filtered = "\n".join(filtered_actual_blocks)
+        self.assertEquals(set(expected_blocks), set(filtered_actual_blocks))
+
 
     def test_diff(self):
         client = SvnClient(self.local_path)
