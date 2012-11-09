@@ -7,15 +7,16 @@ python:
 install:
   - python setup.py build
   - sudo pip install pyyaml
+  - sudo pip install coverage
 # Set git config to silence some stuff in the tests
   - git config --global user.email "foo@example.com"
   - git config --global user.name "Foo Bar"
+# Set the hg user
+  - echo -e "[ui]\nusername = Your Name <your@mail.com>" >> ~/.hgrc
+# Set the bzr user
+  - bzr whoami "Your Name <name@example.com>"
 # command to run tests
 script:
-  - which python
-  - /usr/bin/env python --version
-  - echo -e "[ui]\nusername = Your Name <your@mail.com>" >> ~/.hgrc
-  - bzr whoami "Your Name <name@example.com>"
   - nosetests --with-coverage --cover-package vcstools
 notifications:
   email: false
