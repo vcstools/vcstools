@@ -16,6 +16,7 @@ script:
   - /usr/bin/env python --version
   - mkdir -p .hg
   - echo -e "[ui]\nusername = Your Name <your@mail.com>" >> .hg/hgrc
+  - bzr whoami "Your Name <name@example.com>"
   - nosetests --with-coverage --cover-package vcstools
 notifications:
   email: false
