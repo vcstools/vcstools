@@ -30,32 +30,63 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 import os
+import warnings
 
 _VCS_TYPES = {}
 
 
 def register_vcs(vcs_type, clazz):
+    """
+    :param vcs_type: id, ``str``
+    :param clazz: class extending VcsClientBase
+    """
     _VCS_TYPES[vcs_type] = clazz
 
 
+def get_registered_vcs_types():
+    """
+    :returns: list of valid key to use as vcs_type
+    """
+    return list(_VCS_TYPES.keys())
+
+
 def get_vcs(vcs_type):
-    return _VCS_TYPES[vcs_type]
+    """
+    Returns the class interfacing with vcs of given type
+
+    :param vcs_type: id of the tpye, e.g. git, svn, hg, bzr
+    :returns: class extending VcsClientBase
+    :raises: ValueError for unknown vcs_type
+    """
+    vcs_class = _VCS_TYPES.get(vcs_type, None)
+    if not vcs_class:
+        raise ValueError('No Client type registered for vcs type "%s"' % vcs_type)
+    return vcs_class
+
+
+def get_vcs_client(vcs_type, path):
+    """
+    Returns a client with which to interact with the vcs at given path
+
+    :param vcs_type: id of the tpye, e.g. git, svn, hg, bzr
+    :returns: instance of VcsClientBase
+    :raises: ValueError for unknown vcs_type
+    """
+    clientclass = get_vcs(vcs_type)
+    return clientclass(path)
 
 
 class VcsClient(object):
     """
-    API for interacting with source-controlled paths independent of
+    *DEPRECATED* API for interacting with source-controlled paths independent of
     actual version-control implementation.
     """
 
     def __init__(self, vcs_type, path):
         self._path = path
-        clientclass = get_vcs(vcs_type)
-        if clientclass is None:
-            raise LookupError("No Vcs client registered for type %s" % vcs_type)
-        self.vcs = clientclass(path)
+        warnings.warn("Class VcsClient is deprecated, use get_vcs_client() instead")
+        self.vcs = get_vcs_client(vcs_type, path)
 
     def path_exists(self):
         return os.path.exists(self._path)
@@ -84,9 +115,6 @@ class VcsClient(object):
 
     def get_url(self):
         return self.vcs.get_url()
-
-    def get_branch_parent(self):
-        return self.vcs.get_branch_parent()
 
     def get_diff(self, basepath=None):
         return self.vcs.get_diff(basepath)
