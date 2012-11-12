@@ -191,11 +191,8 @@ class VcsClientBase(object):
             - email: the e-mail address of the author of the commit, if available
             - message: the commit message, if any
 
-        :param relpath: (optional) restrict logs to events on this resource
-            path (folder or file) relative to the root of the repository. If None
-            (default), this is the root of the repository.
-        :param limit: (optional) the maximum number of log entries that should
-            be retrieved. If None (default), there is no limit.
+        :param relpath: (optional) restrict logs to events on this resource path (folder or file) relative to the root of the repository. If None (default), this is the root of the repository.
+        :param limit: (optional) the maximum number of log entries that should be retrieved. If None (default), there is no limit.
         """
         raise NotImplementedError("Base class get_log method must be overridden")
 
