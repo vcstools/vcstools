@@ -40,6 +40,8 @@ import sys
 
 import tarfile
 
+import dateutil.parser  # For parsing date strings
+import xml.dom.minidom  # For parsing logfiles
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
@@ -192,6 +194,40 @@ class SvnClient(VcsClientBase):
             _, response, _ = run_shell_command(command,
                                                shell=True,
                                                cwd=basepath)
+        return response
+
+    def get_log(self, relpath=None, limit=None):
+        response = []
+
+        if relpath == None:
+            relpath = ''
+
+        if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
+            # Get the log
+            limit_cmd = (("--limit %d" % (int(limit))) if limit else "")
+            command = "svn log %s --xml %s" % (limit_cmd, sanitized(relpath) if len(relpath) > 0 else '')
+            return_code, xml_response, stderr = run_shell_command(command, shell=True, cwd=self._path)
+
+            # Parse response
+            dom = xml.dom.minidom.parseString(xml_response)
+            log_entries = dom.getElementsByTagName("logentry")
+
+            # Extract the entries
+            for log_entry in log_entries:
+                author_tag = log_entry.getElementsByTagName("author")[0]
+                date_tag = log_entry.getElementsByTagName("date")[0]
+                msg_tags = log_entry.getElementsByTagName("msg")
+
+                log_data = dict()
+                log_data['id'] = log_entry.getAttribute("revision")
+                log_data['author'] = author_tag.firstChild.nodeValue
+                log_data['email'] = None
+                log_data['date'] = dateutil.parser.parse(str(date_tag.firstChild.nodeValue))
+                if len(msg_tags) > 0:
+                    log_data['message'] = msg_tags[0].firstChild.nodeValue
+
+                response.append(log_data)
+
         return response
 
     def get_status(self, basepath=None, untracked=False):

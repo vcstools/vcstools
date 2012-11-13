@@ -182,6 +182,36 @@ class HGClientTest(HGClientTestSetups):
         client = HgClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+class HGClientLogTest(HGClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        HGClientTestSetups.setUpClass()
+        client = HgClient(self.local_path)
+        client.checkout(self.local_url)
+
+    def test_get_log_defaults(self):
+        client = HgClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log()
+        self.assertEquals(4, len(log))
+        self.assertEquals('modified', log[0]['message'])
+        for key in ['id', 'author', 'email', 'date', 'message']:
+            self.assertTrue(log[0][key] is not None, key)
+
+    def test_get_log_limit(self):
+        client = HgClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log(limit=1)
+        self.assertEquals(1, len(log))
+        self.assertEquals('modified', log[0]['message'])
+
+    def test_get_log_path(self):
+        client = HgClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log(relpath='fixed.txt')
+        self.assertEquals('initial', log[0]['message'])
+
 
 class HGDiffStatClientTest(HGClientTestSetups):
 

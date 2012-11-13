@@ -8,6 +8,7 @@ install:
   - python setup.py build
   - sudo pip install pyyaml
   - sudo pip install coverage
+  - sudo pip install python-dateutil
 # Set git config to silence some stuff in the tests
   - git config --global user.email "foo@example.com"
   - git config --global user.name "Foo Bar"

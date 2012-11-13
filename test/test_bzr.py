@@ -206,6 +206,36 @@ class BzrClientTest(BzrClientTestSetups):
         client = BzrClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+class BzrClientLogTest(BzrClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        BzrClientTestSetups.setUpClass()
+        client = BzrClient(self.local_path)
+        client.checkout(self.remote_path)
+
+    def test_get_log_defaults(self):
+        client = BzrClient(self.local_path)
+        client.checkout(self.remote_path)
+        log = client.get_log()
+        self.assertEquals(3, len(log))
+        self.assertEquals('modified', log[0]['message'])
+        for key in ['id', 'author', 'email', 'date', 'message']:
+            self.assertTrue(log[0][key] is not None, key)
+
+    def test_get_log_limit(self):
+        client = BzrClient(self.local_path)
+        client.checkout(self.remote_path)
+        log = client.get_log(limit=1)
+        self.assertEquals(1, len(log))
+        self.assertEquals('modified', log[0]['message'])
+
+    def test_get_log_path(self):
+        client = BzrClient(self.local_path)
+        client.checkout(self.remote_path)
+        log = client.get_log(relpath='fixed.txt')
+        self.assertEquals('initial', log[0]['message'])
+
 
 class BzrDiffStatClientTest(BzrClientTestSetups):
 

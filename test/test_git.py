@@ -279,6 +279,41 @@ class GitClientTest(GitClientTestSetups):
         client = GitClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+class GitClientLogTest(GitClientTestSetups):
+
+    def setUp(self):
+        client = GitClient(self.local_path)
+        client.checkout(self.remote_path)
+        # Create some local untracking branch
+        subprocess.check_call("git checkout test_tag -b localbranch", shell=True, cwd=self.local_path)
+
+        self.n_commits = 10
+
+        for i in range(self.n_commits):
+            subprocess.check_call("touch local_%d.txt" % i, shell=True, cwd=self.local_path)
+            subprocess.check_call("git add local_%d.txt" % i, shell=True, cwd=self.local_path)
+            subprocess.check_call("git commit -m \"local_%d\"" % i, shell=True, cwd=self.local_path)
+
+    def test_get_log_defaults(self):
+        client = GitClient(self.local_path)
+        log = client.get_log()
+        self.assertEquals(self.n_commits + 1, len(log))
+        self.assertEquals('local_%d' % (self.n_commits - 1), log[0]['message'])
+        for key in ['id', 'author', 'email', 'date', 'message']:
+            self.assertTrue(log[0][key] is not None, key)
+
+    def test_get_log_limit(self):
+        client = GitClient(self.local_path)
+        log = client.get_log(limit=1)
+        self.assertEquals(1, len(log))
+        self.assertEquals('local_%d' % (self.n_commits - 1), log[0]['message'])
+
+    def test_get_log_path(self):
+        client = GitClient(self.local_path)
+        for count in range(self.n_commits):
+            log = client.get_log(relpath='local_%d.txt' % count)
+            self.assertEquals(1, len(log))
+
 
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 

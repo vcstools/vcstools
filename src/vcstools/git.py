@@ -54,10 +54,12 @@ disambiguation, and in some cases warns.
 import os
 import sys
 import gzip
+import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
+
 
 def _git_diff_path_submodule_change(diff, rel_path_prefix):
     """
@@ -331,6 +333,34 @@ class GitClient(VcsClientBase):
                 cmd = 'git submodule foreach --recursive git diff HEAD'
                 _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
                 response += _git_diff_path_submodule_change(output, rel_path)
+        return response
+
+    def get_log(self, relpath=None, limit=None):
+        response = []
+
+        if relpath == None:
+            relpath = ''
+
+        if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
+            # Get the log
+            limit_cmd = (("-n %d" % (int(limit))) if limit else "")
+
+            GIT_COMMIT_FIELDS = ['id', 'author', 'email', 'date', 'message']
+            GIT_LOG_FORMAT = '%x1f'.join(['%H', '%an', '%ae', '%ad', '%s']) + '%x1e'
+
+            command = "git --work-tree=%s log --format=\"%s\" %s %s " % (self._path, GIT_LOG_FORMAT, limit_cmd, sanitized(relpath))
+            return_code, response, stderr = run_shell_command(command, shell=True, cwd=self._path)
+
+            if return_code == 0:
+                # Parse response
+                response = response.strip('\n\x1e').split("\x1e")
+                response = [row.strip().split("\x1f") for row in response]
+                response = [dict(zip(GIT_COMMIT_FIELDS, row)) for row in response]
+
+            # Parse dates
+            for entry in response:
+                entry['date'] = dateutil.parser.parse(entry['date'])
+
         return response
 
     def get_status(self, basepath=None, untracked=False):

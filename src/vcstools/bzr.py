@@ -37,6 +37,11 @@ bzr vcs support.
 
 import os
 import sys
+
+import re
+import email.utils  # For email parsing
+import dateutil.parser  # Date string parsing
+
 # first try python3, then python2
 try:
     from urllib.request import url2pathname
@@ -199,6 +204,44 @@ class BzrClient(VcsClientBase):
             command = "bzr diff %s" % rel_path
             command += " -p1 --prefix %s/:%s/" % (rel_path, rel_path)
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
+        return response
+
+    def get_log(self, relpath=None, limit=None):
+        response = []
+
+        if relpath == None:
+            relpath = ''
+
+        # Compile regexes
+        id_regex = re.compile('^revno: ([0-9]+)$', flags=re.MULTILINE)
+        committer_regex = re.compile('^committer: (.+)$', flags=re.MULTILINE)
+        timestamp_regex = re.compile('^timestamp: (.+)$', flags=re.MULTILINE)
+        message_regex = re.compile('^  (.+)$', flags=re.MULTILINE)
+
+        if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
+            # Get the log
+            limit_cmd = (("--limit=%d" % (int(limit))) if limit else "")
+            command = "bzr log %s %s" % (sanitized(relpath), limit_cmd)
+            return_code, text_response, stderr = run_shell_command(command, shell=True, cwd=self._path)
+            if return_code == 0:
+                revno_match = id_regex.findall(text_response)
+                committer_match = committer_regex.findall(text_response)
+                timestamp_match = timestamp_regex.findall(text_response)
+                message_match = message_regex.findall(text_response)
+
+                # Extract the entries
+                for revno, committer, timestamp, message in zip(revno_match, committer_match, timestamp_match, message_match):
+                    author, email_address = email.utils.parseaddr(committer)
+                    date = dateutil.parser.parse(timestamp)
+                    log_data = {
+                            'id': revno,
+                            'author': author,
+                            'email': email_address,
+                            'message': message,
+                            'date': date}
+
+                    response.append(log_data)
+
         return response
 
     def get_status(self, basepath=None, untracked=False):
