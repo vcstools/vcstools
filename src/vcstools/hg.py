@@ -42,8 +42,8 @@ import sys
 
 import gzip
 
-import dateutil.parser # For parsing date strings
-import xml.dom.minidom # For parsing logfiles
+import dateutil.parser  # For parsing date strings
+import xml.dom.minidom  # For parsing logfiles
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
@@ -252,7 +252,7 @@ class HgClient(VcsClientBase):
         if relpath == None:
             relpath = ''
 
-        if self.path_exists() and os.path.exists(os.path.join(self._path,relpath)):
+        if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
             # Get the log
             limit_cmd = (("--limit %d" % (int(limit))) if limit else "")
             command = "hg log %s --style xml %s" % (sanitized(relpath), limit_cmd)

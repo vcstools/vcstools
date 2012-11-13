@@ -39,8 +39,8 @@ import os
 import sys
 
 import re
-import email.utils # For email parsing
-import dateutil.parser # Date string parsing
+import email.utils  # For email parsing
+import dateutil.parser  # Date string parsing
 
 # first try python3, then python2
 try:
@@ -218,7 +218,7 @@ class BzrClient(VcsClientBase):
         timestamp_regex = re.compile('^timestamp: (.+)$', flags=re.MULTILINE)
         message_regex = re.compile('^  (.+)$', flags=re.MULTILINE)
 
-        if self.path_exists() and os.path.exists(os.path.join(self._path,relpath)):
+        if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
             # Get the log
             limit_cmd = (("--limit=%d" % (int(limit))) if limit else "")
             command = "bzr log %s %s" % (sanitized(relpath), limit_cmd)
@@ -243,7 +243,6 @@ class BzrClient(VcsClientBase):
                     response.append(log_data)
 
         return response
-
 
     def get_status(self, basepath=None, untracked=False):
         response = None

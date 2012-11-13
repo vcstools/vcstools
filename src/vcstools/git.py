@@ -54,11 +54,12 @@ disambiguation, and in some cases warns.
 import os
 import sys
 import gzip
-import dateutil.parser # For parsing date strings
+import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
+
 
 def _git_diff_path_submodule_change(diff, rel_path_prefix):
     """
@@ -340,7 +341,7 @@ class GitClient(VcsClientBase):
         if relpath == None:
             relpath = ''
 
-        if self.path_exists() and os.path.exists(os.path.join(self._path,relpath)):
+        if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
             # Get the log
             limit_cmd = (("-n %d" % (int(limit))) if limit else "")
 
