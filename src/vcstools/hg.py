@@ -255,28 +255,26 @@ class HgClient(VcsClientBase):
         if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
             # Get the log
             limit_cmd = (("--limit %d" % (int(limit))) if limit else "")
-            command = "hg log %s --style xml %s" % (sanitized(relpath), limit_cmd)
-            return_code, xml_response, stderr = run_shell_command(command, shell=True, cwd=self._path)
+            HG_COMMIT_FIELDS = ['id', 'author', 'email', 'date', 'message']
+            HG_LOG_FORMAT = '\x1f'.join(['{node|short}', '{author|person}',
+                                         '{autor|email}', '{date|isodate}',
+                                         '{desc}']) + '\x1e'
+
+            command = "hg log %s --template '%s' %s" % (sanitized(relpath),
+                                                        HG_LOG_FORMAT,
+                                                        limit_cmd)
+
+            return_code, response_str, stderr = run_shell_command(command, shell=True, cwd=self._path)
 
             if return_code == 0:
                 # Parse response
-                dom = xml.dom.minidom.parseString(xml_response)
-                log_entries = dom.getElementsByTagName("logentry")
-
-                # Extract the entries
-                for log_entry in log_entries:
-                    author_tag = log_entry.getElementsByTagName("author")[0]
-                    date_tag = log_entry.getElementsByTagName("date")[0]
-                    msg_tag = log_entry.getElementsByTagName("msg")[0]
-
-                    log_data = dict()
-                    log_data['id'] = log_entry.getAttribute("node")
-                    log_data['author'] = author_tag.firstChild.nodeValue
-                    log_data['email'] = author_tag.getAttribute("email")
-                    log_data['message'] = msg_tag.firstChild.nodeValue
-                    log_data['date'] = dateutil.parser.parse(str(date_tag.firstChild.nodeValue))
-
-                    response.append(log_data)
+                response = response_str.strip('\n\x1e').split("\x1e")
+                response = [row.strip().split("\x1f") for row in response]
+                response = [dict(zip(HG_COMMIT_FIELDS, row)) for row in response]
+                print(response)
+                # Parse dates
+                for entry in response:
+                    entry['date'] = dateutil.parser.parse(entry['date'])
 
         return response
 
