@@ -349,17 +349,17 @@ class GitClient(VcsClientBase):
             GIT_LOG_FORMAT = '%x1f'.join(['%H', '%an', '%ae', '%ad', '%s']) + '%x1e'
 
             command = "git --work-tree=%s log --format=\"%s\" %s %s " % (self._path, GIT_LOG_FORMAT, limit_cmd, sanitized(relpath))
-            return_code, response, stderr = run_shell_command(command, shell=True, cwd=self._path)
+            return_code, response_str, stderr = run_shell_command(command, shell=True, cwd=self._path)
 
             if return_code == 0:
                 # Parse response
-                response = response.strip('\n\x1e').split("\x1e")
+                response = response_str.strip('\n\x1e').split("\x1e")
                 response = [row.strip().split("\x1f") for row in response]
                 response = [dict(zip(GIT_COMMIT_FIELDS, row)) for row in response]
 
-            # Parse dates
-            for entry in response:
-                entry['date'] = dateutil.parser.parse(entry['date'])
+                # Parse dates
+                for entry in response:
+                    entry['date'] = dateutil.parser.parse(entry['date'])
 
         return response
 
