@@ -27,6 +27,8 @@ setup(name='vcstools',
       download_url="http://pr.willowgarage.com/downloads/vcstools/",
       keywords=["scm", "vcs", "git", "svn", "hg", "bzr"],
       classifiers=["Programming Language :: Python",
+                   "Programming Language :: Python :: 2",
+                   "Programming Language :: Python :: 3",
                    "License :: OSI Approved :: BSD License"],
       description="VCS/SCM source control library for svn, git, hg, and bzr",
       long_description="""\
