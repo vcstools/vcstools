@@ -256,7 +256,10 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
                 if re.search("[=+-\\@ ].*", line) == None:
                     break
                 else:
-                    newblock.append(line)
+                    # new svn versions use different labels for added
+                    # files (working copy) vs (revision x)
+                    fixedline = re.sub('\(revision [0-9]+\)', '(working copy)', line)
+                    newblock.append(fixedline)
             return "\n".join(newblock)
 
         filtered_actual_blocks = []
@@ -271,6 +274,7 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         for block in expected.split("\nIndex: "):
             if expected_blocks != []:
                 block = "Index: " + block
+            block = filter_block(block)
             expected_blocks.append(block)
         filtered = "\n".join(filtered_actual_blocks)
         self.assertEquals(set(expected_blocks), set(filtered_actual_blocks))
