@@ -206,26 +206,23 @@ class GitClient(VcsClientBase):
 
         :return: True if already up-to-date with remote or after successful fast_foward
         """
-        # try calling git fetch just once per call to update()
-        need_to_fetch = True
         if not self.detect_presence():
             return False
 
-        if force_fetch:
-            need_to_fetch = False
-            self._do_fetch(True)
+        # fetch in any case to get updated tags even if we don't need them
+        self._do_fetch()
 
         # are we on any branch?
         current_branch = self.get_branch()
         if current_branch:
-            branch_parent = self.get_branch_parent(need_to_fetch)
-            need_to_fetch = False
+            branch_parent = self.get_branch_parent()
         else:
             branch_parent = None
 
         if refname is None or refname.strip() == '':
             refname = branch_parent
         if refname is None:
+
             # we are neither tracking, nor did we get any refname to update to
             return self.update_submodules(verbose=verbose)
 
@@ -235,9 +232,8 @@ class GitClient(VcsClientBase):
         # if same_branch and branch_parent is None:
         #   already on branch, nothing to pull as non-tracking branch
         if same_branch and branch_parent is not None:
-            if not self._do_fast_forward(need_to_fetch, branch_parent=branch_parent, verbose=verbose):
+            if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
                 return False
-            need_to_fetch = False
         elif not same_branch:
             # refname can be a different branch or something else than a branch
 
@@ -246,9 +242,7 @@ class GitClient(VcsClientBase):
                 # might also be remote branch, but we treat it as local
                 refname_is_remote_branch = False
             else:
-                refname_is_remote_branch = self.is_remote_branch(refname,
-                                                                 fetch=need_to_fetch)
-                need_to_fetch = False
+                refname_is_remote_branch = self.is_remote_branch(refname)
             refname_is_branch = refname_is_remote_branch or refname_is_local_branch
 
             # shortcut if version is the same as requested
@@ -258,27 +252,24 @@ class GitClient(VcsClientBase):
             if current_branch is None:
                 current_version = self.get_version()
                 # prevent commit from becoming dangling
-                if self.is_commit_in_orphaned_subtree(current_version, fetch=need_to_fetch):
+                if self.is_commit_in_orphaned_subtree(current_version):
                     # commit becomes dangling unless we move to one of its descendants
                     if not self.rev_list_contains(refname, current_version, fetch=False):
                         # TODO: should raise error instead of printing message
                         print("vcstools refusing to move away from dangling commit, to protect your work.")
                         return False
-                need_to_fetch = False
 
             # git checkout makes all the decisions for us
-            checkout_result = self._do_checkout(refname, fetch=need_to_fetch,
+            checkout_result = self._do_checkout(refname,
                                                 verbose=verbose)
             if not checkout_result:
                 return checkout_result
-            need_to_fetch = False
 
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
-                new_branch_parent = self.get_branch_parent(fetch=need_to_fetch)
+                new_branch_parent = self.get_branch_parent()
                 if new_branch_parent is not None:
-                    if not self._do_fast_forward(fetch=need_to_fetch,
-                                                 branch_parent=new_branch_parent,
+                    if not self._do_fast_forward(branch_parent=new_branch_parent,
                                                  verbose=verbose):
                         return False
 
@@ -592,16 +583,20 @@ class GitClient(VcsClientBase):
             os.remove(basepath + '.tar')
         return True
 
-    def _do_fetch(self, with_tags=False):
+    def _do_fetch(self):
         """calls git fetch"""
         cmd = "git fetch"
-        if with_tags:
-            cmd += " --tags"
-        value, _, _ = run_shell_command(cmd,
+        value1, _, _ = run_shell_command(cmd,
                                         cwd=self._path,
                                         shell=True,
                                         show_stdout=True)
-        return value == 0
+        ## git fetch --tags ONLY fetches new tags and commits used, no other commits!
+        cmd = "git fetch --tags"
+        value2, _, _ = run_shell_command(cmd,
+                                         cwd=self._path,
+                                         shell=True,
+                                         show_stdout=True)
+        return value1 == 0 and value2 == 0
 
     def _do_fast_forward(self, fetch=True, branch_parent=None, verbose=False):
         """Execute git fetch if necessary, and if we can fast-foward,
