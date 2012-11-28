@@ -279,6 +279,48 @@ class GitClientTest(GitClientTestSetups):
         client = GitClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+
+class GitClientUpdateTest(GitClientTestSetups):
+
+    def test_update_fetch_all_tags(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url, "master"))
+        self.assertEqual(client.get_branch(), "master")
+        self.assertTrue(client.update())
+        p = subprocess.Popen("git tag", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        output = p.communicate()[0].decode('utf-8')
+        self.assertEqual('last_tag\ntest_tag\n', output)
+        subprocess.check_call("git checkout test_tag", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git branch alt_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch alt_file.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m altfile", shell=True, cwd=self.remote_path)
+        # switch to untracked
+        subprocess.check_call("git checkout test_tag", shell=True, cwd=self.remote_path)
+        subprocess.check_call("touch new_file.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m newfile", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git tag new_tag", shell=True, cwd=self.remote_path)
+        self.assertTrue(client.update())
+        # test whether client gets the tag
+        p = subprocess.Popen("git tag", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        output = p.communicate()[0].decode('utf-8')
+        self.assertEqual('''\
+last_tag
+new_tag
+test_tag
+''', output)
+        p = subprocess.Popen("git branch -a", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        output = p.communicate()[0].decode('utf-8')
+        self.assertEqual('''\
+* master
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/alt_branch
+  remotes/origin/master
+  remotes/origin/test_branch
+''', output)
+
 class GitClientLogTest(GitClientTestSetups):
 
     def setUp(self):
