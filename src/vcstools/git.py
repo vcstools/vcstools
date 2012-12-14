@@ -546,22 +546,15 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         if version is not None and version != '':
-            cmd = 'git show-ref -s'
+            cmd = 'git fsck --lost-found'
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-            refs = output.splitlines()
-            # git log over all refs except HEAD
-            cmd = 'git log ' + " ".join(refs)
-            if mask_self:
-                # %P: parent hashes
-                cmd += " --pretty=format:%P"
-            else:
-                # %H: commit hash
-                cmd += " --pretty=format:%H"
-            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-            for line in output.splitlines():
-                if line.strip("'").startswith(version):
-                    return False
-            return True
+            refs =  output.splitlines() 
+            print "looking at refs", refs
+            for r in refs:
+                ref = r.split()[-1]
+                print "ref", ref, "versino", version
+                if ref == version:
+                    return True
         return False
 
     def export_repository(self, version, basepath):
