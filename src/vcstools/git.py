@@ -546,13 +546,11 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         if version is not None and version != '':
-            cmd = 'git fsck --lost-found'
+            cmd = 'git fsck --lost-found master'
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             refs =  output.splitlines() 
-            print "looking at refs", refs
             for r in refs:
                 ref = r.split()[-1]
-                print "ref", ref, "versino", version
                 if ref == version:
                     return True
         return False
