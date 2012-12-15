@@ -210,7 +210,8 @@ class GitClient(VcsClientBase):
             return False
 
         # fetch in any case to get updated tags even if we don't need them
-        self._do_fetch()
+        if not self._do_fetch():
+            return False
 
         # are we on any branch?
         current_branch = self.get_branch()
@@ -591,9 +592,9 @@ class GitClient(VcsClientBase):
         """calls git fetch"""
         cmd = "git fetch"
         value1, _, _ = run_shell_command(cmd,
-                                        cwd=self._path,
-                                        shell=True,
-                                        show_stdout=True)
+                                         cwd=self._path,
+                                         shell=True,
+                                         show_stdout=True)
         ## git fetch --tags ONLY fetches new tags and commits used, no other commits!
         cmd = "git fetch --tags"
         value2, _, _ = run_shell_command(cmd,
