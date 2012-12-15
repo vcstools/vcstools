@@ -544,16 +544,23 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
 class GitClientOverflowTest(GitClientTestSetups):
     '''Test reproducing an overflow of arguments to git log'''
 
-    def test_orphaned_overflow(self):
-        subprocess.check_call("git co test_tag", shell=True, cwd=self.remote_path)
-        subprocess.check_call("echo 0 >> count.txt", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git add count.txt", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git commit -m modified-0", shell=True, cwd=self.remote_path)
+    def setUp(self):
+        client = GitClient(self.local_path)
+        client.checkout(self.remote_path)
+        subprocess.check_call("git co test_tag", shell=True, cwd=self.local_path)
+        subprocess.check_call("echo 0 >> count.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add count.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m modified-0", shell=True, cwd=self.local_path)
         # produce many tags to make git log command fail if all are added
         for count in range(4000):
-            subprocess.check_call("git tag modified-%s" % count, shell=True, cwd=self.remote_path)
+            subprocess.check_call("git tag modified-%s" % count, shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        self.last_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
+    def test_orphaned_overflow(self):
         client = GitClient(self.local_path)
-        self.assertFalse(client.is_commit_in_orphaned_subtree('modified-4000'))
+        # this failed when passing all ref ids to git log
+        self.assertFalse(client.is_commit_in_orphaned_subtree(self.last_version))
 
 class GitDiffStatClientTest(GitClientTestSetups):
 
