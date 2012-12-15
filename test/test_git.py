@@ -371,6 +371,14 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.untracked_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
+        # diverged branch
+        subprocess.check_call("git checkout test_tag -b diverged_branch", shell=True, cwd=self.local_path)
+        subprocess.check_call("touch diverged.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m diverged_branch", shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        self.diverged_branch_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
         # Go detached to create some dangling commits
         subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
         # create a commit only referenced by tag
@@ -378,6 +386,9 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
         subprocess.check_call("git commit -m no_branch", shell=True, cwd=self.local_path)
         subprocess.check_call("git tag no_br_tag", shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        self.no_br_tag_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
         # create a dangling commit
         subprocess.check_call("touch dangling.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
@@ -386,8 +397,23 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.dangling_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
+        # create a dangling tip on top of dangling commit (to catch related bugs)
+        subprocess.check_call("touch dangling-tip.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m dangling_tip", shell=True, cwd=self.local_path)
+
+        # create and delete branch to cause reflog entry
+        subprocess.check_call("git branch oldbranch", shell=True, cwd=self.local_path)
+        subprocess.check_call("git branch -D oldbranch", shell=True, cwd=self.local_path)
+
         # go back to master to make head point somewhere else
         subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
+
+    def test_is_commit_in_orphaned_subtree(self):
+        client = GitClient(self.local_path)
+        self.assertTrue(client.is_commit_in_orphaned_subtree(self.dangling_version))
+        self.assertFalse(client.is_commit_in_orphaned_subtree(self.no_br_tag_version))
+        self.assertFalse(client.is_commit_in_orphaned_subtree(self.diverged_branch_version))
 
     def test_protect_dangling(self):
         client = GitClient(self.local_path)
@@ -515,6 +541,26 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         except VcsError:
             pass
 
+class GitClientOverflowTest(GitClientTestSetups):
+    '''Test reproducing an overflow of arguments to git log'''
+
+    def setUp(self):
+        client = GitClient(self.local_path)
+        client.checkout(self.remote_path)
+        subprocess.check_call("git co test_tag", shell=True, cwd=self.local_path)
+        subprocess.check_call("echo 0 >> count.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add count.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m modified-0", shell=True, cwd=self.local_path)
+        # produce many tags to make git log command fail if all are added
+        for count in range(4000):
+            subprocess.check_call("git tag modified-%s" % count, shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        self.last_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
+    def test_orphaned_overflow(self):
+        client = GitClient(self.local_path)
+        # this failed when passing all ref ids to git log
+        self.assertFalse(client.is_commit_in_orphaned_subtree(self.last_version))
 
 class GitDiffStatClientTest(GitClientTestSetups):
 

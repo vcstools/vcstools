@@ -546,13 +546,26 @@ class GitClient(VcsClientBase):
         if fetch:
             self._do_fetch()
         if version is not None and version != '':
-            cmd = 'git fsck --lost-found master'
+            cmd = 'git show-ref -s'
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-            refs =  output.splitlines() 
-            for r in refs:
-                ref = r.split()[-1]
-                if ref == version:
-                    return True
+            refs = output.splitlines()
+            # 2000 seems like a number the linux shell can cope with
+            chunksize = 2000
+            refchunks = [refs[x:x + chunksize] for x in range(0, len(refs), chunksize)]
+            for refchunk in refchunks:
+                # git log over all refs except HEAD
+                cmd = 'git log ' + " ".join(refchunk)
+                if mask_self:
+                    # %P: parent hashes
+                    cmd += " --pretty=format:%P"
+                else:
+                    # %H: commit hash
+                    cmd += " --pretty=format:%H"
+                _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+                for line in output.splitlines():
+                    if line.strip("'").startswith(version):
+                        return False
+            return True
         return False
 
     def export_repository(self, version, basepath):
