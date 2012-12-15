@@ -376,6 +376,8 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("touch diverged.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
         subprocess.check_call("git commit -m diverged_branch", shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        self.diverged_branch_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # Go detached to create some dangling commits
         subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
@@ -384,6 +386,8 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
         subprocess.check_call("git commit -m no_branch", shell=True, cwd=self.local_path)
         subprocess.check_call("git tag no_br_tag", shell=True, cwd=self.local_path)
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        self.no_br_tag_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # create a dangling commit
         subprocess.check_call("touch dangling.txt", shell=True, cwd=self.local_path)
@@ -408,8 +412,8 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
     def test_is_commit_in_orphaned_subtree(self):
         client = GitClient(self.local_path)
         self.assertTrue(client.is_commit_in_orphaned_subtree(self.dangling_version))
-        self.assertFalse(client.is_commit_in_orphaned_subtree('no_br_tag'))
-        self.assertFalse(client.is_commit_in_orphaned_subtree('diverged_branch'))
+        self.assertFalse(client.is_commit_in_orphaned_subtree(self.no_br_tag_version))
+        self.assertFalse(client.is_commit_in_orphaned_subtree(self.diverged_branch_version))
 
     def test_protect_dangling(self):
         client = GitClient(self.local_path)
