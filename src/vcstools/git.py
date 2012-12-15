@@ -61,6 +61,10 @@ from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
 
+class GitError(Exception):
+    pass
+
+
 def _git_diff_path_submodule_change(diff, rel_path_prefix):
     """
     Parses git diff result and changes the filename prefixes.
@@ -175,10 +179,13 @@ class GitClient(VcsClientBase):
                 sys.stderr.write("Error: cannot checkout into existing directory\n")
             return False
 
-        if refname is not None and refname != "master":
-            return self.update(refname, verbose=verbose)
-        else:
-            return True
+        try:
+            if refname is not None and refname != "master":
+                return self.update(refname, verbose=verbose)
+            else:
+                return True
+        except GitError:
+            return False
 
     def update_submodules(self, verbose=False):
 
@@ -196,7 +203,9 @@ class GitClient(VcsClientBase):
 
     def update(self, refname=None, verbose=False, force_fetch=False):
         """
-        interprets refname as a local branch, remote branch, tagname,
+        if refname is None, attempts fast-forwarding current branch, if any.
+
+        Else interprets refname as a local branch, remote branch, tagname,
         hash, etc.
 
         If it is a branch, attempts to move to it unless
@@ -209,71 +218,71 @@ class GitClient(VcsClientBase):
         if not self.detect_presence():
             return False
 
-        # fetch in any case to get updated tags even if we don't need them
-        self._do_fetch()
+        try:
+            # fetch in any case to get updated tags even if we don't need them
+            self._do_fetch()
 
-        # are we on any branch?
-        current_branch = self.get_branch()
-        if current_branch:
-            branch_parent = self.get_branch_parent()
-        else:
-            branch_parent = None
-
-        if refname is None or refname.strip() == '':
-            refname = branch_parent
-        if refname is None:
-
-            # we are neither tracking, nor did we get any refname to update to
-            return self.update_submodules(verbose=verbose)
-
-        # local branch might be named differently from remote by user, we respect that
-        same_branch = (refname == branch_parent) or (refname == current_branch)
-
-        # if same_branch and branch_parent is None:
-        #   already on branch, nothing to pull as non-tracking branch
-        if same_branch and branch_parent is not None:
-            if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
-                return False
-        elif not same_branch:
-            # refname can be a different branch or something else than a branch
-
-            refname_is_local_branch = self.is_local_branch(refname)
-            if refname_is_local_branch:
-                # might also be remote branch, but we treat it as local
-                refname_is_remote_branch = False
+            # are we on any branch?
+            current_branch = self.get_branch()
+            if current_branch:
+                branch_parent = self.get_branch_parent()
             else:
-                refname_is_remote_branch = self.is_remote_branch(refname)
-            refname_is_branch = refname_is_remote_branch or refname_is_local_branch
+                branch_parent = None
 
-            # shortcut if version is the same as requested
-            if not refname_is_branch and self.get_version() == refname:
+            if refname is None or refname.strip() == '':
+                refname = branch_parent
+            if refname is None:
+
+                # we are neither tracking, nor did we get any refname to update to
                 return self.update_submodules(verbose=verbose)
 
-            if current_branch is None:
-                current_version = self.get_version()
-                # prevent commit from becoming dangling
-                if self.is_commit_in_orphaned_subtree(current_version):
-                    # commit becomes dangling unless we move to one of its descendants
-                    if not self.rev_list_contains(refname, current_version, fetch=False):
-                        # TODO: should raise error instead of printing message
-                        print("vcstools refusing to move away from dangling commit, to protect your work.")
-                        return False
+            # local branch might be named differently from remote by user, we respect that
+            same_branch = (refname == branch_parent) or (refname == current_branch)
 
-            # git checkout makes all the decisions for us
-            checkout_result = self._do_checkout(refname,
-                                                verbose=verbose)
-            if not checkout_result:
-                return checkout_result
+            # if same_branch and branch_parent is None:
+            #   already on branch, nothing to pull as non-tracking branch
+            if same_branch and branch_parent is not None:
+                if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
+                    return False
+            elif not same_branch:
+                # refname can be a different branch or something else than a branch
 
-            if refname_is_local_branch:
-                # if we just switched to a local tracking branch (not created one), we should also fast forward
-                new_branch_parent = self.get_branch_parent()
-                if new_branch_parent is not None:
-                    if not self._do_fast_forward(branch_parent=new_branch_parent,
-                                                 verbose=verbose):
-                        return False
+                refname_is_local_branch = self.is_local_branch(refname)
+                if refname_is_local_branch:
+                    # might also be remote branch, but we treat it as local
+                    refname_is_remote_branch = False
+                else:
+                    refname_is_remote_branch = self.is_remote_branch(refname)
+                refname_is_branch = refname_is_remote_branch or refname_is_local_branch
 
-        return self.update_submodules(verbose=verbose)
+                # shortcut if version is the same as requested
+                if not refname_is_branch and self.get_version() == refname:
+                    return self.update_submodules(verbose=verbose)
+
+                if current_branch is None:
+                    current_version = self.get_version()
+                    # prevent commit from becoming dangling
+                    if self.is_commit_in_orphaned_subtree(current_version):
+                        # commit becomes dangling unless we move to one of its descendants
+                        if not self.rev_list_contains(refname, current_version, fetch=False):
+                            # TODO: should raise error instead of printing message
+                            print("vcstools refusing to move away from dangling commit, to protect your work.")
+                            return False
+
+                # git checkout makes all the decisions for us
+                self._do_checkout(refname, verbose=verbose)
+
+                if refname_is_local_branch:
+                    # if we just switched to a local tracking branch (not created one), we should also fast forward
+                    new_branch_parent = self.get_branch_parent()
+                    if new_branch_parent is not None:
+                        if not self._do_fast_forward(branch_parent=new_branch_parent,
+                                                     verbose=verbose):
+                            return False
+
+            return self.update_submodules(verbose=verbose)
+        except GitError:
+            return False
 
     def get_version(self, spec=None):
         """
@@ -282,7 +291,7 @@ class GitClient(VcsClientBase):
           branchname, or sha-id.
         :param fetch: When spec is given, can be used to suppress git fetch call
         :returns: current SHA-ID of the repository. Or if spec is
-          provided, the SHA-ID of a commit specified by some token.
+          provided, the SHA-ID of a commit specified by some token if found, else None
         """
         if self.detect_presence():
             command = "git log -1"
@@ -292,18 +301,18 @@ class GitClient(VcsClientBase):
             repeated = False
             output = ''
             #we repeat the call once after fetching if necessary
-            while output == '':
+            for _ in range(2):
                 _, output, _ = run_shell_command(command,
                                                  shell=True,
                                                  cwd=self._path)
                 if (output != ''
-                    or spec is None
-                    or repeated is True):
-
+                    or spec is None):
                     break
                 # we try again after fetching if given spec had not been found
-                self._do_fetch()
-                repeated = True
+                try:
+                    self._do_fetch()
+                except GitError:
+                    return None
             # On Windows the version can have single quotes around it
             output = output.strip("'")
             return output
@@ -394,10 +403,13 @@ class GitClient(VcsClientBase):
     def is_remote_branch(self, branch_name, fetch=True):
         """
         checks list of remote branches for match. Set fetch to False if you just fetched already.
+
+        :returns: True if git branch knows ref for remote "origin"
+        :raises: GitError when git fetch fails
         """
         if self.path_exists():
-            if fetch and not self._do_fetch():
-                return False
+            if fetch:
+                self._do_fetch()
             _, output, _ = run_shell_command('git branch -r',
                                              shell=True,
                                              cwd=self._path)
@@ -437,7 +449,11 @@ class GitClient(VcsClientBase):
         return None
 
     def get_branch_parent(self, fetch=False):
-        """return the name of the branch this branch tracks, if any"""
+        """
+        return the name of the branch this branch tracks, if any
+
+        :raises: GitError if fetch fails
+        """
         if self.path_exists():
             # get name of configured merge ref.
             branchname = self.get_branch()
@@ -486,9 +502,14 @@ class GitClient(VcsClientBase):
         """
         checks list of tags for match.
         Set fetch to False if you just fetched already.
+
+        :returns: True if tag_name among known tags
+        :raises: GitError when call to git fetch fails
         """
         if fetch:
             self._do_fetch()
+        if not tag_name:
+            raise ValueError('is_tag requires tag_name, got: "%s"' % tag_name)
         if self.path_exists():
             cmd = 'git tag -l %s'%sanitized(tag_name)
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
@@ -506,6 +527,7 @@ class GitClient(VcsClientBase):
         :param version: an SHA IDs (if partial, caller is responsible
           for mismatch)
         :returns: True if version is an ancestor commit from refname
+        :raises: GitError when call to git fetch fails
         """
         # to avoid listing unnecessarily many rev-ids, we cut off all
         # those we are definitely not interested in
@@ -542,6 +564,7 @@ class GitClient(VcsClientBase):
         :param mask_self: whether to consider direct references to this commit (rather than only references on descendants) as well
         :param fetch: whether fetch should be done first for remote refs
         :returns: True if version is not recursively referenced by a branch or tag
+        :raises: GitError if git fetch fails
         """
         if fetch:
             self._do_fetch()
@@ -588,19 +611,23 @@ class GitClient(VcsClientBase):
         return True
 
     def _do_fetch(self):
-        """calls git fetch"""
+        """
+        calls git fetch
+        :raises: GitError when call fails
+        """
         cmd = "git fetch"
         value1, _, _ = run_shell_command(cmd,
-                                        cwd=self._path,
-                                        shell=True,
-                                        show_stdout=True)
+                                         cwd=self._path,
+                                         shell=True,
+                                         show_stdout=True)
         ## git fetch --tags ONLY fetches new tags and commits used, no other commits!
         cmd = "git fetch --tags"
         value2, _, _ = run_shell_command(cmd,
                                          cwd=self._path,
                                          shell=True,
                                          show_stdout=True)
-        return value1 == 0 and value2 == 0
+        if value1 != 0 or value2 != 0:
+            raise GitError('git fetch failed')
 
     def _do_fast_forward(self, fetch=True, branch_parent=None, verbose=False):
         """Execute git fetch if necessary, and if we can fast-foward,
@@ -609,6 +636,7 @@ class GitClient(VcsClientBase):
         :param branch_parent: name of branch we track
         :param fetch: whether fetch should be done first for remote refs
         :returns: True if up-to-date or after succesful fast-forward
+        :raises: GitError when git fetch fails
         """
         assert branch_parent is not None
         current_version = self.get_version()
@@ -659,25 +687,29 @@ class GitClient(VcsClientBase):
         return False
 
     def _do_checkout(self, refname, fetch=True, verbose=False):
-        """meaning git checkout, not vcstools checkout. This works
+        """
+        meaning git checkout, not vcstools checkout. This works
         for local branches, remote branches, tagnames, hashes, etc.
         git will create local branch of same name when no such local
         branch exists, and also setup tracking. Git decides with own
         rules whether local changes would cause conflicts, and refuses
-        to checkout else."""
+        to checkout else.
+
+        :raises GitError: when checkout fails
+        """
         # since refname may relate to remote branch / tag we do not
         # know about yet, do fetch if not already done
         if fetch:
             self._do_fetch()
-        cmd = "git checkout %s"%(refname)
+        cmd = "git checkout %s" % (refname)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
                                         cwd=self._path,
                                         show_stdout=verbose,
                                         verbose=verbose)
-        if value == 0:
-            return True
-        return False
+        if value != 0:
+            raise GitError('Git Checkout failed')
 
-#Backwards compatability
+
+#Backwards compatibility
 GITClient = GitClient

@@ -547,7 +547,7 @@ class GitClientOverflowTest(GitClientTestSetups):
     def setUp(self):
         client = GitClient(self.local_path)
         client.checkout(self.remote_path)
-        subprocess.check_call("git co test_tag", shell=True, cwd=self.local_path)
+        subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
         subprocess.check_call("echo 0 >> count.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("git add count.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("git commit -m modified-0", shell=True, cwd=self.local_path)
