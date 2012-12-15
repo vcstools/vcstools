@@ -4,10 +4,13 @@ Changelog
 0.1
 ===
 
+
+
 0.1.26
 ------
 
 - fix #31 get_log() svn xml not available on Ubuntu Lucid (hg 1.4.2)
+- fix #37 update() returns True even when fetch failed
 
 0.1.25
 ------
