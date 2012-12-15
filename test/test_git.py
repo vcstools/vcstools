@@ -520,6 +520,19 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         except VcsError:
             pass
 
+class GitClientOverflowTest(GitClientTestSetups):
+    '''Test reproducing an overflow of arguments to git log'''
+
+    def test_orphaned_overflow(self):
+        subprocess.check_call("git co test_tag", shell=True, cwd=self.remote_path)
+        subprocess.check_call("echo 0 >> count.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add count.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m modified-0", shell=True, cwd=self.remote_path)
+        # produce many tags to make git log command fail if all are added
+        for count in range(4000):
+            subprocess.check_call("git tag modified-%s" % count, shell=True, cwd=self.remote_path)
+        client = GitClient(self.local_path)
+        self.assertFalse(client.is_commit_in_orphaned_subtree('modified-4000'))
 
 class GitDiffStatClientTest(GitClientTestSetups):
 
