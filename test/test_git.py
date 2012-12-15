@@ -386,6 +386,11 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.dangling_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
+        # create a dangling tip on top of dangling commit (to catch related bugs)
+        subprocess.check_call("touch dangling-tip.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m dangling_tip", shell=True, cwd=self.local_path)
+
         # go back to master to make head point somewhere else
         subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
 
