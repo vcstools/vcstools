@@ -371,6 +371,12 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.untracked_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
+        # diverged branch
+        subprocess.check_call("git checkout test_tag -b diverged_branch", shell=True, cwd=self.local_path)
+        subprocess.check_call("touch diverged.txt", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m diverged_branch", shell=True, cwd=self.local_path)
+
         # Go detached to create some dangling commits
         subprocess.check_call("git checkout test_tag", shell=True, cwd=self.local_path)
         # create a commit only referenced by tag
@@ -378,6 +384,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
         subprocess.check_call("git commit -m no_branch", shell=True, cwd=self.local_path)
         subprocess.check_call("git tag no_br_tag", shell=True, cwd=self.local_path)
+
         # create a dangling commit
         subprocess.check_call("touch dangling.txt", shell=True, cwd=self.local_path)
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
@@ -397,6 +404,12 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
 
         # go back to master to make head point somewhere else
         subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
+
+    def test_is_commit_in_orphaned_subtree(self):
+        client = GitClient(self.local_path)
+        self.assertTrue(client.is_commit_in_orphaned_subtree(self.dangling_version))
+        self.assertFalse(client.is_commit_in_orphaned_subtree('no_br_tag'))
+        self.assertFalse(client.is_commit_in_orphaned_subtree('diverged_branch'))
 
     def test_protect_dangling(self):
         client = GitClient(self.local_path)
