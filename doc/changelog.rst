@@ -7,6 +7,7 @@ Changelog
 0.1.26
 ------
 
+- fix #38 git commands fail in local repositories with many (>2000) references
 - fix #31 get_log() svn xml not available on Ubuntu Lucid (hg 1.4.2)
 
 0.1.25
