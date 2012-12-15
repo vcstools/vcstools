@@ -391,6 +391,10 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         subprocess.check_call("git add *", shell=True, cwd=self.local_path)
         subprocess.check_call("git commit -m dangling_tip", shell=True, cwd=self.local_path)
 
+        # create and delete branch to cause reflog entry
+        subprocess.check_call("git branch oldbranch", shell=True, cwd=self.local_path)
+        subprocess.check_call("git branch -D oldbranch", shell=True, cwd=self.local_path)
+
         # go back to master to make head point somewhere else
         subprocess.check_call("git checkout master", shell=True, cwd=self.local_path)
 
