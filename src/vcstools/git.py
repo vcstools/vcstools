@@ -180,7 +180,9 @@ class GitClient(VcsClientBase):
             return False
 
         try:
-            if refname is not None and refname != "master":
+            # update to make sure we are on the right branch. Do not
+            # check for "master" here, as default branch could be anything
+            if refname is not None:
                 return self.update(refname, verbose=verbose)
             else:
                 return True
