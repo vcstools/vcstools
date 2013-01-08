@@ -4,7 +4,10 @@ Changelog
 0.1
 ===
 
+0.1.27
+------
 
+- fix #44 minor bug when checking out from repo with default branch not master
 
 0.1.26
 ------
