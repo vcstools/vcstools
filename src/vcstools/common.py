@@ -141,8 +141,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
             # it listen to the pipe, print and stores result in buffer for returning
             # this allows proc to run while we still can filter out output we don't care about
             # readline() blocks
-            while True:
-                line = proc.stdout.readline().decode('UTF-8')
+            for line in iter(proc.stdout.readline, b''):
+                line = line.decode('UTF-8')
                 if line is not None and line != '':
                     if verbose or not _discard_line(line):
                         print(line),
@@ -151,13 +151,13 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
                     break
         # stderr was swallowed in pipe, in verbose mode print lines
         if verbose:
-            while True:
-                line = proc.stderr.readline().decode('UTF-8')
+            for line in iter(proc.stderr.readline, b''):
+                line = line.decode('UTF-8')
                 if line != '':
                     print(line),
                     stderr_buf.append(line)
                 if not line:
-                    break    
+                    break
             
         (stdout, stderr) = proc.communicate()
         if stdout is not None:
