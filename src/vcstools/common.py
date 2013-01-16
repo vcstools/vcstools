@@ -139,8 +139,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
         if not no_filter and (verbose or show_stdout):
             # this loop runs until proc is done
             # it listen to the pipe, print and stores result in buffer for returning
-            # this allows proc to run while we still can filter out output we don't care about
-            # readline() blocks
+            # this allows proc to run while we still can filter out output
+            # avoiding readline() because it may block forever
             for line in iter(proc.stdout.readline, b''):
                 line = line.decode('UTF-8')
                 if line is not None and line != '':
