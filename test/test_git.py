@@ -39,6 +39,7 @@ import unittest
 import subprocess
 import tempfile
 import shutil
+import types
 
 from vcstools import GitClient
 from vcstools.vcs_base import VcsError
@@ -137,6 +138,68 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), "master")
         self.assertEqual(client.get_branch_parent(), "master")
         #self.assertEqual(client.get_version(), '-r*')
+
+    def test_checkout_no_unnecessary_updates(self):
+        client = GitClient(self.local_path)
+        client.fetches = 0
+        client.submodules = 0
+        client.fast_forwards = 0
+        def ifetch(self):
+            self.fetches +=1
+            return True
+        def iff(self, fetch=True, branch_parent=None, verbose=False):
+            self.fast_forwards +=1
+            return True
+        def isubm(self, verbose=False):
+            self.submodules +=1
+            return True
+        client._do_fetch = types.MethodType(ifetch, client)
+        client._do_fast_forward = types.MethodType(iff, client)
+        client.update_submodules = types.MethodType(isubm, client)
+        url = self.remote_path
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
+        self.assertEqual(0, client.submodules)
+        self.assertEqual(0, client.fetches)
+        self.assertEqual(0, client.fast_forwards)
+        self.assertTrue(client.update())
+        self.assertEqual(1, client.submodules)
+        self.assertEqual(1, client.fetches)
+        self.assertEqual(1, client.fast_forwards)
+        self.assertTrue(client.update('test_branch'))
+        self.assertEqual(2, client.submodules)
+        self.assertEqual(2, client.fetches)
+        self.assertEqual(1, client.fast_forwards)
+        self.assertTrue(client.update('test_branch'))
+        self.assertEqual(3, client.submodules)
+        self.assertEqual(3, client.fetches)
+        self.assertEqual(2, client.fast_forwards)
+
+    def test_checkout_no_unnecessary_updates_other_branch(self):
+        client = GitClient(self.local_path)
+        client.fetches = 0
+        client.submodules = 0
+        client.fast_forwards = 0
+        def ifetch(self):
+            self.fetches +=1
+            return True
+        def iff(self, fetch=True, branch_parent=None, verbose=False):
+            self.fast_forwards +=1
+            return True
+        def isubm(self, verbose=False):
+            self.submodules +=1
+            return True
+        client._do_fetch = types.MethodType(ifetch, client)
+        client._do_fast_forward = types.MethodType(iff, client)
+        client.update_submodules = types.MethodType(isubm, client)
+        url = self.remote_path
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, 'test_branch'))
+        self.assertEqual(0, client.submodules)
+        self.assertEqual(0, client.fetches)
+        self.assertEqual(0, client.fast_forwards)
 
     def test_checkout_shallow(self):
         url = 'file://' + self.remote_path
