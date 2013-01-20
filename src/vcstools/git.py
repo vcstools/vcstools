@@ -233,27 +233,38 @@ class GitClient(VcsClientBase):
         '''
         # are we on any branch?
         current_branch = self.get_branch()
+        branch_parent = None
+        fast_foward=True
         if current_branch:
-            branch_parent = self.get_branch_parent()
+            # local branch might be named differently from remote by user, we respect that
+            same_branch = (refname == current_branch)
+            if not same_branch:
+                branch_parent = self.get_branch_parent()
+                if not refname:
+                    # ! changing refname to cause fast-forward
+                    refname = branch_parent
+                    same_branch = True
+                else:
+                    same_branch = (refname == branch_parent)
+                if not branch_parent:
+                    # avoid checking branch parent again later
+                    fast_foward = False
         else:
-            branch_parent = None
+            same_branch = False
 
-        if refname is None or refname.strip() == '':
-            refname = branch_parent
-        if refname is None:
-
+        if not refname:
             # we are neither tracking, nor did we get any refname to update to
             return self.update_submodules(verbose=verbose)
 
-        # local branch might be named differently from remote by user, we respect that
-        same_branch = (refname == branch_parent) or (refname == current_branch)
-
-        # if same_branch and branch_parent is None:
-        #   already on branch, nothing to pull as non-tracking branch
-        if same_branch and branch_parent is not None:
-            if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
-                return False
-        elif not same_branch:
+        if same_branch:
+            if fast_foward:
+                if not branch_parent and current_branch:
+                    branch_parent = self.get_branch_parent()
+                # already on correct branch, fast-forward if there is a parent
+                if branch_parent:
+                    if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
+                        return False
+        else:
             # refname can be a different branch or something else than a branch
 
             refname_is_local_branch = self.is_local_branch(refname)
