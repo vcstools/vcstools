@@ -264,12 +264,16 @@ class GitClient(VcsClientBase):
                 refname_is_remote_branch = self.is_remote_branch(refname)
             refname_is_branch = refname_is_remote_branch or refname_is_local_branch
 
+            current_version = None
             # shortcut if version is the same as requested
-            if not refname_is_branch and self.get_version() == refname:
-                return self.update_submodules(verbose=verbose)
+            if not refname_is_branch:
+                current_version = self.get_version()
+                if current_version == refname:
+                    return self.update_submodules(verbose=verbose)
 
             if current_branch is None:
-                current_version = self.get_version()
+                if not current_version:
+                    current_version = self.get_version()
                 # prevent commit from becoming dangling
                 if self.is_commit_in_orphaned_subtree(current_version):
                     # commit becomes dangling unless we move to one of its descendants
