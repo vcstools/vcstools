@@ -185,7 +185,8 @@ class GitClient(VcsClientBase):
             if refname is not None:
                 return self._do_update(refname,
                                        verbose=verbose,
-                                       fast_foward=True)
+                                       fast_foward=True,
+                                       update_submodules=False)
             else:
                 return True
         except GitError:
@@ -229,12 +230,17 @@ class GitClient(VcsClientBase):
         except GitError:
             return False
 
-    def _do_update(self, refname=None, verbose=False, fast_foward=True):
+    def _do_update(self,
+                   refname=None,
+                   verbose=False,
+                   fast_foward=True,
+                   update_submodules=True):
         '''
         updates without fetching, thus any necessary fetching must be done before
         allows arguments to reduce unnecessary steps after checkout
 
         :param fast_foward: if false, does not perform fast-forward
+        :param update_submodules: if false, does not attempt to update submodules
         '''
         # are we on any branch?
         current_branch = self.get_branch()
@@ -258,7 +264,7 @@ class GitClient(VcsClientBase):
 
         if not refname:
             # we are neither tracking, nor did we get any refname to update to
-            return self.update_submodules(verbose=verbose)
+            return (not update_submodules) or self.update_submodules(verbose=verbose)
 
         if same_branch:
             if fast_foward:
@@ -284,7 +290,7 @@ class GitClient(VcsClientBase):
             if not refname_is_branch:
                 current_version = self.get_version()
                 if current_version == refname:
-                    return self.update_submodules(verbose=verbose)
+                    return (not update_submodules) or self.update_submodules(verbose=verbose)
 
             if current_branch is None:
                 if not current_version:
@@ -308,7 +314,7 @@ class GitClient(VcsClientBase):
                         if not self._do_fast_forward(branch_parent=new_branch_parent,
                                                      verbose=verbose):
                             return False
-        return self.update_submodules(verbose=verbose)
+        return (not update_submodules) or self.update_submodules(verbose=verbose)
 
     def get_version(self, spec=None):
         """
