@@ -183,7 +183,9 @@ class GitClient(VcsClientBase):
             # update to make sure we are on the right branch. Do not
             # check for "master" here, as default branch could be anything
             if refname is not None:
-                return self._do_update(refname, verbose=verbose)
+                return self._do_update(refname,
+                                       verbose=verbose,
+                                       fast_foward=True)
             else:
                 return True
         except GitError:
@@ -227,14 +229,16 @@ class GitClient(VcsClientBase):
         except GitError:
             return False
 
-    def _do_update(self, refname=None, verbose=False):
+    def _do_update(self, refname=None, verbose=False, fast_foward=True):
         '''
         updates without fetching, thus any necessary fetching must be done before
+        allows arguments to reduce unnecessary steps after checkout
+
+        :param fast_foward: if false, does not perform fast-forward
         '''
         # are we on any branch?
         current_branch = self.get_branch()
         branch_parent = None
-        fast_foward=True
         if current_branch:
             # local branch might be named differently from remote by user, we respect that
             same_branch = (refname == current_branch)
@@ -300,10 +304,10 @@ class GitClient(VcsClientBase):
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
                 new_branch_parent = self.get_branch_parent()
                 if new_branch_parent is not None:
-                    if not self._do_fast_forward(branch_parent=new_branch_parent,
-                                                 verbose=verbose):
-                        return False
-
+                    if fast_foward:
+                        if not self._do_fast_forward(branch_parent=new_branch_parent,
+                                                     verbose=verbose):
+                            return False
         return self.update_submodules(verbose=verbose)
 
     def get_version(self, spec=None):
