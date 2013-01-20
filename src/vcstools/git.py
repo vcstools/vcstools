@@ -272,7 +272,9 @@ class GitClient(VcsClientBase):
                     branch_parent = self.get_branch_parent(current_branch=current_branch)
                 # already on correct branch, fast-forward if there is a parent
                 if branch_parent:
-                    if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
+                    if not self._do_fast_forward(branch_parent=branch_parent,
+                                                 fetch=False,
+                                                 verbose=verbose):
                         return False
         else:
             # refname can be a different branch or something else than a branch
@@ -282,7 +284,7 @@ class GitClient(VcsClientBase):
                 # might also be remote branch, but we treat it as local
                 refname_is_remote_branch = False
             else:
-                refname_is_remote_branch = self.is_remote_branch(refname)
+                refname_is_remote_branch = self.is_remote_branch(refname, fetch=False)
             refname_is_branch = refname_is_remote_branch or refname_is_local_branch
 
             current_version = None
@@ -296,7 +298,7 @@ class GitClient(VcsClientBase):
                 if not current_version:
                     current_version = self.get_version()
                 # prevent commit from becoming dangling
-                if self.is_commit_in_orphaned_subtree(current_version):
+                if self.is_commit_in_orphaned_subtree(current_version, fetch=False):
                     # commit becomes dangling unless we move to one of its descendants
                     if not self.rev_list_contains(refname, current_version, fetch=False):
                         # TODO: should raise error instead of printing message
@@ -304,7 +306,7 @@ class GitClient(VcsClientBase):
                         return False
 
             # git checkout makes all the decisions for us
-            self._do_checkout(refname, verbose=verbose)
+            self._do_checkout(refname, verbose=verbose, fetch=False)
 
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
@@ -312,6 +314,7 @@ class GitClient(VcsClientBase):
                 if new_branch_parent is not None:
                     if fast_foward:
                         if not self._do_fast_forward(branch_parent=new_branch_parent,
+                                                     fetch=False,
                                                      verbose=verbose):
                             return False
         return (not update_submodules) or self.update_submodules(verbose=verbose)
