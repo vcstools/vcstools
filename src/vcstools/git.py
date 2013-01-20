@@ -249,7 +249,7 @@ class GitClient(VcsClientBase):
             # local branch might be named differently from remote by user, we respect that
             same_branch = (refname == current_branch)
             if not same_branch:
-                branch_parent = self.get_branch_parent()
+                branch_parent = self.get_branch_parent(current_branch=current_branch)
                 if not refname:
                     # ! changing refname to cause fast-forward
                     refname = branch_parent
@@ -269,7 +269,7 @@ class GitClient(VcsClientBase):
         if same_branch:
             if fast_foward:
                 if not branch_parent and current_branch:
-                    branch_parent = self.get_branch_parent()
+                    branch_parent = self.get_branch_parent(current_branch=current_branch)
                 # already on correct branch, fast-forward if there is a parent
                 if branch_parent:
                     if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
@@ -308,7 +308,7 @@ class GitClient(VcsClientBase):
 
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
-                new_branch_parent = self.get_branch_parent()
+                new_branch_parent = self.get_branch_parent(current_branch=refname)
                 if new_branch_parent is not None:
                     if fast_foward:
                         if not self._do_fast_forward(branch_parent=new_branch_parent,
@@ -480,7 +480,7 @@ class GitClient(VcsClientBase):
                     return elems[1]
         return None
 
-    def get_branch_parent(self, fetch=False):
+    def get_branch_parent(self, fetch=False, current_branch=None):
         """
         return the name of the branch this branch tracks, if any
 
@@ -488,7 +488,7 @@ class GitClient(VcsClientBase):
         """
         if self.path_exists():
             # get name of configured merge ref.
-            branchname = self.get_branch()
+            branchname = current_branch or self.get_branch()
             if branchname is None:
                 return None
             cmd = 'git config --get-all %s'%sanitized('branch.%s.merge'%branchname)
