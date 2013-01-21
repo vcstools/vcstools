@@ -36,7 +36,8 @@ Library for tools that need to interact with ROS-support version control systems
 
 import logging
 
-from vcstools.vcs_abstraction import VcsClient, VCSClient, register_vcs
+from vcstools.vcs_abstraction import VcsClient, VCSClient, register_vcs, \
+    get_vcs_client
 
 from vcstools.svn import SvnClient
 from vcstools.bzr import BzrClient

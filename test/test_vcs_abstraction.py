@@ -3,8 +3,9 @@ from mock import Mock
 
 import vcstools.vcs_abstraction
 from vcstools.vcs_abstraction import register_vcs, get_registered_vcs_types, \
-    get_vcs, get_vcs_client
+    get_vcs
 
+from vcstools import get_vcs_client
 
 class TestVcsAbstraction(unittest.TestCase):
 

@@ -85,7 +85,7 @@ class VcsClient(object):
 
     def __init__(self, vcs_type, path):
         self._path = path
-        warnings.warn("Class VcsClient is deprecated, use get_vcs_client() instead")
+        warnings.warn("Class VcsClient is deprecated, use from vcstools import get_vcs_client; get_vcs_client() instead")
         self.vcs = get_vcs_client(vcs_type, path)
 
     def path_exists(self):
