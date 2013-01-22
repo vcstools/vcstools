@@ -7,6 +7,7 @@ Changelog
 0.1.27
 ------
 
+- fix #47 several performance improvements by removing unecessary update actions after checkout
 - fix #45 sometimes commands run forever
 - fix #44 minor bug when checking out from repo with default branch not master
 

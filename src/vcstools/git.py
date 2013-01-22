@@ -183,7 +183,10 @@ class GitClient(VcsClientBase):
             # update to make sure we are on the right branch. Do not
             # check for "master" here, as default branch could be anything
             if refname is not None:
-                return self.update(refname, verbose=verbose)
+                return self._do_update(refname,
+                                       verbose=verbose,
+                                       fast_foward=True,
+                                       update_submodules=False)
             else:
                 return True
         except GitError:
@@ -223,68 +226,98 @@ class GitClient(VcsClientBase):
         try:
             # fetch in any case to get updated tags even if we don't need them
             self._do_fetch()
-
-            # are we on any branch?
-            current_branch = self.get_branch()
-            if current_branch:
-                branch_parent = self.get_branch_parent()
-            else:
-                branch_parent = None
-
-            if refname is None or refname.strip() == '':
-                refname = branch_parent
-            if refname is None:
-
-                # we are neither tracking, nor did we get any refname to update to
-                return self.update_submodules(verbose=verbose)
-
-            # local branch might be named differently from remote by user, we respect that
-            same_branch = (refname == branch_parent) or (refname == current_branch)
-
-            # if same_branch and branch_parent is None:
-            #   already on branch, nothing to pull as non-tracking branch
-            if same_branch and branch_parent is not None:
-                if not self._do_fast_forward(branch_parent=branch_parent, verbose=verbose):
-                    return False
-            elif not same_branch:
-                # refname can be a different branch or something else than a branch
-
-                refname_is_local_branch = self.is_local_branch(refname)
-                if refname_is_local_branch:
-                    # might also be remote branch, but we treat it as local
-                    refname_is_remote_branch = False
-                else:
-                    refname_is_remote_branch = self.is_remote_branch(refname)
-                refname_is_branch = refname_is_remote_branch or refname_is_local_branch
-
-                # shortcut if version is the same as requested
-                if not refname_is_branch and self.get_version() == refname:
-                    return self.update_submodules(verbose=verbose)
-
-                if current_branch is None:
-                    current_version = self.get_version()
-                    # prevent commit from becoming dangling
-                    if self.is_commit_in_orphaned_subtree(current_version):
-                        # commit becomes dangling unless we move to one of its descendants
-                        if not self.rev_list_contains(refname, current_version, fetch=False):
-                            # TODO: should raise error instead of printing message
-                            print("vcstools refusing to move away from dangling commit, to protect your work.")
-                            return False
-
-                # git checkout makes all the decisions for us
-                self._do_checkout(refname, verbose=verbose)
-
-                if refname_is_local_branch:
-                    # if we just switched to a local tracking branch (not created one), we should also fast forward
-                    new_branch_parent = self.get_branch_parent()
-                    if new_branch_parent is not None:
-                        if not self._do_fast_forward(branch_parent=new_branch_parent,
-                                                     verbose=verbose):
-                            return False
-
-            return self.update_submodules(verbose=verbose)
+            return self._do_update(refname=refname, verbose=verbose)
         except GitError:
             return False
+
+    def _do_update(self,
+                   refname=None,
+                   verbose=False,
+                   fast_foward=True,
+                   update_submodules=True):
+        '''
+        updates without fetching, thus any necessary fetching must be done before
+        allows arguments to reduce unnecessary steps after checkout
+
+        :param fast_foward: if false, does not perform fast-forward
+        :param update_submodules: if false, does not attempt to update submodules
+        '''
+        # are we on any branch?
+        current_branch = self.get_branch()
+        branch_parent = None
+        if current_branch:
+            # local branch might be named differently from remote by user, we respect that
+            same_branch = (refname == current_branch)
+            if not same_branch:
+                branch_parent = self.get_branch_parent(current_branch=current_branch)
+                if not refname:
+                    # ! changing refname to cause fast-forward
+                    refname = branch_parent
+                    same_branch = True
+                else:
+                    same_branch = (refname == branch_parent)
+                if not branch_parent:
+                    # avoid checking branch parent again later
+                    fast_foward = False
+        else:
+            same_branch = False
+
+        if not refname:
+            # we are neither tracking, nor did we get any refname to update to
+            return (not update_submodules) or self.update_submodules(verbose=verbose)
+
+        if same_branch:
+            if fast_foward:
+                if not branch_parent and current_branch:
+                    branch_parent = self.get_branch_parent(current_branch=current_branch)
+                # already on correct branch, fast-forward if there is a parent
+                if branch_parent:
+                    if not self._do_fast_forward(branch_parent=branch_parent,
+                                                 fetch=False,
+                                                 verbose=verbose):
+                        return False
+        else:
+            # refname can be a different branch or something else than a branch
+
+            refname_is_local_branch = self.is_local_branch(refname)
+            if refname_is_local_branch:
+                # might also be remote branch, but we treat it as local
+                refname_is_remote_branch = False
+            else:
+                refname_is_remote_branch = self.is_remote_branch(refname, fetch=False)
+            refname_is_branch = refname_is_remote_branch or refname_is_local_branch
+
+            current_version = None
+            # shortcut if version is the same as requested
+            if not refname_is_branch:
+                current_version = self.get_version()
+                if current_version == refname:
+                    return (not update_submodules) or self.update_submodules(verbose=verbose)
+
+            if current_branch is None:
+                if not current_version:
+                    current_version = self.get_version()
+                # prevent commit from becoming dangling
+                if self.is_commit_in_orphaned_subtree(current_version, fetch=False):
+                    # commit becomes dangling unless we move to one of its descendants
+                    if not self.rev_list_contains(refname, current_version, fetch=False):
+                        # TODO: should raise error instead of printing message
+                        print("vcstools refusing to move away from dangling commit, to protect your work.")
+                        return False
+
+            # git checkout makes all the decisions for us
+            self._do_checkout(refname, verbose=verbose, fetch=False)
+
+            if refname_is_local_branch:
+                # if we just switched to a local tracking branch (not created one), we should also fast forward
+                new_branch_parent = self.get_branch_parent(current_branch=refname)
+                if new_branch_parent is not None:
+                    if fast_foward:
+                        if not self._do_fast_forward(branch_parent=new_branch_parent,
+                                                     fetch=False,
+                                                     verbose=verbose):
+                            return False
+        return (not update_submodules) or self.update_submodules(verbose=verbose)
 
     def get_version(self, spec=None):
         """
@@ -450,7 +483,7 @@ class GitClient(VcsClientBase):
                     return elems[1]
         return None
 
-    def get_branch_parent(self, fetch=False):
+    def get_branch_parent(self, fetch=False, current_branch=None):
         """
         return the name of the branch this branch tracks, if any
 
@@ -458,7 +491,7 @@ class GitClient(VcsClientBase):
         """
         if self.path_exists():
             # get name of configured merge ref.
-            branchname = self.get_branch()
+            branchname = current_branch or self.get_branch()
             if branchname is None:
                 return None
             cmd = 'git config --get-all %s'%sanitized('branch.%s.merge'%branchname)
