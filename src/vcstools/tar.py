@@ -40,18 +40,27 @@ tarfile with a folder inside for each version.
 
 
 import os
+import tempfile
+import shutil
+import tarfile
+import sys
+import yaml
+from vcstools.vcs_base import VcsClientBase, VcsError
+
 # first try python3, then python2
 try:
     from urllib.request import urlretrieve
 except ImportError:
-    from urllib import urlretrieve
-import tarfile
-import tempfile
-import sys
-import shutil
-import yaml
+    # from urllib import urlretrieve # malfunctions behind proxy
+    import urllib2
+    def urlretrieve(url):
+        fdesc, fname = tempfile.mkstemp() # Make a temporary file
+        fhand = os.fdopen(fdesc, "w")
+        resp = urllib2.urlopen(url)
+        shutil.copyfileobj(resp.fp, fhand) # Copy the http response to the temporary file.
+        return (fname, resp.headers)
 
-from vcstools.vcs_base import VcsClientBase, VcsError
+
 
 __pychecker__ = 'unusednames=spec'
 
@@ -102,25 +111,29 @@ class TarClient(VcsClientBase):
         tempdir = None
         result = False
         try:
-            (filename, headers) = urlretrieve(url)
-            #print "filename", filename
             tempdir = tempfile.mkdtemp()
-            t = tarfile.open(filename, 'r:*')
+            if os.path.isfile(url):
+                filename = url
+            else:
+                (filename, _) = urlretrieve(url)
+                # print "filename", filename
+            temp_tarfile = tarfile.open(filename, 'r:*')
             members = None # means all members in extractall
             if version == '' or version is None:
                 self.logger.warn("No tar subdirectory chosen via the 'version' argument for url: %s"%url)
             else:
-                # getmembers lists all files contained in tar with relative path
+                # getmembers lists all files contained in tar with
+                # relative path
                 subdirs = []
                 members = []
-                for m in t.getmembers():
+                for m in temp_tarfile.getmembers():
                     if m.name.startswith(version + '/'):
                         members.append(m)
                     if m.name.split('/')[0] not in subdirs:
                         subdirs.append(m.name.split('/')[0])
                 if not members:
                     raise VcsError("%s is not a subdirectory with contents in members %s"%(version, subdirs))
-            t.extractall(path=tempdir, members=members)
+            temp_tarfile.extractall(path=tempdir, members=members)
 
             subdir = os.path.join(tempdir, version)
             if not os.path.isdir(subdir):
