@@ -241,7 +241,7 @@ class HgClient(VcsClientBase):
             basepath = self._path
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
-            command = "hg diff -g %s" % (sanitized(rel_path))
+            command = "hg diff -g %(path)s --repository %(path)s" % {'path': sanitized(rel_path)}
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
             response = _hg_diff_path_change(response, rel_path)
         return response
@@ -285,7 +285,7 @@ class HgClient(VcsClientBase):
         if self.path_exists():
             rel_path = normalized_rel_path(self._path, basepath)
             # protect against shell injection
-            command = "hg status %s" % (sanitized(rel_path))
+            command = "hg status %(path)s --repository %(path)s" % {'path': sanitized(rel_path)}
             if not untracked:
                 command += " -mard"
             _, response, _ = run_shell_command(command,

@@ -7,6 +7,7 @@ Changelog
 0.1.27
 ------
 
+- fix #51 hg status and diff dont work if workspace is inside hg repo
 - fix #47 several performance improvements by removing unecessary update actions after checkout
 - fix #46 https tar download fails behind proxy
 - fix #45 sometimes commands run forever
