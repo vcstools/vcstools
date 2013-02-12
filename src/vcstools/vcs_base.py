@@ -52,6 +52,9 @@ class VcsError(Exception):
 
 
 class VcsClientBase(object):
+    """
+    parent class for all vcs clients, provides their public API
+    """
 
     def __init__(self, vcs_type_name, path):
         """
@@ -73,12 +76,19 @@ class VcsClientBase(object):
         :returns: a dict containing relevant information
         :rtype: dict
         """
-        raise NotImplementedError("Base class get_environment_metadata method must be overridden")
+        raise NotImplementedError(
+            "Base class get_environment_metadata method must be overridden")
 
     def path_exists(self):
+        """
+        helper function
+        """
         return os.path.exists(self._path)
 
     def get_path(self):
+        """
+        returns the path this client was configured for
+        """
         return self._path
 
     def url_matches(self, url, url_or_shortcut):
@@ -97,7 +107,9 @@ class VcsClientBase(object):
         :returns: The source control url for the path
         :rtype: str
         """
-        raise NotImplementedError("Base class get_url method must be overridden for client type %s " % self._vcs_type_name)
+        raise NotImplementedError(
+            "Base class get_url method must be overridden for client type %s" %
+            self._vcs_type_name)
 
     def get_version(self, spec=None):
         """
@@ -150,7 +162,8 @@ class VcsClientBase(object):
 
     def detect_presence(self):
         """For auto detection"""
-        raise NotImplementedError("Base class detect_presence method must be overridden")
+        raise NotImplementedError(
+            "Base class detect_presence method must be overridden")
 
     def get_vcs_type_name(self):
         """ used when auto detected """
@@ -162,11 +175,13 @@ class VcsClientBase(object):
         :returns: A string showing local differences
         :rtype: str
         """
-        raise NotImplementedError("Base class get_diff method must be overridden")
+        raise NotImplementedError(
+            "Base class get_diff method must be overridden")
 
     def get_status(self, basepath=None, untracked=False):
         """
-        Calls scm status command. Output must be terminated by newline unless empty.
+        Calls scm status command. Output must be terminated by newline
+        unless empty.
 
         Semantics of untracked are difficult to generalize.
         In SVN, this would be new files only. In git,
@@ -188,20 +203,33 @@ class VcsClientBase(object):
             - id: the commit SHA or revision number
             - date: the date the commit was made (python datetime)
             - author: the name of the author of the commit, if available
-            - email: the e-mail address of the author of the commit, if available
+            - email: the e-mail address of the author of the commit
             - message: the commit message, if any
 
-        :param relpath: (optional) restrict logs to events on this resource path (folder or file) relative to the root of the repository. If None (default), this is the root of the repository.
-        :param limit: (optional) the maximum number of log entries that should be retrieved. If None (default), there is no limit.
+        :param relpath: (optional) restrict logs to events on this
+        resource path (folder or file) relative to the root of the
+        repository. If None (default), this is the root of the
+        repository.
+        :param limit: (optional) the maximum number of log entries
+        that should be retrieved. If None (default), there is no
+        limit.
         """
-        raise NotImplementedError("Base class get_log method must be overridden")
+        raise NotImplementedError(
+            "Base class get_log method must be overridden")
 
     def export_repository(self, version, basepath):
         """
-        Calls scm equivalent to `svn export`, removing scm meta information and tar gzip'ing the repository at a given version to the given basepath.
+        Calls scm equivalent to `svn export`, removing scm meta
+        information and tar gzip'ing the repository at a given version
+        to the given basepath.
 
-        :param version: version of the repository to export.  This can be a branch, tag, or path (svn).  When specifying the version as a path for svn, the path should be relative to the root of the svn repository, i.e. 'trunk', or 'tags/1.2.3', or './' for the root.
-        :param basepath: this is the path to the tar gzip, excluding the extension which will be .tar.gz
+        :param version: version of the repository to export.  This can
+        be a branch, tag, or path (svn).  When specifying the version
+        as a path for svn, the path should be relative to the root of
+        the svn repository, i.e. 'trunk', or 'tags/1.2.3', or './' for
+        the root.
+        :param basepath: this is the path to the tar gzip, excluding
+        the extension which will be .tar.gz
         :returns: True on success, False otherwise.
         """
         raise NotImplementedError("Base class export_repository method must be overridden for client type %s " % self._vcs_type_name)

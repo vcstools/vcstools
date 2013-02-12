@@ -63,7 +63,7 @@ def sanitized(arg):
     A composed command would be like "ls %s"%foo.
     In this example, foo could be "; rm -rf *"
     sanitized raises an Error when it detects such an attempt
-    
+
     :raises VcsError: on injection attempts
     """
     if arg is None or arg.strip() == '':
@@ -97,7 +97,9 @@ def _discard_line(line):
     return False
 
 
-def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False, verbose=False, no_filter=False):
+def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
+                      show_stdout=False, verbose=False,
+                      no_warn=False, no_filter=False):
     """
     executes a command and hides the stdout output, loggs stderr
     output when command result is not zero. Make sure to sanitize
@@ -107,7 +109,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
     :param shell: Whether to use os shell.
     :param us_env: changes env var LANG before running command, can influence program output
     :param show_stdout: show some of the output (except for discarded lines in _discard_line()), ignored if no_filter
-    :param verbose: show all output, ignored if no_filter
+    :param no_warn: hides warnings
+    :param verbose: show all output, overrides no_warn, ignored if no_filter
     :param no_filter: does not wrap stdout, so invoked command prints everything outside our knowledge
     this is DANGEROUS, as vulnerable to shell injection.
     :returns: ( returncode, stdout, stderr); stdout is None if no_filter==True
@@ -158,7 +161,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True, show_stdout=False
                     stderr_buf.append(line)
                 if not line:
                     break
-            
+
         (stdout, stderr) = proc.communicate()
         if stdout is not None:
             stdout_buf.append(stdout.decode('utf-8'))

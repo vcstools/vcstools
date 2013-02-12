@@ -79,8 +79,8 @@ def get_vcs_client(vcs_type, path):
 
 class VcsClient(object):
     """
-    *DEPRECATED* API for interacting with source-controlled paths independent of
-    actual version-control implementation.
+    *DEPRECATED* API for interacting with source-controlled paths
+    independent of actual version-control implementation.
     """
 
     def __init__(self, vcs_type, path):
@@ -99,7 +99,10 @@ class VcsClient(object):
         return self.vcs.get_version(spec)
 
     def checkout(self, url, version='', verbose=False, shallow=False):
-        return self.vcs.checkout(url, version, verbose=verbose, shallow=shallow)
+        return self.vcs.checkout(url,
+                                 version,
+                                 verbose=verbose,
+                                 shallow=shallow)
 
     def url_matches(self, url, url_or_shortcut):
         return self.vcs.url_matches(url=url, url_or_shortcut=url_or_shortcut)
