@@ -169,6 +169,8 @@ class GitClient(VcsClientBase):
         cmd = 'git clone'
         if shallow:
             cmd += ' --depth 1'
+            if LooseVersion(self.gitversion) >= LooseVersion('1.7.10'):
+                cmd += ' --no-single-branch'
         cmd += ' --recursive %s %s' % (url, self._path)
         value, _, _ = run_shell_command(cmd,
                                         shell=True,
