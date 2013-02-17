@@ -164,6 +164,8 @@ class GitClient(VcsClientBase):
 
     def checkout(self, url, refname=None, verbose=False, shallow=False):
         """calls git clone and then, if refname was given, update(refname)"""
+        if url is None or url.strip() == '':
+            raise ValueError('Invalid empty url : "%s"' % url)
 
         #since we cannot know whether refname names a branch, clone master initially
         cmd = 'git clone'

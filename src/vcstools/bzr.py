@@ -128,6 +128,8 @@ class BzrClient(VcsClientBase):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
 
     def checkout(self, url, version=None, verbose=False, shallow=False):
+        if url is None or url.strip() == '':
+            raise ValueError('Invalid empty url : "%s"' % url)
         cmd = 'bzr branch'
         if version:
             cmd += ' -r %s' % version
