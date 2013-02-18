@@ -4,6 +4,11 @@ Changelog
 0.1
 ===
 
+0.1.28
+------
+
+- fix #57 shallow checkout of non-master breaks with git >= 1.8.0
+
 0.1.27
 ------
 
