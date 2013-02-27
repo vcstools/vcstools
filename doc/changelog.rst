@@ -4,10 +4,16 @@ Changelog
 0.1
 ===
 
-0.1.28
+0.1.29
 ------
 
 - fix #57 shallow checkout of non-master breaks with git >= 1.8.0
+- unit test fixes
+
+0.1.29
+------
+
+- test of new upload method
 
 0.1.27
 ------
