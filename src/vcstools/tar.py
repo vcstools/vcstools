@@ -47,21 +47,7 @@ import tarfile
 import sys
 import yaml
 from vcstools.vcs_base import VcsClientBase, VcsError
-from vcstools.common import ensure_dir_notexists
-
-# first try python3, then python2
-try:
-    from urllib.request import urlretrieve
-except ImportError:
-    # from urllib import urlretrieve # malfunctions behind proxy
-    import urllib2
-    def urlretrieve(url):
-        fdesc, fname = tempfile.mkstemp() # Make a temporary file
-        fhand = os.fdopen(fdesc, "w")
-        resp = urllib2.urlopen(url)
-        shutil.copyfileobj(resp.fp, fhand) # Copy the http response to the temporary file.
-        return (fname, resp.headers)
-
+from vcstools.common import urlretrieve_netrc, ensure_dir_notexists
 
 
 __pychecker__ = 'unusednames=spec'
@@ -117,7 +103,7 @@ class TarClient(VcsClientBase):
             if os.path.isfile(url):
                 filename = url
             else:
-                (filename, _) = urlretrieve(url)
+                (filename, _) = urlretrieve_netrc(url)
                 # print "filename", filename
             temp_tarfile = tarfile.open(filename, 'r:*')
             members = None # means all members in extractall

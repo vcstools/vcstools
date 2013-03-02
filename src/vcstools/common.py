@@ -37,6 +37,20 @@ import copy
 import shlex
 import subprocess
 import logging
+import netrc
+import tempfile
+import shutil
+
+try:
+    # py3k
+    from urllib.request import urlopen, HTTPPasswordMgrWithDefaultRealm, \
+        HTTPBasicAuthHandler, build_opener
+    from urllib.parse import urlparse
+except ImportError:
+    # py2.7
+    from urlparse import urlparse
+    from urllib2 import urlopen, HTTPPasswordMgrWithDefaultRealm, \
+        HTTPBasicAuthHandler, build_opener
 
 from vcstools.vcs_base import VcsError
 
@@ -56,6 +70,98 @@ def ensure_dir_notexists(path):
         # ignore if directory
         if not ose.errno in [errno.ENOENT, errno.ENOTEMPTY, errno.ENOTDIR]:
             return False
+
+
+def urlopen_netrc(uri, *args, **kwargs):
+    '''
+    wrapper to urlopen, using netrc on 401 as fallback
+    Since this wraps both python2 and python3 urlopen, accepted arguments vary
+
+    :returns: file-like object as urllib.urlopen
+    :raises: IOError and urlopen errors
+    '''
+    try:
+        return urlopen(uri, *args, **kwargs)
+    except IOError as ioe:
+        if hasattr(ioe, 'code') and ioe.code == 401:
+            # 401 means authentication required, we try netrc credentials
+            result = _netrc_open(uri)
+            if result is not None:
+                return result
+        raise
+
+
+def urlretrieve_netrc(url, filename=None):
+    '''
+    writes a temporary file with the contents of url. This works
+    similar to urllib2.urlretrieve, but uses netrc as fallback on 401,
+    and has no reporthook or data option. Also urllib2.urlretrieve
+    malfunctions behind proxy, so we avoid it.
+
+    :param url: What to retrieve
+    :param filename: target file (default is basename of url)
+    :returns: (filename, response_headers)
+    :raises: IOError and urlopen errors
+    '''
+    fname = None
+    fhand = None
+    try:
+        resp = urlopen_netrc(url)
+        if filename:
+            fhand = open(filename, 'wb')
+            fname = filename
+        else:
+            # Make a temporary file
+            fdesc, fname = tempfile.mkstemp()
+            fhand = os.fdopen(fdesc, "wb")
+            # Copy the http response to the temporary file.
+        shutil.copyfileobj(resp.fp, fhand)
+    finally:
+        if fhand:
+            fhand.close()
+    return (fname, resp.headers)
+
+
+def _netrc_open(uri, filename=None):
+    '''
+    open uri using netrc credentials.
+
+    :param uri: uri to open
+    :param filename: optional, path to non-default netrc config file
+    :returns: file-like object from opening a socket to uri, or None
+    :raises IOError: if opening .netrc file fails (unless file not found)
+    '''
+    if not uri:
+        return None
+    parsed_uri = urlparse(uri)
+    machine = parsed_uri.netloc
+    if not machine:
+        return None
+    opener = None
+    try:
+        info = netrc.netrc(filename).authenticators(machine)
+        if info is not None:
+            (username, _ , password) = info
+            if username and password:
+                pass_man = HTTPPasswordMgrWithDefaultRealm()
+                pass_man.add_password(None, machine, username, password)
+                authhandler = HTTPBasicAuthHandler(pass_man)
+                opener = build_opener(authhandler)
+                return opener.open(uri)
+        else:
+            # caught below, like other netrc parse errors
+            raise netrc.NetrcParseError('No authenticators for "%s"' % machine)
+    except IOError as ioe:
+        if ioe.errno != 2:
+            # if = 2, User probably has no .netrc, this is not an error
+            raise
+    except netrc.NetrcParseError as neterr:
+        logger = logging.getLogger('vcstools')
+        logger.warn('WARNING: parsing .netrc: %s' % str(neterr))
+    # we could install_opener() here, but prefer to keep
+    # default opening clean. Client can do that, though.
+    return None
+
 
 def normalized_rel_path(path, basepath):
     """
@@ -87,7 +193,7 @@ def sanitized(arg):
     if arg is None or arg.strip() == '':
         return ''
     arg = str(arg.strip('"').strip())
-    safe_arg = '"%s"'%arg
+    safe_arg = '"%s"' % arg
     # this also detects some false positives, like bar"";foo
     if '"' in arg:
         if (len(shlex.split(safe_arg, False, False)) != 1):
