@@ -4,6 +4,11 @@ Changelog
 0.1
 ===
 
+0.1.30
+------
+
+- use netrc to download tars from private repos, also will work for private rosinstall files
+
 0.1.29
 ------
 
