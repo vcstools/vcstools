@@ -3,7 +3,7 @@ vcstools
 
 The vcstools module provides a Python API for interacting with different version control systems (VCS/SCMs).
 
-See http://www.ros.org/doc/api/vcstools/html
+See http://www.ros.org/doc/independent/api/vcstools/html/
 
 Installing
 ----------
