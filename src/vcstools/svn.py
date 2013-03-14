@@ -100,7 +100,7 @@ class SvnClient(VcsClientBase):
 
     def detect_presence(self):
         return self.path_exists() and \
-               os.path.isdir(os.path.join(self._path, '.svn'))
+               os.path.isdir(os.path.join(self.get_path(), '.svn'))
 
     def checkout(self, url, version='', verbose=False, shallow=False):
         if url is None or url.strip() == '':
@@ -118,12 +118,14 @@ class SvnClient(VcsClientBase):
         cmd = 'svn co %s %s %s' % (sanitized(version),
                                    sanitized(url),
                                    self._path)
-        value, _, _ = run_shell_command(cmd,
-                                        shell=True,
-                                        no_filter=True)
-        if value == 0:
-            return True
-        return False
+        value, _, msg = run_shell_command(cmd,
+                                          shell=True,
+                                          no_filter=True)
+        if value != 0:
+            if msg:
+                self.logger.error('%s' % msg)
+            return False
+        return True
 
     def update(self, version=None, verbose=False):
         if not self.detect_presence():

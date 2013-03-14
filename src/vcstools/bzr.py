@@ -134,13 +134,13 @@ class BzrClient(VcsClientBase):
         if version:
             cmd += ' -r %s' % version
         cmd += ' %s %s' % (url, self._path)
-        value, _, _ = run_shell_command(cmd,
-                                        shell=True,
-                                        show_stdout=verbose,
-                                        verbose=verbose)
+        value, _, msg = run_shell_command(cmd,
+                                          shell=True,
+                                          show_stdout=verbose,
+                                          verbose=verbose)
         if value != 0:
-            if self.path_exists():
-                sys.stderr.write("Error: cannot checkout into existing directory\n")
+            if msg:
+                self.logger.error('%s' % msg)
             return False
         return True
 
