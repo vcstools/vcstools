@@ -43,6 +43,11 @@ from vcstools.tar import TarClient
 
 class TarClientTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(self):
+        self.remote_url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
+        self.package_version = "exploration-0.3.0"
+
     def setUp(self):
         self.directories = {}
 
@@ -56,17 +61,15 @@ class TarClientTest(unittest.TestCase):
         directory = tempfile.mkdtemp()
         self.directories['local'] = directory
 
-        remote_url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
-        local_version = "exploration-0.3.0"
         local_path = os.path.join(directory, "local")
 
         client = TarClient(local_path)
-        self.assertTrue(client.checkout(remote_url, local_version))
-        
+        self.assertTrue(client.checkout(self.remote_url, self.package_version))
+
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_url(), remote_url)
-        #self.assertEqual(client.get_version(), local_version)
+        self.assertEqual(client.get_url(), self.remote_url)
+        #self.assertEqual(client.get_version(), self.package_version)
 
     def test_get_url_nonexistant(self):
         local_path = "/tmp/dummy"
@@ -83,33 +86,36 @@ class TarClientTest(unittest.TestCase):
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
         local_path = os.path.join(directory, "exploration")
-        url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
         client = TarClient(local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
-        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.checkout(self.remote_url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
-        self.assertEqual(client.get_url(), url)
-        self.assertTrue(os.path.exists(os.path.join(local_path, 'exploration-0.3.0', 'stack.xml'))) #make sure the tarball subdirectory was promoted correctly. 
-        
+        self.assertEqual(client.get_url(), self.remote_url)
+        # make sure the tarball subdirectory was promoted correctly.
+        self.assertTrue(os.path.exists(os.path.join(local_path,
+                                                    self.package_version,
+                                                    'stack.xml')))
+
     def test_checkout_version(self):
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
         local_path = os.path.join(directory, "exploration")
-        url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
         client = TarClient(local_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
-        self.assertTrue(client.checkout(url, version='exploration-0.3.0'))
+        self.assertTrue(client.checkout(self.remote_url,
+                                        version=self.package_version))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
-        self.assertEqual(client.get_url(), url)
-        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml'))) #make sure the tarball subdirectory was promoted correctly. 
+        self.assertEqual(client.get_url(), self.remote_url)
+        # make sure the tarball subdirectory was promoted correctly.
+        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml')))
 
 class TarClientTestLocal(unittest.TestCase):
 
@@ -120,18 +126,19 @@ class TarClientTestLocal(unittest.TestCase):
         self.version_path0 = os.path.join(self.root_directory, "version")
         self.version_path1 = os.path.join(self.root_directory, "version1")
         self.version_path2 = os.path.join(self.root_directory, "version1.0")
-        
+
         os.makedirs(self.version_path0)
         os.makedirs(self.version_path1)
         os.makedirs(self.version_path2)
-        
+
         subprocess.check_call("touch stack0.xml", shell=True, cwd=self.version_path0)
         subprocess.check_call("touch stack.xml", shell=True, cwd=self.version_path1)
         subprocess.check_call("touch stack1.xml", shell=True, cwd=self.version_path2)
         subprocess.check_call("touch version1.txt", shell=True, cwd=self.root_directory)
-        
+
         self.tar_url = os.path.join(self.root_directory, "origin.tar")
-        self.tar_url_compressed = os.path.join(self.root_directory, "origin_compressed.tar.bz2")
+        self.tar_url_compressed = os.path.join(self.root_directory,
+                                               "origin_compressed.tar.bz2")
 
         subprocess.check_call("tar -cf %s %s"%(self.tar_url, " ".join(["version",
                                                                        "version1",
@@ -145,13 +152,13 @@ class TarClientTestLocal(unittest.TestCase):
                                                                                    "version1.0"])),
                               shell=True,
                               cwd=self.root_directory)
-       
+
     def tearDown(self):
         for d in self.directories:
             self.assertTrue(os.path.exists(self.directories[d]))
             shutil.rmtree(self.directories[d])
             self.assertFalse(os.path.exists(self.directories[d]))
-        
+
     def test_checkout_version_local(self):
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
@@ -166,7 +173,8 @@ class TarClientTestLocal(unittest.TestCase):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), url)
-        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml'))) #make sure the tarball subdirectory was promoted correctly.
+        # make sure the tarball subdirectory was promoted correctly.
+        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml')))
 
     def test_checkout_version_compressed_local(self):
         directory = tempfile.mkdtemp()
@@ -182,4 +190,5 @@ class TarClientTestLocal(unittest.TestCase):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), url)
-        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml'))) #make sure the tarball subdirectory was promoted correctly.
+        # make sure the tarball subdirectory was promoted correctly.
+        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml')))
