@@ -139,6 +139,15 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch_parent(), "master")
         #self.assertEqual(client.get_version(), '-r*')
 
+    def test_checkout_dir_exists(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertFalse(client.path_exists())
+        os.makedirs(self.local_path)
+        self.assertTrue(client.checkout(url))
+        # non-empty
+        self.assertFalse(client.checkout(url))
+
     def test_checkout_no_unnecessary_updates(self):
         client = GitClient(self.local_path)
         client.fetches = 0

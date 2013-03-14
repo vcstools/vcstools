@@ -128,8 +128,8 @@ class VcsClientBase(object):
     def checkout(self, url, spec=None, verbose=False, shallow=False):
         """
         Attempts to create a local repository given a remote
-        url. Fails if a directory exists already in target
-        location. If a spec is provided, the local repository
+        url. Fails if a target path exists, unless it's an empty directory.
+        If a spec is provided, the local repository
         will be updated to that revision. It is possible that
         after a failed call to checkout, a repository still exists,
         e.g. if an invalid revision spec was given.

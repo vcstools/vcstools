@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
+import errno
 import os
 import copy
 import shlex
@@ -38,6 +38,23 @@ import subprocess
 import logging
 
 from vcstools.vcs_base import VcsError
+
+
+def ensure_dir_notexists(path):
+    """
+    helper function, removes dir if it exists
+
+    :returns: True if dir does not exist after this function
+    :raises: OSError if dir exists and removal failed for non-trivial reasons
+    """
+    try:
+        if os.path.exists(path):
+            os.rmdir(path)
+        return True
+    except OSError as ose:
+        # ignore if directory
+        if not ose.errno in [errno.ENOENT, errno.ENOTEMPTY, errno.ENOTDIR]:
+            return False
 
 def normalized_rel_path(path, basepath):
     """

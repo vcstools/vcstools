@@ -127,6 +127,15 @@ class HGClientTest(HGClientTestSetups):
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_version(), self.local_version)
 
+    def test_checkout_dir_exists(self):
+        url = self.remote_path
+        client = HgClient(self.local_path)
+        self.assertFalse(client.path_exists())
+        os.makedirs(self.local_path)
+        self.assertTrue(client.checkout(url))
+        # non-empty
+        self.assertFalse(client.checkout(url))
+
     def test_checkout_emptystringversion(self):
         # special test to check that version '' means the same as None
         url = self.local_url
