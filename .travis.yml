@@ -3,6 +3,7 @@ python:
   - "2.6"
   - "2.7"
   - "3.2"
+  - "3.3"
 env:
   # lucid
   - HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.09
@@ -21,6 +22,8 @@ matrix:
     - python: "2.7"
       env: HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.09
     - python: "3.2"
+      env: HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.09
+    - python: "3.3"
       env: HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.09
 before_install:
  - export REPO=`pwd`
