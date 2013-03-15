@@ -39,6 +39,7 @@ tarfile with a folder inside for each version.
 """
 
 
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import tempfile
 import shutil

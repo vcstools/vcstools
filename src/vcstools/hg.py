@@ -37,6 +37,7 @@ using ui object to redirect output into a string
 """
 
 
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
 

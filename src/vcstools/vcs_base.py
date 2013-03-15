@@ -30,11 +30,15 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
 """
 vcs support library base class.
 """
+
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import logging
+
 
 __pychecker__ = 'unusednames=spec,url,version,basepath,untracked'
 

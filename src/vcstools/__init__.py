@@ -34,6 +34,7 @@
 Library for tools that need to interact with ROS-support version control systems.
 """
 
+from __future__ import absolute_import, print_function, unicode_literals
 import logging
 
 from vcstools.vcs_abstraction import VcsClient, VCSClient, register_vcs, \

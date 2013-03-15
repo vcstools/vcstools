@@ -31,7 +31,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import io
@@ -49,7 +49,7 @@ class GitClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-       
+
         self.root_directory = tempfile.mkdtemp()
         # helpful when setting tearDown to pass
         self.directories = dict(setUp=self.root_directory)
@@ -63,7 +63,7 @@ class GitClientTestSetups(unittest.TestCase):
         os.makedirs(self.remote_path)
         os.makedirs(self.submodule_path)
         os.makedirs(self.subsubmodule_path)
-        
+
         # create a "remote" repo
         subprocess.check_call("git init", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
@@ -119,7 +119,7 @@ class GitClientTestSetups(unittest.TestCase):
 
         # go back to master else clients will checkout test_branch
         subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
-        
+
     @classmethod
     def tearDownClass(self):
         for d in self.directories:
@@ -128,10 +128,10 @@ class GitClientTestSetups(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
-            
-    
+
+
 class GitClientTest(GitClientTestSetups):
-    
+
     def test_checkout_master_with_subs(self):
         url = self.remote_path
         client = GitClient(self.local_path)
@@ -149,7 +149,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subsubclient.path_exists())
         self.assertTrue(subsubclient.detect_presence())
         self.assertEqual(subsubclient.get_version(), self.subsubversion_final)
-        
+
     def test_switch_branches(self):
         url = self.remote_path
         client = GitClient(self.local_path)
@@ -173,7 +173,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.checkout(url))
         output = client.get_status()
         self.assertEqual('', output, output)
-        
+
         with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
             f.write('0123456789abcdef')
         subprocess.check_call("touch new.txt", shell=True, cwd=self.local_path)
@@ -193,14 +193,14 @@ class GitClientTest(GitClientTestSetups):
         output = client.get_status(basepath=os.path.dirname(self.local_path), untracked = True)
         self.assertEqual(' M local/fixed.txt\n M local/submodule\n?? local/new.txt\n M local/subfixed.txt\n M local/subsubmodule\n?? local/subnew.txt\n M local/subsubfixed.txt\n?? local/subsubnew.txt', output.rstrip())
 
-        
+
     def test_diff(self):
         url = self.remote_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url))
         output = client.get_diff()
         self.assertEqual('', output, output)
-        
+
         with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
             f.write('0123456789abcdef')
         subprocess.check_call("touch new.txt", shell=True, cwd=self.local_path)
@@ -215,7 +215,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(1094, len(output))
         self.assertTrue('diff --git ./fixed.txt ./fixed.txt\nindex e69de29..454f6b3 100644\n--- ./fixed.txt\n+++ ./fixed.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file' in output)
         self.assertTrue('diff --git ./submodule/subsubmodule/subsubfixed.txt ./submodule/subsubmodule/subsubfixed.txt\nindex e69de29..1a332dc 100644\n--- ./submodule/subsubmodule/subsubfixed.txt\n+++ ./submodule/subsubmodule/subsubfixed.txt\n@@ -0,0 +1 @@\n+012345cdef\n\\ No newline at end of file' in output)
-        
+
         output = client.get_diff(basepath=os.path.dirname(self.local_path))
         self.assertEqual(1174, len(output))
         self.assertTrue('diff --git local/fixed.txt local/fixed.txt\nindex e69de29..454f6b3 100644\n--- local/fixed.txt\n+++ local/fixed.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\ No newline at end of file' in output, output)

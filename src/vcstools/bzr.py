@@ -30,11 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
 """
 bzr vcs support.
 """
 
 
+from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
 
