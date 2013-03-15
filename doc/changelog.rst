@@ -10,7 +10,7 @@ Changelog
 - fix #57 shallow checkout of non-master breaks with git >= 1.8.0
 - unit test fixes
 
-0.1.29
+0.1.28
 ------
 
 - test of new upload method
