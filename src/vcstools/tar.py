@@ -46,6 +46,7 @@ import tarfile
 import sys
 import yaml
 from vcstools.vcs_base import VcsClientBase, VcsError
+from vcstools.common import ensure_dir_notexists
 
 # first try python3, then python2
 try:
@@ -105,8 +106,8 @@ class TarClient(VcsClientBase):
         checkout named *.tar which is a yaml file listing origin url
         and version arguments.
         """
-        if self.path_exists():
-            self.logger.error("Cannot checkout into existing directory")
+        if not ensure_dir_notexists(self.get_path()):
+            self.logger.error("Can't remove %s" % self.get_path())
             return False
         tempdir = None
         result = False

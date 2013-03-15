@@ -100,6 +100,17 @@ class TarClientTest(unittest.TestCase):
                                                     self.package_version,
                                                     'stack.xml')))
 
+    def test_checkout_dir_exists(self):
+        directory = tempfile.mkdtemp()
+        self.directories["checkout_test"] = directory
+        local_path = os.path.join(directory, "exploration")
+        client = TarClient(local_path)
+        self.assertFalse(client.path_exists())
+        os.makedirs(local_path)
+        self.assertTrue(client.checkout(self.remote_url))
+        # non-empty
+        self.assertFalse(client.checkout(self.remote_url))
+
     def test_checkout_version(self):
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory

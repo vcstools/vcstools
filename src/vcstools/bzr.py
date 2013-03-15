@@ -49,7 +49,8 @@ except ImportError:
     from urllib2 import url2pathname
 
 from vcstools.vcs_base import VcsClientBase, VcsError
-from vcstools.common import sanitized, normalized_rel_path, run_shell_command
+from vcstools.common import sanitized, normalized_rel_path, \
+    run_shell_command, ensure_dir_notexists
 
 
 def _get_bzr_version():
@@ -130,6 +131,10 @@ class BzrClient(VcsClientBase):
     def checkout(self, url, version=None, verbose=False, shallow=False):
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
+        # bzr 2.5.1 fails if empty directory exists
+        if not ensure_dir_notexists(self.get_path()):
+            self.logger.error("Can't remove %s" % self.get_path())
+            return False
         cmd = 'bzr branch'
         if version:
             cmd += ' -r %s' % version

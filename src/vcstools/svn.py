@@ -44,7 +44,8 @@ import dateutil.parser  # For parsing date strings
 import xml.dom.minidom  # For parsing logfiles
 
 from vcstools.vcs_base import VcsClientBase, VcsError
-from vcstools.common import sanitized, normalized_rel_path, run_shell_command
+from vcstools.common import sanitized, normalized_rel_path, \
+    run_shell_command, ensure_dir_notexists
 
 
 def _get_svn_version():
@@ -105,10 +106,9 @@ class SvnClient(VcsClientBase):
     def checkout(self, url, version='', verbose=False, shallow=False):
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
-        # Need to check as SVN does not care
-        if self.path_exists():
-            sys.stderr.write("Error: cannot checkout into existing "
-                           + "directory %s\n" % self._path)
+        # Need to check as SVN 1.6.17 writes into directory even if not empty
+        if not ensure_dir_notexists(self.get_path()):
+            self.logger.error("Can't remove %s" % self.get_path())
             return False
         if version is not None and version != '':
             if not version.startswith("-r"):

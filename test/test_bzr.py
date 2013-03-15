@@ -186,6 +186,15 @@ class BzrClientTest(BzrClientTestSetups):
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
 
+    def test_checkout_dir_exists(self):
+        url = self.remote_path
+        client = BzrClient(self.local_path)
+        self.assertFalse(client.path_exists())
+        os.makedirs(self.local_path)
+        self.assertTrue(client.checkout(url))
+        # non-empty
+        self.assertFalse(client.checkout(url))
+
     def test_checkout_specific_version_and_update(self):
         url = self.remote_path
         version = "1"
