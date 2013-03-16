@@ -8,6 +8,7 @@ Changelog
 ------
 
 - use netrc to download tars from private repos, also will work for private rosinstall files
+- Fix checks for empty repository #62
 
 0.1.29
 ------
