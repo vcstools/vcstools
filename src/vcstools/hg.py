@@ -273,7 +273,6 @@ class HgClient(VcsClientBase):
                 response = response_str.strip('\n\x1e').split("\x1e")
                 response = [row.strip().split("\x1f") for row in response]
                 response = [dict(zip(HG_COMMIT_FIELDS, row)) for row in response]
-                print(response)
                 # Parse dates
                 for entry in response:
                     entry['date'] = dateutil.parser.parse(entry['date'])
