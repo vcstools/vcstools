@@ -228,8 +228,10 @@ class SvnClient(VcsClientBase):
                 log_data['author'] = author_tag.firstChild.nodeValue
                 log_data['email'] = None
                 log_data['date'] = dateutil.parser.parse(str(date_tag.firstChild.nodeValue))
-                if len(msg_tags) > 0:
+                if len(msg_tags) > 0 and msg_tags[0].firstChild:
                     log_data['message'] = msg_tags[0].firstChild.nodeValue
+                else:
+                    log_data['message'] = ''
 
                 response.append(log_data)
 
