@@ -177,6 +177,7 @@ class GitClient(VcsClientBase):
         cmd += ' --recursive %s %s' % (url, self._path)
         value, _, msg = run_shell_command(cmd,
                                           shell=True,
+                                          no_filter=True,
                                           show_stdout=verbose,
                                           verbose=verbose)
         if value != 0:
@@ -659,12 +660,14 @@ class GitClient(VcsClientBase):
         value1, _, _ = run_shell_command(cmd,
                                          cwd=self._path,
                                          shell=True,
+                                         no_filter=True,
                                          show_stdout=True)
         ## git fetch --tags ONLY fetches new tags and commits used, no other commits!
         cmd = "git fetch --tags"
         value2, _, _ = run_shell_command(cmd,
                                          cwd=self._path,
                                          shell=True,
+                                         no_filter=True,
                                          show_stdout=True)
         if value1 != 0 or value2 != 0:
             raise GitError('git fetch failed')
