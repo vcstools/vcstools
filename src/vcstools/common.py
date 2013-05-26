@@ -265,18 +265,18 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
         stderr_buf = []
         if not no_filter:
             if (verbose or show_stdout):
-            # this loop runs until proc is done
-            # it listen to the pipe, print and stores result in buffer for returning
-            # this allows proc to run while we still can filter out output
-            # avoiding readline() because it may block forever
-            for line in iter(proc.stdout.readline, b''):
-                line = line.decode('UTF-8')
-                if line is not None and line != '':
-                    if verbose or not _discard_line(line):
-                        print(line),
-                        stdout_buf.append(line)
-                if (not line or proc.returncode is not None):
-                    break
+                # this loop runs until proc is done
+                # it listen to the pipe, print and stores result in buffer for returning
+                # this allows proc to run while we still can filter out output
+                # avoiding readline() because it may block forever
+                for line in iter(proc.stdout.readline, b''):
+                    line = line.decode('UTF-8')
+                    if line is not None and line != '':
+                        if verbose or not _discard_line(line):
+                            print(line),
+                            stdout_buf.append(line)
+                    if (not line or proc.returncode is not None):
+                        break
             # stderr was swallowed in pipe, in verbose mode print lines
             if verbose:
                 for line in iter(proc.stderr.readline, b''):
