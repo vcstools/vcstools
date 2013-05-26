@@ -263,7 +263,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
         # in communicate()
         stdout_buf = []
         stderr_buf = []
-        if not no_filter and (verbose or show_stdout):
+        if not no_filter:
+            if (verbose or show_stdout):
             # this loop runs until proc is done
             # it listen to the pipe, print and stores result in buffer for returning
             # this allows proc to run while we still can filter out output
@@ -276,15 +277,15 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
                         stdout_buf.append(line)
                 if (not line or proc.returncode is not None):
                     break
-        # stderr was swallowed in pipe, in verbose mode print lines
-        if verbose:
-            for line in iter(proc.stderr.readline, b''):
-                line = line.decode('UTF-8')
-                if line != '':
-                    print(line),
-                    stderr_buf.append(line)
-                if not line:
-                    break
+            # stderr was swallowed in pipe, in verbose mode print lines
+            if verbose:
+                for line in iter(proc.stderr.readline, b''):
+                    line = line.decode('UTF-8')
+                    if line != '':
+                        print(line),
+                        stderr_buf.append(line)
+                    if not line:
+                        break
 
         (stdout, stderr) = proc.communicate()
         if stdout is not None:
