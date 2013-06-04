@@ -500,7 +500,7 @@ class GitClient(VcsClientBase):
             branchname = current_branch or self.get_branch()
             if branchname is None:
                 return None
-            cmd = 'git config --get-all %s'%sanitized('branch.%s.merge'%branchname)
+            cmd = 'git config --get %s'%sanitized('branch.%s.merge'%branchname)
 
             _, output, _ = run_shell_command(cmd,
                                              shell=True,
@@ -512,7 +512,7 @@ class GitClient(VcsClientBase):
                 print("vcstools unable to handle multiple merge references for branch %s:\n%s"%(branchname, output))
                 return None
             # get name of configured remote
-            cmd = 'git config --get-all "branch.%s.remote"'%branchname
+            cmd = 'git config --get "branch.%s.remote"'%branchname
             _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if output2 != "origin":
                 print("vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(branchname, output2))
