@@ -206,7 +206,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url, 'test_branch'))
-        self.assertEqual(0, client.submodules)
+        self.assertEqual(1, client.submodules)
         self.assertEqual(0, client.fetches)
         self.assertEqual(0, client.fast_forwards)
 
