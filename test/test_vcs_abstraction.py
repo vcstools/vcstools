@@ -8,6 +8,7 @@ from vcstools.vcs_abstraction import register_vcs, get_registered_vcs_types, \
 
 from vcstools import get_vcs_client
 
+
 class TestVcsAbstraction(unittest.TestCase):
 
     def test_register_vcs(self):

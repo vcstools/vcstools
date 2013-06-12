@@ -153,14 +153,17 @@ class GitClientTest(GitClientTestSetups):
         client.fetches = 0
         client.submodules = 0
         client.fast_forwards = 0
+
         def ifetch(self):
-            self.fetches +=1
+            self.fetches += 1
             return True
+
         def iff(self, fetch=True, branch_parent=None, verbose=False):
-            self.fast_forwards +=1
+            self.fast_forwards += 1
             return True
+
         def isubm(self, verbose=False):
-            self.submodules +=1
+            self.submodules += 1
             return True
         client._do_fetch = types.MethodType(ifetch, client)
         client._do_fast_forward = types.MethodType(iff, client)
@@ -190,14 +193,17 @@ class GitClientTest(GitClientTestSetups):
         client.fetches = 0
         client.submodules = 0
         client.fast_forwards = 0
+
         def ifetch(self):
-            self.fetches +=1
+            self.fetches += 1
             return True
+
         def iff(self, fetch=True, branch_parent=None, verbose=False):
-            self.fast_forwards +=1
+            self.fast_forwards += 1
             return True
+
         def isubm(self, verbose=False):
-            self.submodules +=1
+            self.submodules += 1
             return True
         client._do_fetch = types.MethodType(ifetch, client)
         client._do_fast_forward = types.MethodType(iff, client)
@@ -392,6 +398,7 @@ test_tag
   remotes/origin/master
   remotes/origin/test_branch
 ''', output)
+
 
 class GitClientLogTest(GitClientTestSetups):
 
@@ -613,6 +620,7 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         except VcsError:
             pass
 
+
 class GitClientOverflowTest(GitClientTestSetups):
     '''Test reproducing an overflow of arguments to git log'''
 
@@ -633,6 +641,7 @@ class GitClientOverflowTest(GitClientTestSetups):
         client = GitClient(self.local_path)
         # this failed when passing all ref ids to git log
         self.assertFalse(client.is_commit_in_orphaned_subtree(self.last_version))
+
 
 class GitDiffStatClientTest(GitClientTestSetups):
 
@@ -711,7 +720,8 @@ class GitExportClientTest(GitClientTestSetups):
     def testExportRepository(self):
         client = GitClient(self.local_path)
         self.assertTrue(
-          client.export_repository(self.readonly_version, self.basepath_export)
+            client.export_repository(self.readonly_version,
+                                     self.basepath_export)
         )
 
         self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))

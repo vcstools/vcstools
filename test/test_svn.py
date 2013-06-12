@@ -72,7 +72,6 @@ class SvnClientTestSetups(unittest.TestCase):
 
         self.local_version_init = "-r1"
 
-
         # files to be modified in "local" repo
         for cmd in [
             "touch trunk/modified.txt",
@@ -247,13 +246,13 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
         pass
 
     def assertStatusListEqual(self, listexpect, listactual):
-          """helper fun to check scm status output while discarding file ordering differences"""
-          lines_expect = listexpect.splitlines()
-          lines_actual = listactual.splitlines()
-          for line in lines_expect:
-               self.assertTrue(line in lines_actual, 'Missing entry %s in output %s' % (line, listactual))
-          for line in lines_actual:
-               self.assertTrue(line in lines_expect, 'Superflous entry %s in output %s' % (line, listactual))
+        """helper fun to check scm status output while discarding file ordering differences"""
+        lines_expect = listexpect.splitlines()
+        lines_actual = listactual.splitlines()
+        for line in lines_expect:
+            self.assertTrue(line in lines_actual, 'Missing entry %s in output %s' % (line, listactual))
+        for line in lines_actual:
+            self.assertTrue(line in lines_expect, 'Superflous entry %s in output %s' % (line, listactual))
 
     def assertEqualDiffs(self, expected, actual):
         "True if actual is similar enough to expected, minus svn properties"
@@ -287,7 +286,6 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
             expected_blocks.append(block)
         filtered = "\n".join(filtered_actual_blocks)
         self.assertEquals(set(expected_blocks), set(filtered_actual_blocks))
-
 
     def test_diff(self):
         client = SvnClient(self.local_path)

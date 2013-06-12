@@ -34,16 +34,13 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
-import io
-import stat
-import struct
-import sys
 import unittest
 import subprocess
 import tempfile
 import shutil
 
 from vcstools.git import GitClient
+
 
 class GitClientTestSetups(unittest.TestCase):
 
@@ -89,7 +86,8 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git tag subsub_test_tag", shell=True, cwd=self.subsubmodule_path)
 
         # attach subsubmodule to submodule
-        subprocess.check_call("git submodule add %s %s"%(self.subsubmodule_path, "subsubmodule"), shell=True, cwd=self.submodule_path)
+        subprocess.check_call("git submodule add %s %s" % (self.subsubmodule_path, "subsubmodule"),
+                              shell=True, cwd=self.submodule_path)
         subprocess.check_call("git submodule init", shell=True, cwd=self.submodule_path)
         subprocess.check_call("git submodule update", shell=True, cwd=self.submodule_path)
         subprocess.check_call("git commit -m subsubmodule", shell=True, cwd=self.submodule_path)
@@ -101,7 +99,8 @@ class GitClientTestSetups(unittest.TestCase):
         self.subversion_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # attach submodule to remote
-        subprocess.check_call("git submodule add %s %s"%(self.submodule_path, "submodule"), shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
+                              shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
         subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
@@ -112,7 +111,7 @@ class GitClientTestSetups(unittest.TestCase):
 
         # attach submodule somewhere else in test_branch
         subprocess.check_call("git checkout master -b test_branch2", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule add %s %s"%(self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
         subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
@@ -200,12 +199,11 @@ class GitClientTest(GitClientTestSetups):
         output = client.get_status()
         self.assertEqual(' M ./fixed.txt\n M ./submodule\n M ./subfixed.txt\n M ./subsubmodule\n M ./subsubfixed.txt', output.rstrip())
 
-        output = client.get_status(untracked = True)
+        output = client.get_status(untracked=True)
         self.assertEqual(' M ./fixed.txt\n M ./submodule\n?? ./new.txt\n M ./subfixed.txt\n M ./subsubmodule\n?? ./subnew.txt\n M ./subsubfixed.txt\n?? ./subsubnew.txt', output.rstrip())
 
-        output = client.get_status(basepath=os.path.dirname(self.local_path), untracked = True)
+        output = client.get_status(basepath=os.path.dirname(self.local_path), untracked=True)
         self.assertEqual(' M local/fixed.txt\n M local/submodule\n?? local/new.txt\n M local/subfixed.txt\n M local/subsubmodule\n?? local/subnew.txt\n M local/subsubfixed.txt\n?? local/subsubnew.txt', output.rstrip())
-
 
     def test_diff(self):
         url = self.remote_path

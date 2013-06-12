@@ -38,7 +38,6 @@ bzr vcs support.
 
 from __future__ import absolute_import, print_function, unicode_literals
 import os
-import sys
 
 import re
 import email.utils  # For email parsing
@@ -65,7 +64,9 @@ def _get_bzr_version():
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("bzr --version returned %s, maybe bzr is not installed" % value)
+            raise VcsError("bzr --version returned %s," +
+                           " maybe bzr is not installed" %
+                           value)
     except VcsError as e:
         raise VcsError("Coud not determine whether bzr is installed: %s" % e)
     return version
@@ -90,7 +91,8 @@ class BzrClient(VcsClientBase):
 
     def get_url(self):
         """
-        :returns: BZR URL of the branch (output of bzr info command), or None if it cannot be determined
+        :returns: BZR URL of the branch (output of bzr info command),
+        or None if it cannot be determined
         """
         result = None
         if self.detect_presence():
@@ -218,7 +220,7 @@ class BzrClient(VcsClientBase):
     def get_log(self, relpath=None, limit=None):
         response = []
 
-        if relpath == None:
+        if relpath is None:
             relpath = ''
 
         # Compile regexes
@@ -242,12 +244,11 @@ class BzrClient(VcsClientBase):
                 for revno, committer, timestamp, message in zip(revno_match, committer_match, timestamp_match, message_match):
                     author, email_address = email.utils.parseaddr(committer)
                     date = dateutil.parser.parse(timestamp)
-                    log_data = {
-                            'id': revno,
-                            'author': author,
-                            'email': email_address,
-                            'message': message,
-                            'date': date}
+                    log_data = {'id': revno,
+                                'author': author,
+                                'email': email_address,
+                                'message': message,
+                                'date': date}
 
                     response.append(log_data)
 

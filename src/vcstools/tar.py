@@ -67,7 +67,7 @@ class TarClient(VcsClientBase):
     @staticmethod
     def get_environment_metadata():
         metadict = {}
-        metadict["version"] = 'tarfile version: %s'%tarfile.__version__
+        metadict["version"] = 'tarfile version: %s' % tarfile.__version__
         return metadict
 
     def get_url(self):
@@ -106,9 +106,9 @@ class TarClient(VcsClientBase):
                 (filename, _) = urlretrieve_netrc(url)
                 # print "filename", filename
             temp_tarfile = tarfile.open(filename, 'r:*')
-            members = None # means all members in extractall
+            members = None  # means all members in extractall
             if version == '' or version is None:
-                self.logger.warn("No tar subdirectory chosen via the 'version' argument for url: %s"%url)
+                self.logger.warn("No tar subdirectory chosen via the 'version' argument for url: %s" % url)
             else:
                 # getmembers lists all files contained in tar with
                 # relative path
@@ -120,25 +120,25 @@ class TarClient(VcsClientBase):
                     if m.name.split('/')[0] not in subdirs:
                         subdirs.append(m.name.split('/')[0])
                 if not members:
-                    raise VcsError("%s is not a subdirectory with contents in members %s"%(version, subdirs))
+                    raise VcsError("%s is not a subdirectory with contents in members %s" % (version, subdirs))
             temp_tarfile.extractall(path=tempdir, members=members)
 
             subdir = os.path.join(tempdir, version)
             if not os.path.isdir(subdir):
-                raise VcsError("%s is not a subdirectory\n"%subdir)
+                raise VcsError("%s is not a subdirectory\n" % subdir)
 
             try:
                 #os.makedirs(os.path.dirname(self._path))
                 shutil.move(subdir, self._path)
             except Exception as ex:
-                raise VcsError("%s failed to move %s to %s"%(ex, subdir, self._path))
+                raise VcsError("%s failed to move %s to %s" % (ex, subdir, self._path))
             metadata = yaml.dump({'url': url, 'version': version})
             with open(self.metadata_path, 'w') as mdat:
                 mdat.write(metadata)
             result = True
 
         except Exception as exc:
-            self.logger.error("Tarball download unpack failed: %s"%str(exc))
+            self.logger.error("Tarball download unpack failed: %s" % str(exc))
         finally:
             if tempdir is not None and os.path.exists(tempdir):
                 shutil.rmtree(tempdir)

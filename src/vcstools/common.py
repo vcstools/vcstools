@@ -141,7 +141,7 @@ def _netrc_open(uri, filename=None):
     try:
         info = netrc.netrc(filename).authenticators(machine)
         if info is not None:
-            (username, _ , password) = info
+            (username, _, password) = info
             if username and password:
                 pass_man = HTTPPasswordMgrWithDefaultRealm()
                 pass_man.add_password(None, machine, username, password)
@@ -197,7 +197,8 @@ def sanitized(arg):
     # this also detects some false positives, like bar"";foo
     if '"' in arg:
         if (len(shlex.split(safe_arg, False, False)) != 1):
-            raise VcsError("Shell injection attempt detected: >%s< = %s"%(arg, shlex.split(safe_arg, False, False)))
+            raise VcsError("Shell injection attempt detected: >%s< = %s" %
+                           (arg, shlex.split(safe_arg, False, False)))
     return safe_arg
 
 
@@ -213,7 +214,7 @@ def _discard_line(line):
                         "Installing", "Using ",
                         "No ", "Tree ",
                         "All ",
-                        "+N  ", "-D  ", " M  ", " M* ", "RM" # bzr
+                        "+N  ", "-D  ", " M  ", " M* ", "RM"  # bzr
                         ]
     for pre in discard_prefixes:
         if line.startswith(pre):
@@ -243,7 +244,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
     try:
         env = copy.copy(os.environ)
         if us_env:
-            env ["LANG"] = "en_US.UTF-8"
+            env["LANG"] = "en_US.UTF-8"
         if no_filter:
             # in no_filter mode, we cannot pipe stdin, as this
             # causes some prompts to be hidden (e.g. mercurial over
@@ -297,10 +298,10 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
         message = None
         if proc.returncode != 0 and stderr is not None and stderr != '':
             logger = logging.getLogger('vcstools')
-            message = "Command failed: '%s'"%(cmd)
+            message = "Command failed: '%s'" % (cmd)
             if cwd is not None:
-                message += "\n run at: '%s'"%(cwd)
-            message += "\n errcode: %s:\n%s"%(proc.returncode, stderr)
+                message += "\n run at: '%s'" % (cwd)
+            message += "\n errcode: %s:\n%s" % (proc.returncode, stderr)
             logger.warn(message)
         result = stdout
         if result is not None:
@@ -308,6 +309,6 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
         return (proc.returncode, result, message)
     except OSError as ose:
         logger = logging.getLogger('vcstools')
-        message = "Command failed with OSError. '%s' <%s, %s>:\n%s"%(cmd, shell, cwd, ose)
+        message = "Command failed with OSError. '%s' <%s, %s>:\n%s" % (cmd, shell, cwd, ose)
         logger.error(message)
         raise VcsError(message)

@@ -220,6 +220,7 @@ class BzrClientTest(BzrClientTestSetups):
         client = BzrClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+
 class BzrClientLogTest(BzrClientTestSetups):
 
     @classmethod

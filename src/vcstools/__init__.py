@@ -31,7 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Library for tools that need to interact with ROS-support version control systems.
+Library for tools that need to interact with ROS-support
+version control systems.
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -45,8 +46,6 @@ from vcstools.bzr import BzrClient
 from vcstools.hg import HgClient
 from vcstools.git import GitClient
 from vcstools.tar import TarClient
-
-
 
 # configure the VCSClient
 register_vcs("svn", SvnClient)
