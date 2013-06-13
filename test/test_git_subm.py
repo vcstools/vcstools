@@ -67,7 +67,7 @@ class GitClientTestSetups(unittest.TestCase):
         # create a "remote" repo
         subprocess.check_call("git init", shell=True, cwd=self.remote_path)
         subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add fixed.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
         subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
         subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
@@ -111,7 +111,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
 
         # attach submodule somewhere else in test_branch
-        subprocess.check_call("git checkout test_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git checkout master -b test_branch2", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule add %s %s"%(self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
@@ -142,13 +142,26 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.checkout(url))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEqual(client.get_version(), self.version_final)
+        self.assertEqual(self.version_final, client.get_version())
         self.assertTrue(subclient.path_exists())
         self.assertTrue(subclient.detect_presence())
-        self.assertEqual(subclient.get_version(), self.subversion_final)
+        self.assertEqual(self.subversion_final, subclient.get_version())
         self.assertTrue(subsubclient.path_exists())
         self.assertTrue(subsubclient.detect_presence())
-        self.assertEqual(subsubclient.get_version(), self.subsubversion_final)
+        self.assertEqual(self.subsubversion_final, subsubclient.get_version())
+
+    def test_checkout_branch_with_subs(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, refname='test_branch'))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(self.version_init, client.get_version())
+        self.assertFalse(subclient.path_exists())
 
     def test_switch_branches(self):
         url = self.remote_path
@@ -163,7 +176,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subclient.path_exists())
         self.assertTrue(subsubclient.path_exists())
         self.assertFalse(subclient2.path_exists())
-        new_version = "test_branch"
+        new_version = "test_branch2"
         self.assertTrue(client.update(new_version))
         self.assertTrue(subclient2.path_exists())
 
