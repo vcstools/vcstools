@@ -192,7 +192,7 @@ class GitClient(VcsClientBase):
                 return self._do_update(refname,
                                        verbose=verbose,
                                        fast_foward=True,
-                                       update_submodules=False)
+                                       update_submodules=True)
             else:
                 return True
         except GitError:
