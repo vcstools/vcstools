@@ -44,7 +44,6 @@ import sys
 import gzip
 
 import dateutil.parser  # For parsing date strings
-import xml.dom.minidom  # For parsing logfiles
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command

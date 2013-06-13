@@ -341,7 +341,6 @@ class GitClient(VcsClientBase):
             if spec is not None:
                 command += " %s" % sanitized(spec)
             command += " --format='%H'"
-            repeated = False
             output = ''
             #we repeat the call once after fetching if necessary
             for _ in range(2):
