@@ -1,9 +1,25 @@
-import pep8
 import os
+from pkg_resources import parse_version, get_distribution
+
+
 
 
 def test_pep8_conformance():
     """Test source code for PEP8 conformance"""
+
+    try:
+        import pep8
+    except:
+        print "Skipping pep8 Tests because pep8.py not installed."
+        return
+
+    # Skip test if pep8 is not new enough
+    pep8_version = parse_version(get_distribution('pep8').version)
+    needed_version = parse_version('1.0')
+    if pep8_version < needed_version:
+        print "Skipping pep8 Tests because pep8.py is too old"
+        return
+
     pep8style = pep8.StyleGuide(max_line_length=1200)
     report = pep8style.options.report
     report.start()
