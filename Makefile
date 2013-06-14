@@ -35,7 +35,6 @@ deb_dist:
 	python setup.py --command-packages=stdeb.command sdist_dsc --workaround-548392=False bdist_deb
 
 upload-packages: deb_dist
-	dput -u -c dput.cf all-shadow ${OUTPUT_DIR}/${NAME}_${VERSION}-1_amd64.changes 
 	dput -u -c dput.cf all-shadow-fixed ${OUTPUT_DIR}/${NAME}_${VERSION}-1_amd64.changes 
 	dput -u -c dput.cf all-ros ${OUTPUT_DIR}/${NAME}_${VERSION}-1_amd64.changes 
 
