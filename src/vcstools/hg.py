@@ -163,9 +163,9 @@ class HgClient(VcsClientBase):
         if version is not None and version.strip() != '':
             cmd = "hg checkout %s" % sanitized(version)
             value, _, msg = run_shell_command(cmd,
-                                            cwd=self._path,
-                                            shell=True,
-                                            no_filter=True)
+                                              cwd=self._path,
+                                              shell=True,
+                                              no_filter=True)
             if value != 0:
                 if msg:
                     sys.stderr.write('%s\n' % msg)
@@ -215,8 +215,8 @@ class HgClient(VcsClientBase):
                                                      cwd=self._path,
                                                      us_env=True)
                     if (output.strip() != ''
-                        and not output.startswith("abort")
-                        or repeated is True):
+                            and not output.startswith("abort")
+                            or repeated is True):
 
                         matches = [l for l in output.splitlines() if l.startswith('changeset: ')]
                         if len(matches) == 1:
@@ -250,7 +250,7 @@ class HgClient(VcsClientBase):
     def get_log(self, relpath=None, limit=None):
         response = []
 
-        if relpath == None:
+        if relpath is None:
             relpath = ''
 
         if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):

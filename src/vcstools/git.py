@@ -580,10 +580,8 @@ class GitClient(VcsClientBase):
         # not sure what's more performant
         if fetch:
             self._do_fetch()
-        if (refname is not None and
-            refname != '' and
-            version is not None and
-            version != ''):
+        if (refname is not None and refname != '' and
+                version is not None and version != ''):
 
             cmd = 'git rev-list %s ^%s --parents' % (sanitized(refname), sanitized(version))
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
