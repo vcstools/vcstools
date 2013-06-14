@@ -241,7 +241,10 @@ class BzrClient(VcsClientBase):
                 message_match = message_regex.findall(text_response)
 
                 # Extract the entries
-                for revno, committer, timestamp, message in zip(revno_match, committer_match, timestamp_match, message_match):
+                for revno, committer, timestamp, message in zip(revno_match,
+                                                                committer_match,
+                                                                timestamp_match,
+                                                                message_match):
                     author, email_address = email.utils.parseaddr(committer)
                     date = dateutil.parser.parse(timestamp)
                     log_data = {'id': revno,

@@ -390,7 +390,8 @@ class GitClient(VcsClientBase):
             GIT_COMMIT_FIELDS = ['id', 'author', 'email', 'date', 'message']
             GIT_LOG_FORMAT = '%x1f'.join(['%H', '%an', '%ae', '%ad', '%s']) + '%x1e'
 
-            command = "git --work-tree=%s log --format=\"%s\" %s %s " % (self._path, GIT_LOG_FORMAT, limit_cmd, sanitized(relpath))
+            command = "git --work-tree=%s log --format=\"%s\" %s %s " % (self._path, GIT_LOG_FORMAT,
+                                                                         limit_cmd, sanitized(relpath))
             return_code, response_str, stderr = run_shell_command(command, shell=True, cwd=self._path)
 
             if return_code == 0:
@@ -515,7 +516,8 @@ class GitClient(VcsClientBase):
             cmd = 'git config --get "branch.%s.remote"' % branchname
             _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if output2 != "origin":
-                print("vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'" % (branchname, output2))
+                print("vcstools only handles branches tracking remote 'origin'," +
+                      " branch '%s' tracks remote '%s'" % (branchname, output2))
                 return None
             output = lines[0]
             # output is either refname, or /refs/heads/refname, or
@@ -600,7 +602,8 @@ class GitClient(VcsClientBase):
         commit. Else it would eventually be deleted.
 
         :param version: SHA IDs (if partial, caller is responsible for mismatch)
-        :param mask_self: whether to consider direct references to this commit (rather than only references on descendants) as well
+        :param mask_self: whether to consider direct references to this commit
+            (rather than only references on descendants) as well
         :param fetch: whether fetch should be done first for remote refs
         :returns: True if version is not recursively referenced by a branch or tag
         :raises: GitError if git fetch fails

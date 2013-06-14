@@ -20,7 +20,7 @@ def test_pep8_conformance():
         print "Skipping pep8 Tests because pep8.py is too old"
         return
 
-    pep8style = pep8.StyleGuide(max_line_length=1200)
+    pep8style = pep8.StyleGuide(max_line_length=120)
     report = pep8style.options.report
     report.start()
     pep8style.input_dir(os.path.join('..', 'vcstools', 'src'))
