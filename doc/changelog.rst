@@ -4,6 +4,11 @@ Changelog
 0.1
 ===
 
+0.1.31
+------
+
+- Fix submodule support on checkout #71
+
 0.1.30
 ------
 
