@@ -37,6 +37,7 @@ install:
   - export PY2K=`python -c 'import sys; print("python2" if (sys.version_info[0] == 3) else  "python")'`
   - pip install coverage
   - pip install cython
+  - pip install pep8
   - pip install "pyyaml<=$PYYAML" > pyaml-warnings.log 2>&1 || (cat pyaml-warnings.log && false)
   - pip install python-dateutil
   - cd $HOME/builds && wget http://mercurial.selenic.com/release/mercurial-$HG.tar.gz && tar -xf mercurial-$HG.tar.gz && cd mercurial-$HG && sudo $PY2K setup.py install > hg_install.log 2>&1 || (cat hg_install.log && false)
