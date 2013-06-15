@@ -33,14 +33,13 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 import os
-import struct
-import sys
 import unittest
 import tempfile
 import shutil
 import subprocess
 
 from vcstools.tar import TarClient
+
 
 class TarClientTest(unittest.TestCase):
 
@@ -129,6 +128,7 @@ class TarClientTest(unittest.TestCase):
         # make sure the tarball subdirectory was promoted correctly.
         self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml')))
 
+
 class TarClientTestLocal(unittest.TestCase):
 
     def setUp(self):
@@ -152,16 +152,16 @@ class TarClientTestLocal(unittest.TestCase):
         self.tar_url_compressed = os.path.join(self.root_directory,
                                                "origin_compressed.tar.bz2")
 
-        subprocess.check_call("tar -cf %s %s"%(self.tar_url, " ".join(["version",
-                                                                       "version1",
-                                                                       "version1.txt",
-                                                                       "version1.0"])),
+        subprocess.check_call("tar -cf %s %s" % (self.tar_url, " ".join(["version",
+                                                                        "version1",
+                                                                        "version1.txt",
+                                                                        "version1.0"])),
                               shell=True,
                               cwd=self.root_directory)
-        subprocess.check_call("tar -cjf %s %s"%(self.tar_url_compressed, " ".join(["version",
-                                                                                   "version1",
-                                                                                   "version1.txt",
-                                                                                   "version1.0"])),
+        subprocess.check_call("tar -cjf %s %s" % (self.tar_url_compressed, " ".join(["version",
+                                                                                    "version1",
+                                                                                    "version1.txt",
+                                                                                    "version1.0"])),
                               shell=True,
                               cwd=self.root_directory)
 

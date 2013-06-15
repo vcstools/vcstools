@@ -191,6 +191,7 @@ class HGClientTest(HGClientTestSetups):
         client = HgClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+
 class HGClientLogTest(HGClientTestSetups):
 
     @classmethod

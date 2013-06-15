@@ -53,7 +53,6 @@ disambiguation, and in some cases warns.
 
 from __future__ import absolute_import, print_function, unicode_literals
 import os
-import sys
 import gzip
 import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
@@ -115,14 +114,14 @@ def _get_git_version():
         cmd = 'git --version'
         value, version, _ = run_shell_command(cmd, shell=True)
         if value != 0:
-            raise VcsError("git --version returned %s, maybe git is not installed"%(value))
+            raise VcsError("git --version returned %s, maybe git is not installed" % (value))
         prefix = 'git version '
         if version is not None and version.startswith(prefix):
             version = version[len(prefix):].strip()
         else:
-            raise VcsError("git --version returned invalid string: '%s'"%version)
+            raise VcsError("git --version returned invalid string: '%s'" % version)
     except VcsError as exc:
-        raise VcsError("Could not determine whether git is installed: %s"%exc)
+        raise VcsError("Could not determine whether git is installed: %s" % exc)
     return version
 
 
@@ -139,9 +138,9 @@ class GitClient(VcsClientBase):
         metadict = {}
         try:
             version = _get_git_version()
-            resetkeep =  LooseVersion(version) >= LooseVersion('1.7.1')
+            resetkeep = LooseVersion(version) >= LooseVersion('1.7.1')
             submodules = LooseVersion(version) > LooseVersion('1.7')
-            metadict["features"] = "'reset --keep': %s, submodules: %s"%(resetkeep, submodules)
+            metadict["features"] = "'reset --keep': %s, submodules: %s" % (resetkeep, submodules)
         except VcsError:
             version = "No git installed"
         metadict["version"] = version
@@ -340,17 +339,15 @@ class GitClient(VcsClientBase):
         if self.detect_presence():
             command = "git log -1"
             if spec is not None:
-                command += " %s"%sanitized(spec)
+                command += " %s" % sanitized(spec)
             command += " --format='%H'"
-            repeated = False
             output = ''
             #we repeat the call once after fetching if necessary
             for _ in range(2):
                 _, output, _ = run_shell_command(command,
                                                  shell=True,
                                                  cwd=self._path)
-                if (output != ''
-                    or spec is None):
+                if (output != '' or spec is None):
                     break
                 # we try again after fetching if given spec had not been found
                 try:
@@ -371,7 +368,8 @@ class GitClient(VcsClientBase):
             # git needs special treatment as it only works from inside
             # use HEAD to also show staged changes. Maybe should be option?
             # injection should be impossible using relpath, but to be sure, we check
-            cmd = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ."%(sanitized(rel_path), sanitized(rel_path))
+            cmd = "git diff HEAD --src-prefix=%s/ --dst-prefix=%s/ ." % \
+                  (sanitized(rel_path), sanitized(rel_path))
             _, response, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if LooseVersion(self.gitversion) > LooseVersion('1.7'):
                 cmd = 'git submodule foreach --recursive git diff HEAD'
@@ -382,7 +380,7 @@ class GitClient(VcsClientBase):
     def get_log(self, relpath=None, limit=None):
         response = []
 
-        if relpath == None:
+        if relpath is None:
             relpath = ''
 
         if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
@@ -392,7 +390,8 @@ class GitClient(VcsClientBase):
             GIT_COMMIT_FIELDS = ['id', 'author', 'email', 'date', 'message']
             GIT_LOG_FORMAT = '%x1f'.join(['%H', '%an', '%ae', '%ad', '%s']) + '%x1e'
 
-            command = "git --work-tree=%s log --format=\"%s\" %s %s " % (self._path, GIT_LOG_FORMAT, limit_cmd, sanitized(relpath))
+            command = "git --work-tree=%s log --format=\"%s\" %s %s " % (self._path, GIT_LOG_FORMAT,
+                                                                         limit_cmd, sanitized(relpath))
             return_code, response_str, stderr = run_shell_command(command, shell=True, cwd=self._path)
 
             if return_code == 0:
@@ -425,9 +424,9 @@ class GitClient(VcsClientBase):
             for line in response.split('\n'):
                 if len(line.strip()) > 0:
                     # prepend relative path
-                    response_processed += '%s%s/%s\n'%(line[0:3],
-                                                       rel_path,
-                                                       line[3:])
+                    response_processed += '%s%s/%s\n' % (line[0:3],
+                                                         rel_path,
+                                                         line[3:])
             if LooseVersion(self.gitversion) > LooseVersion('1.7'):
                 command = "git submodule foreach --recursive git status -s"
                 if not untracked:
@@ -440,7 +439,7 @@ class GitClient(VcsClientBase):
                         continue
                     if len(line.strip()) > 0:
                         # prepend relative path
-                        response_processed+=line[0:3]+rel_path+'/'+line[3:]+'\n'
+                        response_processed += line[0:3] + rel_path + '/' + line[3:] + '\n'
             response = response_processed
         return response
 
@@ -464,7 +463,6 @@ class GitClient(VcsClientBase):
                 if rem_name == "origin" and br_name == branch_name:
                     return True
         return False
-
 
     def is_local_branch(self, branch_name):
         if self.path_exists():
@@ -503,7 +501,7 @@ class GitClient(VcsClientBase):
             branchname = current_branch or self.get_branch()
             if branchname is None:
                 return None
-            cmd = 'git config --get %s'%sanitized('branch.%s.merge'%branchname)
+            cmd = 'git config --get %s' % sanitized('branch.%s.merge' % branchname)
 
             _, output, _ = run_shell_command(cmd,
                                              shell=True,
@@ -512,13 +510,14 @@ class GitClient(VcsClientBase):
                 return None
             lines = output.splitlines()
             if len(lines) > 1:
-                print("vcstools unable to handle multiple merge references for branch %s:\n%s"%(branchname, output))
+                print("vcstools unable to handle multiple merge references for branch %s:\n%s" % (branchname, output))
                 return None
             # get name of configured remote
-            cmd = 'git config --get "branch.%s.remote"'%branchname
+            cmd = 'git config --get "branch.%s.remote"' % branchname
             _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             if output2 != "origin":
-                print("vcstools only handles branches tracking remote 'origin', branch '%s' tracks remote '%s'"%(branchname, output2))
+                print("vcstools only handles branches tracking remote 'origin'," +
+                      " branch '%s' tracks remote '%s'" % (branchname, output2))
                 return None
             output = lines[0]
             # output is either refname, or /refs/heads/refname, or
@@ -555,7 +554,7 @@ class GitClient(VcsClientBase):
         if not tag_name:
             raise ValueError('is_tag requires tag_name, got: "%s"' % tag_name)
         if self.path_exists():
-            cmd = 'git tag -l %s'%sanitized(tag_name)
+            cmd = 'git tag -l %s' % sanitized(tag_name)
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             lines = output.splitlines()
             if len(lines) == 1:
@@ -583,12 +582,10 @@ class GitClient(VcsClientBase):
         # not sure what's more performant
         if fetch:
             self._do_fetch()
-        if (refname is not None and
-            refname != '' and
-            version is not None and
-            version!=''):
+        if (refname is not None and refname != '' and
+                version is not None and version != ''):
 
-            cmd = 'git rev-list %s ^%s --parents'%(sanitized(refname), sanitized(version))
+            cmd = 'git rev-list %s ^%s --parents' % (sanitized(refname), sanitized(version))
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             for line in output.splitlines():
                 # can have 1, 2 or 3 elements (commit, parent1, parent2)
@@ -605,7 +602,8 @@ class GitClient(VcsClientBase):
         commit. Else it would eventually be deleted.
 
         :param version: SHA IDs (if partial, caller is responsible for mismatch)
-        :param mask_self: whether to consider direct references to this commit (rather than only references on descendants) as well
+        :param mask_self: whether to consider direct references to this commit
+            (rather than only references on descendants) as well
         :param fetch: whether fetch should be done first for remote refs
         :returns: True if version is not recursively referenced by a branch or tag
         :raises: GitError if git fetch fails

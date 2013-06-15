@@ -61,10 +61,10 @@ def _get_svn_version():
             version = output.splitlines()[0]
         else:
             raise VcsError("svn --version returned "
-                         + "%s maybe svn is not installed" % value)
+                           + "%s maybe svn is not installed" % value)
     except VcsError as exc:
         raise VcsError("Could not determine whether svn is installed: "
-                     + str(exc))
+                       + str(exc))
     return version
 
 
@@ -102,7 +102,7 @@ class SvnClient(VcsClientBase):
 
     def detect_presence(self):
         return self.path_exists() and \
-               os.path.isdir(os.path.join(self.get_path(), '.svn'))
+            os.path.isdir(os.path.join(self.get_path(), '.svn'))
 
     def checkout(self, url, version='', verbose=False, shallow=False):
         if url is None or url.strip() == '':
@@ -182,7 +182,7 @@ class SvnClient(VcsClientBase):
         _, output, _ = run_shell_command(command, shell=True, us_env=True)
         if output is not None:
             matches = \
-              [l for l in output.splitlines() if l.startswith('Revision: ')]
+                [l for l in output.splitlines() if l.startswith('Revision: ')]
             if len(matches) == 1:
                 split_str = matches[0].split()
                 if len(split_str) == 2:
@@ -204,7 +204,7 @@ class SvnClient(VcsClientBase):
     def get_log(self, relpath=None, limit=None):
         response = []
 
-        if relpath == None:
+        if relpath is None:
             relpath = ''
 
         if self.path_exists() and os.path.exists(os.path.join(self._path, relpath)):
