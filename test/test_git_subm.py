@@ -156,7 +156,7 @@ class GitClientTest(GitClientTestSetups):
         subsubclient = GitClient(self.subsublocal_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
-        self.assertTrue(client.checkout(url, refname='test_branch'))
+        self.assertTrue(client.checkout(url, version='test_branch'))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(self.version_init, client.get_version())
