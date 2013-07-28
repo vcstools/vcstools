@@ -138,9 +138,9 @@ class HgClient(VcsClientBase):
             return output.rstrip()
         return None
 
-    def detect_presence(self):
-        return (self.path_exists() and
-                os.path.isdir(os.path.join(self._path, '.hg')))
+    @staticmethod
+    def static_detect_presence(path):
+        return os.path.isdir(os.path.join(path, '.hg'))
 
     def checkout(self, url, version='', verbose=False,
                  shallow=False, timeout=None):

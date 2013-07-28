@@ -100,9 +100,9 @@ class SvnClient(VcsClientBase):
             if matches:
                 return matches[0][5:]
 
-    def detect_presence(self):
-        return self.path_exists() and \
-            os.path.isdir(os.path.join(self.get_path(), '.svn'))
+    @staticmethod
+    def static_detect_presence(path):
+        return os.path.isdir(os.path.join(path, '.svn'))
 
     def checkout(self, url, version='', verbose=False,
                  shallow=False, timeout=None):

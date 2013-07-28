@@ -156,11 +156,12 @@ class GitClient(VcsClientBase):
             return output.rstrip()
         return None
 
-    def detect_presence(self):
+    @staticmethod
+    def static_detect_presence(path):
         # There is a proposed implementation of detect_presence which might be
         # more future proof, but would depend on parsing the output of git
         # See: https://github.com/vcstools/vcstools/pull/10
-        return self.path_exists() and os.path.exists(os.path.join(self._path, '.git'))
+        return os.path.exists(os.path.join(path, '.git'))
 
     def checkout(self, url, version=None, verbose=False, shallow=False, timeout=None):
         """calls git clone and then, if version was given, update(version)"""

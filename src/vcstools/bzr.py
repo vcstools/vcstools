@@ -129,8 +129,9 @@ class BzrClient(VcsClientBase):
                                 break
         return result
 
-    def detect_presence(self):
-        return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
+    @staticmethod
+    def static_detect_presence(path):
+        return os.path.isdir(os.path.join(path, '.bzr'))
 
     def checkout(self, url, version=None, verbose=False,
                  shallow=False, timeout=None):

@@ -175,10 +175,16 @@ class VcsClientBase(object):
         raise NotImplementedError("Base class update method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
-    def detect_presence(self):
+    @staticmethod
+    def static_detect_presence(path):
         """For auto detection"""
         raise NotImplementedError(
             "Base class detect_presence method must be overridden")
+
+    def detect_presence(self):
+        """For auto detection"""
+        # call static method
+        return self.static_detect_presence(self._path)
 
     def get_vcs_type_name(self):
         """ used when auto detected """
