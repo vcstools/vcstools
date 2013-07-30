@@ -162,18 +162,18 @@ class GitClient(VcsClientBase):
         # See: https://github.com/vcstools/vcstools/pull/10
         return self.path_exists() and os.path.exists(os.path.join(self._path, '.git'))
 
-    def checkout(self, url, refname=None, verbose=False, shallow=False):
-        """calls git clone and then, if refname was given, update(refname)"""
+    def checkout(self, url, version=None, verbose=False, shallow=False):
+        """calls git clone and then, if version was given, update(version)"""
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
 
-        #since we cannot know whether refname names a branch, clone master initially
+        #since we cannot know whether version names a branch, clone master initially
         cmd = 'git clone'
         if shallow:
             cmd += ' --depth 1'
             if LooseVersion(self.gitversion) >= LooseVersion('1.7.10'):
                 cmd += ' --no-single-branch'
-        if refname is None:
+        if version is None:
             # quicker than using _do_update, but undesired when switching branches next
             cmd += ' --recursive'
         cmd += ' %s %s' % (url, self._path)
@@ -190,8 +190,8 @@ class GitClient(VcsClientBase):
         try:
             # update to make sure we are on the right branch. Do not
             # check for "master" here, as default branch could be anything
-            if refname is not None:
-                return self._do_update(refname,
+            if version is not None:
+                return self._do_update(version,
                                        verbose=verbose,
                                        fast_foward=True,
                                        update_submodules=True)
@@ -214,16 +214,16 @@ class GitClient(VcsClientBase):
                 return False
         return True
 
-    def update(self, refname=None, verbose=False, force_fetch=False):
+    def update(self, version=None, verbose=False, force_fetch=False):
         """
-        if refname is None, attempts fast-forwarding current branch, if any.
+        if version is None, attempts fast-forwarding current branch, if any.
 
-        Else interprets refname as a local branch, remote branch, tagname,
+        Else interprets version as a local branch, remote branch, tagname,
         hash, etc.
 
         If it is a branch, attempts to move to it unless
         already on it, and to fast-forward, unless not a tracking
-        branch. Else go untracked on tag or whatever refname is. Does
+        branch. Else go untracked on tag or whatever version is. Does
         not leave if current commit would become dangling.
 
         :return: True if already up-to-date with remote or after successful fast_foward
@@ -234,7 +234,7 @@ class GitClient(VcsClientBase):
         try:
             # fetch in any case to get updated tags even if we don't need them
             self._do_fetch()
-            return self._do_update(refname=refname, verbose=verbose)
+            return self._do_update(refname=version, verbose=verbose)
         except GitError:
             return False
 
