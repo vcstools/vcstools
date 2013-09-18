@@ -128,3 +128,8 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+upload: html
+	# set write permission for group so that everybody can overwrite existing files on the webserver
+	chmod -R g+w _build/html/
+	scp -pr _build/html/ rosbot@ros.osuosl.org:/home/rosbot/docs/independent/api/vcstools
