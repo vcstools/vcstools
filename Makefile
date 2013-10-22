@@ -16,6 +16,7 @@ clean_dist:
 	-rm -f MANIFEST
 	-rm -rf dist
 	-rm -rf deb_dist
+	-rm -fr src/vcstools.egg-info/
 
 distro: clean_dist setup
 	python setup.py sdist
