@@ -1,4 +1,4 @@
-.PHONY: all setup clean_dist distro clean install deb_dist upload-packages upload-building upload testsetup test
+.PHONY: all setup clean_dist distro clean install testsetup test
 
 NAME=vcstools
 VERSION=$(shell grep version ./src/vcstools/__version__.py | sed 's,version = ,,')
