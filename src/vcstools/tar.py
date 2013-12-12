@@ -67,7 +67,7 @@ class TarClient(VcsClientBase):
     @staticmethod
     def get_environment_metadata():
         metadict = {}
-        metadict["version"] = 'tarfile version: %s' % tarfile.__version__
+        metadict["version"] = 'tarfile version: %s' % tarfile.version
         return metadict
 
     def get_url(self):

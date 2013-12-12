@@ -191,6 +191,14 @@ class HGClientTest(HGClientTestSetups):
         client = HgClient(self.remote_path)
         self.assertEquals('', client.get_status())
 
+    def test_get_environment_metadata(self):
+        # Verify that metadata is generated
+        directory = tempfile.mkdtemp()
+        self.directories['local'] = directory
+        local_path = os.path.join(directory, "local")
+        client = HgClient(local_path)
+        self.assertTrue('version' in client.get_environment_metadata())
+
 
 class HGClientLogTest(HGClientTestSetups):
 

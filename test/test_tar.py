@@ -128,6 +128,14 @@ class TarClientTest(unittest.TestCase):
         # make sure the tarball subdirectory was promoted correctly.
         self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml')))
 
+    def test_get_environment_metadata(self):
+        # Verify that metadata is generated
+        directory = tempfile.mkdtemp()
+        self.directories['local'] = directory
+        local_path = os.path.join(directory, "local")
+        client = TarClient(local_path)
+        self.assertTrue('version' in client.get_environment_metadata())
+
 
 class TarClientTestLocal(unittest.TestCase):
 
