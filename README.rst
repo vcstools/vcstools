@@ -36,3 +36,9 @@ To run python3 compatibility tests, run either::
 
   $ nosetests3
   $ python3 -m unittest discover --pattern*.py
+
+Test Status
+-----------
+
+[![Build Status](https://travis-ci.org/vcstools/vcstools.png?branch=master)](https://travis-ci.org/vcstools/vcstools) 
+
