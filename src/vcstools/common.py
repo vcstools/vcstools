@@ -46,11 +46,13 @@ try:
     from urllib.request import urlopen, HTTPPasswordMgrWithDefaultRealm, \
         HTTPBasicAuthHandler, build_opener
     from urllib.parse import urlparse
+    from queue import Queue
 except ImportError:
     # py2.7
     from urlparse import urlparse
     from urllib2 import urlopen, HTTPPasswordMgrWithDefaultRealm, \
         HTTPBasicAuthHandler, build_opener
+    from Queue import Queue
 
 from vcstools.vcs_base import VcsError
 
@@ -222,6 +224,39 @@ def _discard_line(line):
     return False
 
 
+def _read_shell_output(proc, no_filter, verbose, show_stdout, output_queue):
+    # when we read output in while loop, it would not be returned
+    # in communicate()
+    stdout_buf = []
+    stderr_buf = []
+    if not no_filter:
+        if (verbose or show_stdout):
+            # this loop runs until proc is done it listen to the pipe, print
+            # and stores result in buffer for returning this allows proc to run
+            # while we still can filter out output avoiding readline() because
+            # it may block forever
+            for line in iter(proc.stdout.readline, b''):
+                line = line.decode('UTF-8')
+                if line is not None and line != '':
+                    if verbose or not _discard_line(line):
+                        print(line),
+                        stdout_buf.append(line)
+                if (not line or proc.returncode is not None):
+                    break
+        # stderr was swallowed in pipe, in verbose mode print lines
+        if verbose:
+            for line in iter(proc.stderr.readline, b''):
+                line = line.decode('UTF-8')
+                if line != '':
+                    print(line),
+                    stderr_buf.append(line)
+                if not line:
+                    break
+    output_queue.put(proc.communicate())
+    output_queue.put(stdout_buf)
+    output_queue.put(stderr_buf)
+
+
 def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
                       show_stdout=False, verbose=False,
                       no_warn=False, no_filter=False):
@@ -254,41 +289,21 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
         else:
             stdout_target = subprocess.PIPE
             stderr_target = subprocess.PIPE
+
         proc = subprocess.Popen(cmd,
                                 shell=shell,
                                 cwd=cwd,
                                 stdout=stdout_target,
                                 stderr=stderr_target,
                                 env=env)
-        # when we read output in while loop, it would not be returned
-        # in communicate()
-        stdout_buf = []
-        stderr_buf = []
-        if not no_filter:
-            if (verbose or show_stdout):
-                # this loop runs until proc is done
-                # it listen to the pipe, print and stores result in buffer for returning
-                # this allows proc to run while we still can filter out output
-                # avoiding readline() because it may block forever
-                for line in iter(proc.stdout.readline, b''):
-                    line = line.decode('UTF-8')
-                    if line is not None and line != '':
-                        if verbose or not _discard_line(line):
-                            print(line),
-                            stdout_buf.append(line)
-                    if (not line or proc.returncode is not None):
-                        break
-            # stderr was swallowed in pipe, in verbose mode print lines
-            if verbose:
-                for line in iter(proc.stderr.readline, b''):
-                    line = line.decode('UTF-8')
-                    if line != '':
-                        print(line),
-                        stderr_buf.append(line)
-                    if not line:
-                        break
 
-        (stdout, stderr) = proc.communicate()
+        # using a queue to enable usage in a separate thread
+        q = Queue()
+        _read_shell_output(proc, no_filter, verbose, show_stdout, q)
+        (stdout, stderr) = q.get()
+        stdout_buf = q.get()
+        stderr_buf = q.get()
+
         if stdout is not None:
             stdout_buf.append(stdout.decode('utf-8'))
         stdout = "\n".join(stdout_buf)
