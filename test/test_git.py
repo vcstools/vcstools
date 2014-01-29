@@ -162,7 +162,7 @@ class GitClientTest(GitClientTestSetups):
             self.fast_forwards += 1
             return True
 
-        def isubm(self, verbose=False):
+        def isubm(self, verbose=False, timeout=None):
             self.submodules += 1
             return True
         client._do_fetch = types.MethodType(ifetch, client)
@@ -202,7 +202,7 @@ class GitClientTest(GitClientTestSetups):
             self.fast_forwards += 1
             return True
 
-        def isubm(self, verbose=False):
+        def isubm(self, verbose=False, timeout=None):
             self.submodules += 1
             return True
         client._do_fetch = types.MethodType(ifetch, client)

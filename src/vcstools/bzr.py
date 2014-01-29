@@ -132,7 +132,8 @@ class BzrClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.isdir(os.path.join(self._path, '.bzr'))
 
-    def checkout(self, url, version=None, verbose=False, shallow=False):
+    def checkout(self, url, version=None, verbose=False,
+                 shallow=False, timeout=None):
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
         # bzr 2.5.1 fails if empty directory exists
@@ -153,7 +154,7 @@ class BzrClient(VcsClientBase):
             return False
         return True
 
-    def update(self, version='', verbose=False):
+    def update(self, version='', verbose=False, timeout=None):
         if not self.detect_presence():
             return False
         value, _, _ = run_shell_command("bzr pull",

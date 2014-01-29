@@ -162,7 +162,7 @@ class GitClient(VcsClientBase):
         # See: https://github.com/vcstools/vcstools/pull/10
         return self.path_exists() and os.path.exists(os.path.join(self._path, '.git'))
 
-    def checkout(self, url, version=None, verbose=False, shallow=False):
+    def checkout(self, url, version=None, verbose=False, shallow=False, timeout=None):
         """calls git clone and then, if version was given, update(version)"""
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
@@ -181,6 +181,7 @@ class GitClient(VcsClientBase):
                                           shell=True,
                                           no_filter=True,
                                           show_stdout=verbose,
+                                          timeout=timeout,
                                           verbose=verbose)
         if value != 0:
             if msg:
@@ -194,13 +195,14 @@ class GitClient(VcsClientBase):
                 return self._do_update(version,
                                        verbose=verbose,
                                        fast_foward=True,
+                                       timeout=timeout,
                                        update_submodules=True)
             else:
                 return True
         except GitError:
             return False
 
-    def update_submodules(self, verbose=False):
+    def update_submodules(self, verbose=False, timeout=None):
 
         # update and or init submodules too
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
@@ -209,12 +211,13 @@ class GitClient(VcsClientBase):
                                             shell=True,
                                             cwd=self._path,
                                             show_stdout=True,
+                                            timeout=timeout,
                                             verbose=verbose)
             if value != 0:
                 return False
         return True
 
-    def update(self, version=None, verbose=False, force_fetch=False):
+    def update(self, version=None, verbose=False, force_fetch=False, timeout=None):
         """
         if version is None, attempts fast-forwarding current branch, if any.
 
@@ -234,7 +237,7 @@ class GitClient(VcsClientBase):
         try:
             # fetch in any case to get updated tags even if we don't need them
             self._do_fetch()
-            return self._do_update(refname=version, verbose=verbose)
+            return self._do_update(refname=version, verbose=verbose, timeout=timeout)
         except GitError:
             return False
 
@@ -242,6 +245,7 @@ class GitClient(VcsClientBase):
                    refname=None,
                    verbose=False,
                    fast_foward=True,
+                   timeout=None,
                    update_submodules=True):
         '''
         updates without fetching, thus any necessary fetching must be done before
@@ -272,7 +276,8 @@ class GitClient(VcsClientBase):
 
         if not refname:
             # we are neither tracking, nor did we get any refname to update to
-            return (not update_submodules) or self.update_submodules(verbose=verbose)
+            return (not update_submodules) or self.update_submodules(verbose=verbose,
+                                                                     timeout=timeout)
 
         if same_branch:
             if fast_foward:
@@ -300,7 +305,8 @@ class GitClient(VcsClientBase):
             if not refname_is_branch:
                 current_version = self.get_version()
                 if current_version == refname:
-                    return (not update_submodules) or self.update_submodules(verbose=verbose)
+                    return (not update_submodules) or self.update_submodules(verbose=verbose,
+                                                                             timeout=timeout)
 
             if current_branch is None:
                 if not current_version:
@@ -325,7 +331,7 @@ class GitClient(VcsClientBase):
                                                      fetch=False,
                                                      verbose=verbose):
                             return False
-        return (not update_submodules) or self.update_submodules(verbose=verbose)
+        return (not update_submodules) or self.update_submodules(verbose=verbose, timeout=timeout)
 
     def get_version(self, spec=None):
         """
@@ -652,7 +658,7 @@ class GitClient(VcsClientBase):
             os.remove(basepath + '.tar')
         return True
 
-    def _do_fetch(self):
+    def _do_fetch(self, timeout=None):
         """
         calls git fetch
         :raises: GitError when call fails
@@ -662,6 +668,7 @@ class GitClient(VcsClientBase):
                                          cwd=self._path,
                                          shell=True,
                                          no_filter=True,
+                                         timeout=timeout,
                                          show_stdout=True)
         ## git fetch --tags ONLY fetches new tags and commits used, no other commits!
         cmd = "git fetch --tags"
@@ -669,6 +676,7 @@ class GitClient(VcsClientBase):
                                          cwd=self._path,
                                          shell=True,
                                          no_filter=True,
+                                         timeout=timeout,
                                          show_stdout=True)
         if value1 != 0 or value2 != 0:
             raise GitError('git fetch failed')

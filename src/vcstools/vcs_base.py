@@ -130,7 +130,7 @@ class VcsClientBase(object):
         raise NotImplementedError("Base class get_version method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
-    def checkout(self, url, spec=None, verbose=False, shallow=False):
+    def checkout(self, url, spec=None, verbose=False, shallow=False, timeout=None):
         """
         Attempts to create a local repository given a remote
         url. Fails if a target path exists, unless it's an empty directory.
@@ -140,28 +140,36 @@ class VcsClientBase(object):
         e.g. if an invalid revision spec was given.
         If shallow is provided, the scm client may checkout less
         than the full repository history to save time / disk space.
-
+        If a timeout is specified, any pending operation will fail after
+        the specified amount (in seconds). NOTE: this parameter might or
+        might not be honored, depending on VCS client implementation.
         :param url: where to checkout from
         :type url: str
         :param spec: token for identifying repository revision
         :type spec: str
         :param shallow: hint to checkout less than a full repository
         :type shallow: bool
+        :param timeout: maximum allocated time to perform operation
+        :type shallow: int
         :returns: True if successful
         """
         raise NotImplementedError("Base class checkout method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
-    def update(self, spec=None, verbose=False):
+    def update(self, spec=None, verbose=False, timeout=None):
         """
         Sets the local copy of the repository to a version matching
         the spec. Fails when there are uncommited changes.
         On failures (also e.g. network failure) grants the
         checked out files are in the same state as before the call.
+        If a timeout is specified, any pending operation will fail after
+        the specified amount (in seconds)
 
         :param spec: token for identifying repository revision
            desired.  Token might be a tagname, branchname, version-id,
            SHA-ID, ... depending on the VCS implementation.
+        :param timeout: maximum allocated time to perform operation
+        :type shallow: int
         :returns: True on success, False else
         """
         raise NotImplementedError("Base class update method must be overridden for client type %s " %

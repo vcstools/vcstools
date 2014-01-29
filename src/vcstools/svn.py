@@ -104,7 +104,8 @@ class SvnClient(VcsClientBase):
         return self.path_exists() and \
             os.path.isdir(os.path.join(self.get_path(), '.svn'))
 
-    def checkout(self, url, version='', verbose=False, shallow=False):
+    def checkout(self, url, version='', verbose=False,
+                 shallow=False, timeout=None):
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
         # Need to check as SVN 1.6.17 writes into directory even if not empty
@@ -128,7 +129,7 @@ class SvnClient(VcsClientBase):
             return False
         return True
 
-    def update(self, version=None, verbose=False):
+    def update(self, version=None, verbose=False, timeout=None):
         if not self.detect_presence():
             sys.stderr.write("Error: cannot update non-existing directory\n")
             return False

@@ -142,7 +142,8 @@ class HgClient(VcsClientBase):
         return (self.path_exists() and
                 os.path.isdir(os.path.join(self._path, '.hg')))
 
-    def checkout(self, url, version='', verbose=False, shallow=False):
+    def checkout(self, url, version='', verbose=False,
+                 shallow=False, timeout=None):
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
         # make sure that the parent directory exists for #3497
@@ -172,7 +173,7 @@ class HgClient(VcsClientBase):
                 return False
         return True
 
-    def update(self, version='', verbose=False):
+    def update(self, version='', verbose=False, timeout=None):
         verboseflag = ''
         if verbose:
             verboseflag = '--verbose'
