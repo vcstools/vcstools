@@ -40,6 +40,8 @@ import logging
 import netrc
 import tempfile
 import shutil
+import threading
+import signal
 
 try:
     # py3k
@@ -258,7 +260,7 @@ def _read_shell_output(proc, no_filter, verbose, show_stdout, output_queue):
 
 
 def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
-                      show_stdout=False, verbose=False,
+                      show_stdout=False, verbose=False, timeout=None,
                       no_warn=False, no_filter=False):
     """
     executes a command and hides the stdout output, loggs stderr
@@ -271,6 +273,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
     :param show_stdout: show some of the output (except for discarded lines in _discard_line()), ignored if no_filter
     :param no_warn: hides warnings
     :param verbose: show all output, overrides no_warn, ignored if no_filter
+    :param timeout: time allocated to the subprocess
     :param no_filter: does not wrap stdout, so invoked command prints everything outside our knowledge
     this is DANGEROUS, as vulnerable to shell injection.
     :returns: ( returncode, stdout, stderr); stdout is None if no_filter==True
@@ -290,16 +293,37 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
             stdout_target = subprocess.PIPE
             stderr_target = subprocess.PIPE
 
+        # additional parameters to Popen when using a timeout
+        crflags = {}
+        if timeout is not None:
+            if hasattr(os.sys, 'winver'):
+                crflags['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+            else:
+                crflags['preexec_fn'] = os.setsid
+
         proc = subprocess.Popen(cmd,
                                 shell=shell,
                                 cwd=cwd,
                                 stdout=stdout_target,
                                 stderr=stderr_target,
-                                env=env)
+                                env=env,
+                                **crflags)
 
         # using a queue to enable usage in a separate thread
         q = Queue()
-        _read_shell_output(proc, no_filter, verbose, show_stdout, q)
+        if timeout is None:
+            _read_shell_output(proc, no_filter, verbose, show_stdout, q)
+        else:
+            t = threading.Thread(target=_read_shell_output,
+                                 args=[proc, no_filter, verbose, show_stdout, q])
+            t.start()
+            t.join(timeout)
+            if t.isAlive():
+                if hasattr(os.sys, 'winver'):
+                    os.kill(proc.pid, signal.CTRL_BREAK_EVENT)
+                else:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                t.join()
         (stdout, stderr) = q.get()
         stdout_buf = q.get()
         stderr_buf = q.get()
