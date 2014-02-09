@@ -40,9 +40,16 @@ import subprocess
 import tempfile
 import shutil
 import types
+import threading
+import time
 
 from vcstools import GitClient
 from vcstools.vcs_base import VcsError
+
+try:
+    from socketserver import TCPServer, BaseRequestHandler
+except ImportError:
+    from SocketServer import TCPServer, BaseRequestHandler
 
 
 class GitClientTestSetups(unittest.TestCase):
@@ -735,3 +742,47 @@ class GitExportClientTest(GitClientTestSetups):
         self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
         self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
         self.assertFalse(os.path.exists(self.basepath_export))
+
+
+class GitTimeoutTest(unittest.TestCase):
+
+    class MuteHandler(BaseRequestHandler):
+        def handle(self):
+            self.request.recv(1024)
+
+    @classmethod
+    def setUpClass(self):
+        self.mute_server = TCPServer(('localhost', 0), GitTimeoutTest.MuteHandler)
+        _, self.mute_port = self.mute_server.server_address
+        serv_thread = threading.Thread(target=self.mute_server.serve_forever)
+        serv_thread.daemon = True
+        serv_thread.start()
+
+        self.root_directory = tempfile.mkdtemp()
+        self.local_path = os.path.join(self.root_directory, "ros")
+
+
+    def test_checkout_timeout(self):
+        ## SSH'ing to a mute server will hang for a very long time
+        url = 'ssh://test@localhost:{0}/test'.format(self.mute_port)
+        client = GitClient(self.local_path)
+        start = time.time()
+        self.assertFalse(client.checkout(url, timeout=2.0))
+        stop = time.time()
+        self.assertTrue(stop - start > 1.9)
+        self.assertTrue(stop - start < 3.0)
+        # the git processes will clean up the checkout dir, we have to wait
+        # for them to finish in order to avoid a race condition with rmtree()
+        while os.path.exists(self.local_path):
+            time.sleep(0.2)
+
+    @classmethod
+    def tearDownClass(self):
+        self.mute_server.shutdown()
+        if os.path.exists(self.root_directory):
+            shutil.rmtree(self.root_directory)
+
+    def tearDown(self):
+        if os.path.exists(self.local_path):
+            shutil.rmtree(self.local_path)
+
