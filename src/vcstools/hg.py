@@ -65,7 +65,7 @@ def _get_hg_version():
     return version
 
 
-#hg diff cannot seem to be persuaded to accept a different prefix for filenames
+# hg diff cannot seem to be persuaded to accept a different prefix for filenames
 def _hg_diff_path_change(diff, path):
     """
     Parses hg diff result and changes the filename prefixes.

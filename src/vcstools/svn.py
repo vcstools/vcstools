@@ -93,7 +93,7 @@ class SvnClient(VcsClientBase):
          or None if it cannot be determined
         """
         if self.detect_presence():
-            #3305: parsing not robust to non-US locales
+            # 3305: parsing not robust to non-US locales
             cmd = 'svn info %s' % self._path
             _, output, _ = run_shell_command(cmd, shell=True)
             matches = [l for l in output.splitlines() if l.startswith('URL: ')]

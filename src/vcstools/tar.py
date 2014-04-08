@@ -129,7 +129,7 @@ class TarClient(VcsClientBase):
                 raise VcsError("%s is not a subdirectory\n" % subdir)
 
             try:
-                #os.makedirs(os.path.dirname(self._path))
+                # os.makedirs(os.path.dirname(self._path))
                 shutil.move(subdir, self._path)
             except Exception as ex:
                 raise VcsError("%s failed to move %s to %s" % (ex, subdir, self._path))

@@ -72,7 +72,7 @@ def ensure_dir_notexists(path):
         return True
     except OSError as ose:
         # ignore if directory
-        if not ose.errno in [errno.ENOENT, errno.ENOTEMPTY, errno.ENOTDIR]:
+        if ose.errno not in [errno.ENOENT, errno.ENOTEMPTY, errno.ENOTDIR]:
             return False
 
 

@@ -167,7 +167,7 @@ class GitClient(VcsClientBase):
         if url is None or url.strip() == '':
             raise ValueError('Invalid empty url : "%s"' % url)
 
-        #since we cannot know whether version names a branch, clone master initially
+        # since we cannot know whether version names a branch, clone master initially
         cmd = 'git clone'
         if shallow:
             cmd += ' --depth 1'
@@ -348,7 +348,7 @@ class GitClient(VcsClientBase):
                 command += " %s" % sanitized(spec)
             command += " --format='%H'"
             output = ''
-            #we repeat the call once after fetching if necessary
+            # we repeat the call once after fetching if necessary
             for _ in range(2):
                 _, output, _ = run_shell_command(command,
                                                  shell=True,
@@ -670,7 +670,7 @@ class GitClient(VcsClientBase):
                                          no_filter=True,
                                          timeout=timeout,
                                          show_stdout=True)
-        ## git fetch --tags ONLY fetches new tags and commits used, no other commits!
+        # git fetch --tags ONLY fetches new tags and commits used, no other commits!
         cmd = "git fetch --tags"
         value2, _, _ = run_shell_command(cmd,
                                          cwd=self._path,
@@ -763,5 +763,5 @@ class GitClient(VcsClientBase):
             raise GitError('Git Checkout failed')
 
 
-#Backwards compatibility
+# Backwards compatibility
 GITClient = GitClient
