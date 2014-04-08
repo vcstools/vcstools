@@ -40,17 +40,21 @@ import logging
 import netrc
 import tempfile
 import shutil
+import threading
+import signal
 
 try:
     # py3k
     from urllib.request import urlopen, HTTPPasswordMgrWithDefaultRealm, \
         HTTPBasicAuthHandler, build_opener
     from urllib.parse import urlparse
+    from queue import Queue
 except ImportError:
     # py2.7
     from urlparse import urlparse
     from urllib2 import urlopen, HTTPPasswordMgrWithDefaultRealm, \
         HTTPBasicAuthHandler, build_opener
+    from Queue import Queue
 
 from vcstools.vcs_base import VcsError
 
@@ -68,7 +72,7 @@ def ensure_dir_notexists(path):
         return True
     except OSError as ose:
         # ignore if directory
-        if not ose.errno in [errno.ENOENT, errno.ENOTEMPTY, errno.ENOTDIR]:
+        if ose.errno not in [errno.ENOENT, errno.ENOTEMPTY, errno.ENOTDIR]:
             return False
 
 
@@ -222,8 +226,41 @@ def _discard_line(line):
     return False
 
 
+def _read_shell_output(proc, no_filter, verbose, show_stdout, output_queue):
+    # when we read output in while loop, it would not be returned
+    # in communicate()
+    stdout_buf = []
+    stderr_buf = []
+    if not no_filter:
+        if (verbose or show_stdout):
+            # this loop runs until proc is done it listen to the pipe, print
+            # and stores result in buffer for returning this allows proc to run
+            # while we still can filter out output avoiding readline() because
+            # it may block forever
+            for line in iter(proc.stdout.readline, b''):
+                line = line.decode('UTF-8')
+                if line is not None and line != '':
+                    if verbose or not _discard_line(line):
+                        print(line),
+                        stdout_buf.append(line)
+                if (not line or proc.returncode is not None):
+                    break
+        # stderr was swallowed in pipe, in verbose mode print lines
+        if verbose:
+            for line in iter(proc.stderr.readline, b''):
+                line = line.decode('UTF-8')
+                if line != '':
+                    print(line),
+                    stderr_buf.append(line)
+                if not line:
+                    break
+    output_queue.put(proc.communicate())
+    output_queue.put(stdout_buf)
+    output_queue.put(stderr_buf)
+
+
 def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
-                      show_stdout=False, verbose=False,
+                      show_stdout=False, verbose=False, timeout=None,
                       no_warn=False, no_filter=False):
     """
     executes a command and hides the stdout output, loggs stderr
@@ -236,6 +273,7 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
     :param show_stdout: show some of the output (except for discarded lines in _discard_line()), ignored if no_filter
     :param no_warn: hides warnings
     :param verbose: show all output, overrides no_warn, ignored if no_filter
+    :param timeout: time allocated to the subprocess
     :param no_filter: does not wrap stdout, so invoked command prints everything outside our knowledge
     this is DANGEROUS, as vulnerable to shell injection.
     :returns: ( returncode, stdout, stderr); stdout is None if no_filter==True
@@ -254,41 +292,42 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
         else:
             stdout_target = subprocess.PIPE
             stderr_target = subprocess.PIPE
+
+        # additional parameters to Popen when using a timeout
+        crflags = {}
+        if timeout is not None:
+            if hasattr(os.sys, 'winver'):
+                crflags['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+            else:
+                crflags['preexec_fn'] = os.setsid
+
         proc = subprocess.Popen(cmd,
                                 shell=shell,
                                 cwd=cwd,
                                 stdout=stdout_target,
                                 stderr=stderr_target,
-                                env=env)
-        # when we read output in while loop, it would not be returned
-        # in communicate()
-        stdout_buf = []
-        stderr_buf = []
-        if not no_filter:
-            if (verbose or show_stdout):
-                # this loop runs until proc is done
-                # it listen to the pipe, print and stores result in buffer for returning
-                # this allows proc to run while we still can filter out output
-                # avoiding readline() because it may block forever
-                for line in iter(proc.stdout.readline, b''):
-                    line = line.decode('UTF-8')
-                    if line is not None and line != '':
-                        if verbose or not _discard_line(line):
-                            print(line),
-                            stdout_buf.append(line)
-                    if (not line or proc.returncode is not None):
-                        break
-            # stderr was swallowed in pipe, in verbose mode print lines
-            if verbose:
-                for line in iter(proc.stderr.readline, b''):
-                    line = line.decode('UTF-8')
-                    if line != '':
-                        print(line),
-                        stderr_buf.append(line)
-                    if not line:
-                        break
+                                env=env,
+                                **crflags)
 
-        (stdout, stderr) = proc.communicate()
+        # using a queue to enable usage in a separate thread
+        q = Queue()
+        if timeout is None:
+            _read_shell_output(proc, no_filter, verbose, show_stdout, q)
+        else:
+            t = threading.Thread(target=_read_shell_output,
+                                 args=[proc, no_filter, verbose, show_stdout, q])
+            t.start()
+            t.join(timeout)
+            if t.isAlive():
+                if hasattr(os.sys, 'winver'):
+                    os.kill(proc.pid, signal.CTRL_BREAK_EVENT)
+                else:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                t.join()
+        (stdout, stderr) = q.get()
+        stdout_buf = q.get()
+        stderr_buf = q.get()
+
         if stdout is not None:
             stdout_buf.append(stdout.decode('utf-8'))
         stdout = "\n".join(stdout_buf)

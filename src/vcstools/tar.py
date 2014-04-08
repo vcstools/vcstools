@@ -85,7 +85,8 @@ class TarClient(VcsClientBase):
     def detect_presence(self):
         return self.path_exists() and os.path.exists(self.metadata_path)
 
-    def checkout(self, url, version='', verbose=False, shallow=False):
+    def checkout(self, url, version='', verbose=False,
+                 shallow=False, timeout=None):
         """
         untars tar at url to self.path.
         If version was given, only the subdirectory 'version' of the
@@ -128,7 +129,7 @@ class TarClient(VcsClientBase):
                 raise VcsError("%s is not a subdirectory\n" % subdir)
 
             try:
-                #os.makedirs(os.path.dirname(self._path))
+                # os.makedirs(os.path.dirname(self._path))
                 shutil.move(subdir, self._path)
             except Exception as ex:
                 raise VcsError("%s failed to move %s to %s" % (ex, subdir, self._path))
@@ -144,7 +145,7 @@ class TarClient(VcsClientBase):
                 shutil.rmtree(tempdir)
         return result
 
-    def update(self, version='', verbose=False):
+    def update(self, version='', verbose=False, timeout=None):
         """
         Does nothing except returning true if tar exists in same
         "version" as checked out with vcstools.
