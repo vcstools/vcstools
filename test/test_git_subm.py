@@ -38,8 +38,12 @@ import unittest
 import subprocess
 import tempfile
 import shutil
+import tarfile
+import filecmp
+from contextlib import closing
+from distutils.version import LooseVersion
 
-from vcstools.git import GitClient
+from vcstools.git import GitClient, _get_git_version
 
 
 class GitClientTestSetups(unittest.TestCase):
@@ -57,6 +61,12 @@ class GitClientTestSetups(unittest.TestCase):
         self.sublocal_path = os.path.join(self.local_path, "submodule")
         self.sublocal2_path = os.path.join(self.local_path, "submodule2")
         self.subsublocal_path = os.path.join(self.sublocal_path, "subsubmodule")
+        self.subsublocal2_path = os.path.join(self.sublocal2_path, "subsubmodule")
+        self.export_path = os.path.join(self.root_directory, "export")
+        self.subexport_path = os.path.join(self.export_path, "submodule")
+        self.subexport2_path = os.path.join(self.export_path, "submodule2")
+        self.subsubexport_path = os.path.join(self.subexport_path, "subsubmodule")
+        self.subsubexport2_path = os.path.join(self.subexport2_path, "subsubmodule")
         os.makedirs(self.remote_path)
         os.makedirs(self.submodule_path)
         os.makedirs(self.subsubmodule_path)
@@ -67,7 +77,7 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git add fixed.txt", shell=True, cwd=self.remote_path)
         subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
         subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git branch test_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git branch initial_branch", shell=True, cwd=self.remote_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.version_init = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
@@ -98,37 +108,53 @@ class GitClientTestSetups(unittest.TestCase):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.submodule_path, stdout=subprocess.PIPE)
         self.subversion_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
-        # attach submodule to remote
-        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
-                              shell=True, cwd=self.remote_path)
+        # attach submodule somewhere, only in test_branch first
+        subprocess.check_call("git checkout master -b test_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
+
+        # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
         subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+
+        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
+
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
+        self.version_test = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
+        # attach submodule to remote on master
+        if LooseVersion(_get_git_version()) < LooseVersion('1.8.3'):
+            subprocess.check_call("rm -rf submodule2 && mkdir submodule2", shell=True, cwd=self.remote_path)
+            subprocess.check_call("git config --remove-section submodule.submodule2", shell=True, cwd=self.remote_path)
+            print("Submodule 'submodule2' unregistered for path 'submodule2'")
+        else:
+            subprocess.check_call("git submodule deinit .", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
+                              shell=True, cwd=self.remote_path)
+
+        # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+
         subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.version_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
         subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
 
-        # attach submodule somewhere else in test_branch
-        subprocess.check_call("git checkout master -b test_branch2", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
-
-        # go back to master else clients will checkout test_branch
-        subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
-
     @classmethod
     def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
+        pass
 
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
-
-
+        if os.path.exists(self.export_path):
+            shutil.rmtree(self.export_path)
+        pass
+        
 class GitClientTest(GitClientTestSetups):
 
     def test_checkout_master_with_subs(self):
@@ -149,18 +175,190 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subsubclient.detect_presence())
         self.assertEqual(self.subsubversion_final, subsubclient.get_version())
 
-    def test_checkout_branch_with_subs(self):
+    def test_export_master(self):
         url = self.remote_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subsubclient = GitClient(self.subsublocal_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
-        self.assertTrue(client.checkout(url, version='test_branch'))
+        self.assertFalse(os.path.exists(self.export_path))
+        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        tarpath = client.export_repository("master", self.export_path)
+        self.assertEqual(tarpath, self.export_path + '.tar.gz')
+        os.mkdir(self.export_path)
+        with closing(tarfile.open(tarpath, "r:gz")) as tarf:
+            tarf.extractall(self.export_path)
+        subsubdirdiff = filecmp.dircmp(self.subsubexport_path,self.subsublocal_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(subsubdirdiff.left_only,[])
+        self.assertEqual(subsubdirdiff.right_only,[])
+        self.assertEqual(subsubdirdiff.diff_files,[])
+        subdirdiff = filecmp.dircmp(self.subexport_path,self.sublocal_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(subdirdiff.left_only,[])
+        self.assertEqual(subdirdiff.right_only,[])
+        self.assertEqual(subdirdiff.diff_files,[])
+        dirdiff = filecmp.dircmp(self.export_path,self.local_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(dirdiff.left_only,[])
+        self.assertEqual(dirdiff.right_only,[])
+        self.assertEqual(dirdiff.diff_files,[])
+
+
+    def test_export_branch(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertFalse(os.path.exists(self.export_path))
+        self.assertTrue(client.checkout(url, version='master'))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        self.assertFalse(subsubclient2.path_exists())
+        # we need first to retrieve locally the branch we want to export
+        self.assertTrue(client.update(version='test_branch'))
+        self.assertTrue(client.path_exists())
+        # git leaves old submodule around by default
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        # new submodule should be there
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+
+        tarpath = client.export_repository("test_branch", self.export_path)
+        self.assertEqual(tarpath, self.export_path + '.tar.gz')
+        os.mkdir(self.export_path)
+        with closing(tarfile.open(tarpath, "r:gz")) as tarf:
+            tarf.extractall(self.export_path)
+
+        # Checking that we have only submodule2 in our export
+        self.assertFalse(os.path.exists(self.subexport_path))
+        self.assertFalse(os.path.exists(self.subsubexport_path))
+        self.assertTrue(os.path.exists(self.subexport2_path))
+        self.assertTrue(os.path.exists(self.subsubexport2_path))
+
+        # comparing with test_branch version ( currently checked-out )
+        subsubdirdiff = filecmp.dircmp(self.subsubexport2_path,self.subsublocal_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(subsubdirdiff.left_only,[]) # same subsubfixed.txt in both subsubmodule/
+        self.assertEqual(subsubdirdiff.right_only,[])
+        self.assertEqual(subsubdirdiff.diff_files,[])
+        subdirdiff = filecmp.dircmp(self.subexport2_path,self.sublocal_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(subdirdiff.left_only,[])
+        self.assertEqual(subdirdiff.right_only,[])
+        self.assertEqual(subdirdiff.diff_files,[])
+        dirdiff = filecmp.dircmp(self.export_path,self.local_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(dirdiff.left_only,[])
+        self.assertEqual(dirdiff.right_only,['submodule']) # submodule is still there on local_path (git default behavior)
+        self.assertEqual(dirdiff.diff_files,[])
+
+    def test_export_hash(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertFalse(os.path.exists(self.export_path))
+        self.assertTrue(client.checkout(url, version='master'))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        self.assertFalse(subsubclient2.path_exists())
+        # we need first to retrieve locally the hash we want to export
+        self.assertTrue(client.update(version=self.version_test))
+        self.assertTrue(client.path_exists())
+        # git leaves old submodule around by default
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        # new submodule should be there
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+
+        tarpath = client.export_repository(self.version_test, self.export_path)
+        self.assertEqual(tarpath, self.export_path + '.tar.gz')
+        os.mkdir(self.export_path)
+        with closing(tarfile.open(tarpath, "r:gz")) as tarf:
+            tarf.extractall(self.export_path)
+
+        # Checking that we have only submodule2 in our export
+        self.assertFalse(os.path.exists(self.subexport_path))
+        self.assertFalse(os.path.exists(self.subsubexport_path))
+        self.assertTrue(os.path.exists(self.subexport2_path))
+        self.assertTrue(os.path.exists(self.subsubexport2_path))
+
+        # comparing with version_test ( currently checked-out )
+        subsubdirdiff = filecmp.dircmp(self.subsubexport2_path,self.subsublocal_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(subsubdirdiff.left_only,[]) # same subsubfixed.txt in both subsubmodule/
+        self.assertEqual(subsubdirdiff.right_only,[])
+        self.assertEqual(subsubdirdiff.diff_files,[])
+        subdirdiff = filecmp.dircmp(self.subexport2_path,self.sublocal_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(subdirdiff.left_only,[])
+        self.assertEqual(subdirdiff.right_only,[])
+        self.assertEqual(subdirdiff.diff_files,[])
+        dirdiff = filecmp.dircmp(self.export_path,self.local_path,ignore=['.git','.gitmodules'])
+        self.assertEqual(dirdiff.left_only,[])
+        self.assertEqual(dirdiff.right_only,['submodule']) # submodule is still there on local_path (git default behavior)
+        self.assertEqual(dirdiff.diff_files,[])
+
+    def test_checkout_branch_without_subs(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, version='initial_branch'))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(self.version_init, client.get_version())
         self.assertFalse(subclient.path_exists())
+        self.assertFalse(subsubclient.path_exists())
+
+    def test_checkout_test_branch_with_subs(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, version='test_branch'))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(self.version_test, client.get_version())
+        self.assertFalse(subclient.path_exists())
+        self.assertFalse(subsubclient.path_exists())
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+
+    def test_checkout_master_with_subs(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, version='master'))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertEqual(self.version_final, client.get_version())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        self.assertFalse(subsubclient2.path_exists())
 
     def test_switch_branches(self):
         url = self.remote_path
@@ -168,6 +366,7 @@ class GitClientTest(GitClientTestSetups):
         subclient = GitClient(self.sublocal_path)
         subclient2 = GitClient(self.sublocal2_path)
         subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertTrue(client.checkout(url))
@@ -175,9 +374,61 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subclient.path_exists())
         self.assertTrue(subsubclient.path_exists())
         self.assertFalse(subclient2.path_exists())
-        new_version = "test_branch2"
+        new_version = "test_branch"
         self.assertTrue(client.update(new_version))
+        # checking that update doesnt make submodule disappear (git default behavior)
         self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        oldnew_version = "master"
+        self.assertTrue(client.update(oldnew_version))
+        # checking that update doesnt make submodule2 disappear (git default behavior)
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+
+    def test_switch_branches_retrieve_local_subcommit(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        new_version = "test_branch"
+        self.assertTrue(client.update(new_version))
+        # checking that update doesnt make submodule disappear (git default behavior)
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        subprocess.check_call("touch submodif.txt", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git add submodif.txt", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git commit -m submodif", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git add submodule2", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m submodule2_modif", shell=True, cwd=self.local_path)
+        oldnew_version = "master"
+        self.assertTrue(client.update(oldnew_version))
+        # checking that update doesnt make submodule2 disappear (git default behavior)
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertTrue(client.update(new_version))
+        # checking that update still has submodule with submodif
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertTrue(os.path.exists(os.path.join(self.sublocal2_path,"submodif.txt")))
 
     def test_status(self):
         url = self.remote_path
