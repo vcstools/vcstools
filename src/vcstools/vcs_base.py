@@ -130,14 +130,14 @@ class VcsClientBase(object):
         raise NotImplementedError("Base class get_version method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
-    def checkout(self, url, spec=None, verbose=False, shallow=False, timeout=None):
+    def checkout(self, url, version=None, verbose=False, shallow=False, timeout=None):
         """
         Attempts to create a local repository given a remote
         url. Fails if a target path exists, unless it's an empty directory.
-        If a spec is provided, the local repository
+        If a version is provided, the local repository
         will be updated to that revision. It is possible that
         after a failed call to checkout, a repository still exists,
-        e.g. if an invalid revision spec was given.
+        e.g. if an invalid revision was given.
         If shallow is provided, the scm client may checkout less
         than the full repository history to save time / disk space.
         If a timeout is specified, any pending operation will fail after
@@ -145,8 +145,8 @@ class VcsClientBase(object):
         might not be honored, depending on VCS client implementation.
         :param url: where to checkout from
         :type url: str
-        :param spec: token for identifying repository revision
-        :type spec: str
+        :param version: token for identifying repository revision
+        :type version: str
         :param shallow: hint to checkout less than a full repository
         :type shallow: bool
         :param timeout: maximum allocated time to perform operation
@@ -156,16 +156,16 @@ class VcsClientBase(object):
         raise NotImplementedError("Base class checkout method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
-    def update(self, spec=None, verbose=False, timeout=None):
+    def update(self, version=None, verbose=False, timeout=None):
         """
         Sets the local copy of the repository to a version matching
-        the spec. Fails when there are uncommited changes.
+        the version parameter. Fails when there are uncommited changes.
         On failures (also e.g. network failure) grants the
         checked out files are in the same state as before the call.
         If a timeout is specified, any pending operation will fail after
         the specified amount (in seconds)
 
-        :param spec: token for identifying repository revision
+        :param version: token for identifying repository revision
            desired.  Token might be a tagname, branchname, version-id,
            SHA-ID, ... depending on the VCS implementation.
         :param timeout: maximum allocated time to perform operation
