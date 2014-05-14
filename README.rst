@@ -40,5 +40,6 @@ To run python3 compatibility tests, run either::
 Test Status
 -----------
 
-[![Build Status](https://travis-ci.org/vcstools/vcstools.png?branch=master)](https://travis-ci.org/vcstools/vcstools) 
+.. image:: https://travis-ci.org/vcstools/vcstools.svg?branch=master
+    :target: https://travis-ci.org/vcstools/vcstools
 
