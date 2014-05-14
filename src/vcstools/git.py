@@ -681,7 +681,7 @@ class GitClient(VcsClientBase):
         if value1 != 0 or value2 != 0:
             raise GitError('git fetch failed')
 
-    def _do_fast_forward(self, fetch=True, branch_parent=None, verbose=False):
+    def _do_fast_forward(self, branch_parent, fetch=True, verbose=False):
         """Execute git fetch if necessary, and if we can fast-foward,
         do so to the last fetched version using git rebase.
 
@@ -706,6 +706,7 @@ class GitClient(VcsClientBase):
                                       parent_version,
                                       fetch=False):
                 return True
+            print("Cannot fast-forward, local repository and remote '%s' have diverged." % branch_parent)
             return False
         if verbose:
             print("Rebasing repository")

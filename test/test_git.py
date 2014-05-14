@@ -165,7 +165,7 @@ class GitClientTest(GitClientTestSetups):
             self.fetches += 1
             return True
 
-        def iff(self, fetch=True, branch_parent=None, verbose=False):
+        def iff(self, branch_parent, fetch=True, verbose=False):
             self.fast_forwards += 1
             return True
 
@@ -205,7 +205,7 @@ class GitClientTest(GitClientTestSetups):
             self.fetches += 1
             return True
 
-        def iff(self, fetch=True, branch_parent=None, verbose=False):
+        def iff(self, branch_parent, fetch=True, verbose=False):
             self.fast_forwards += 1
             return True
 
