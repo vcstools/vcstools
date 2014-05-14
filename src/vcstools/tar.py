@@ -82,8 +82,9 @@ class TarClient(VcsClientBase):
                     return metadata['url']
         return None
 
-    def detect_presence(self):
-        return self.path_exists() and os.path.exists(self.metadata_path)
+    @staticmethod
+    def static_detect_presence(path):
+        return os.path.isfile(os.path.join(path, _METADATA_FILENAME))
 
     def checkout(self, url, version='', verbose=False,
                  shallow=False, timeout=None):
