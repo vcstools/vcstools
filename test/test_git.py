@@ -306,6 +306,27 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), new_branch)
         self.assertEqual(client.get_branch_parent(), new_branch)
 
+    def test_checkout_local_only_branch_and_update(self):
+        # prevent regression on wstool#25: no rebase after switching branch
+        url = self.remote_path
+        branch = "master"
+        client = GitClient(self.local_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url, branch))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(client.detect_presence())
+        self.assertTrue(client.is_local_branch(branch))
+
+        subprocess.check_call("git reset --hard HEAD~1", shell=True, cwd=self.local_path)
+        subprocess.check_call("git checkout -b new_local_branch", shell=True, cwd=self.local_path)
+
+        self.assertTrue(client.update(branch))  # same branch arg
+        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client.get_version(), self.readonly_version)
+        self.assertEqual(client.get_branch_parent(), branch)
+
+
     def test_checkout_specific_tag_and_update(self):
         url = self.remote_path
         tag = "last_tag"
