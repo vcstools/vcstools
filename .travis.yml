@@ -28,6 +28,7 @@ matrix:
 before_install:
  - export REPO=`pwd`
 install:
+  - sudo apt-get update
   - sudo apt-get install -qq python3-yaml python3-dev
   - sudo apt-get install -qq libapr1 libapr1-dev libaprutil1 libaprutil1-dev libneon27 libneon27-dev libc6-dev g++ gcc
   - echo $PYTHONPATH
