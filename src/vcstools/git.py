@@ -269,8 +269,8 @@ class GitClient(VcsClientBase):
                     same_branch = True
                 else:
                     same_branch = (refname == branch_parent)
-                if not branch_parent:
-                    # avoid checking branch parent again later
+                if same_branch and not branch_parent:
+                    # avoid expensive checking branch parent again later
                     fast_foward = False
         else:
             same_branch = False
