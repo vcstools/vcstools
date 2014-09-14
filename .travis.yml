@@ -15,7 +15,7 @@ env:
   # precise
   - HG='2.0.2' BZR=2.5.0 GIT=v1.7.9.5 SVN=1.6.17 PYYAML=3.10
   # quantal
-  - HG='2.2.2' BZR=2.6.0~beta2 GIT=v1.7.10.4 SVN=1.7.5 PYYAML=3.10
+  - HG='2.2.2' BZR=2.6.0+bzr6595 GIT=v1.7.10.4 SVN=1.7.5 PYYAML=3.10
 # bzr 2.1.1 only builds with python 2.6
 matrix:
   exclude:
@@ -28,6 +28,7 @@ matrix:
 before_install:
  - export REPO=`pwd`
 install:
+  - sudo apt-get update
   - sudo apt-get install -qq python3-yaml python3-dev
   - sudo apt-get install -qq libapr1 libapr1-dev libaprutil1 libaprutil1-dev libneon27 libneon27-dev libc6-dev g++ gcc
   - echo $PYTHONPATH
