@@ -4,6 +4,12 @@ Changelog
 0.1
 ===
 
+0.1.36
+------
+
+- Updates to the release platforms (-lucid +utopic +vivid)
+- Fix an issue with updating branches on git, see vcstools/wstool#25
+
 0.1.31
 ------
 
