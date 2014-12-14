@@ -43,6 +43,7 @@ import types
 import threading
 import time
 
+from distutils.version import LooseVersion
 from vcstools import GitClient
 from vcstools.vcs_base import VcsError
 
@@ -236,9 +237,13 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_branch(), "master")
         self.assertEqual(client.get_branch_parent(), "master")
         po = subprocess.Popen("git log --pretty=format:%H", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
-        log = po.stdout.read().decode('UTF-8').splitlines()
-        # shallow only contains last 2 commits (git <= 1.7 had 2?)
-        self.assertTrue(2 >= len(log), log)
+        log = po.stdout.read().decode('UTF-8').strip().splitlines()
+        if LooseVersion(client.gitversion) >= LooseVersion('1.8.2'):
+            # shallow only contains last commit
+            self.assertEqual(1, len(log), log)
+        else:
+            # shallow only contains last 2 commits
+            self.assertEqual(2, len(log), log)
 
     def test_checkout_specific_version_and_update(self):
         url = self.remote_path
