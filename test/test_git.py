@@ -868,7 +868,9 @@ class GitTimeoutTest(unittest.TestCase):
 
     class MuteHandler(BaseRequestHandler):
         def handle(self):
-            self.request.recv(1024)
+            data = True
+            while data:
+                data = self.request.recv(1024)
 
     @classmethod
     def setUpClass(self):
