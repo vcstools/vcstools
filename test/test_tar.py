@@ -45,8 +45,8 @@ class TarClientTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.remote_url = "https://code.ros.org/svn/release/download/stacks/exploration/exploration-0.3.0/exploration-0.3.0.tar.bz2"
-        self.package_version = "exploration-0.3.0"
+        self.remote_url = "https://github.com/ros-gbp/ros_comm-release/archive/release/jade/roswtf/1.11.13-0.tar.gz"
+        self.package_version = "ros_comm-release-release-jade-roswtf-1.11.13-0"
 
     def setUp(self):
         self.directories = {}
@@ -98,7 +98,7 @@ class TarClientTest(unittest.TestCase):
         # make sure the tarball subdirectory was promoted correctly.
         self.assertTrue(os.path.exists(os.path.join(local_path,
                                                     self.package_version,
-                                                    'stack.xml')))
+                                                    'package.xml')))
 
     def test_checkout_dir_exists(self):
         directory = tempfile.mkdtemp()
@@ -126,7 +126,7 @@ class TarClientTest(unittest.TestCase):
         self.assertEqual(client.get_path(), local_path)
         self.assertEqual(client.get_url(), self.remote_url)
         # make sure the tarball subdirectory was promoted correctly.
-        self.assertTrue(os.path.exists(os.path.join(local_path, 'stack.xml')))
+        self.assertTrue(os.path.exists(os.path.join(local_path, 'package.xml')))
 
     def test_get_environment_metadata(self):
         # Verify that metadata is generated
