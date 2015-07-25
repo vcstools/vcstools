@@ -4,6 +4,7 @@ python:
   - "2.7"
   - "3.2"
   - "3.3"
+  - "3.4"
 env:
   # lucid
   - HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
@@ -16,6 +17,8 @@ env:
   - HG='2.0.2' BZR=2.5.0 GIT=v1.7.9.5 SVN=1.6.17 PYYAML=3.10
   # quantal
   - HG='2.2.2' BZR=2.6.0+bzr6595 GIT=v1.7.10.4 SVN=1.7.5 PYYAML=3.10
+  # trusty
+  - HG='2.8.2' BZR=2.6.0+bzr6595 GIT=v1.9.1 SVN=1.8.8 PYYAML=3.10 SQLITE=sqlite-amalgamation-3071501.zip
 # bzr 2.1.1 only builds with python 2.6
 matrix:
   exclude:
@@ -25,12 +28,15 @@ matrix:
       env: HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
     - python: "3.3"
       env: HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
+    - python: "3.4"
+      env: HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
 before_install:
  - export REPO=`pwd`
 install:
   - sudo apt-get update
   - sudo apt-get install -qq python3-yaml python3-dev
   - sudo apt-get install -qq libapr1 libapr1-dev libaprutil1 libaprutil1-dev libneon27 libneon27-dev libc6-dev g++ gcc
+  - if [ $SQLITE ]; then (wget http://www.sqlite.org/$SQLITE && mkdir -p $HOME/builds/subversion-$SVN/sqlite-amalgamation && unzip -j $SQLITE -d $HOME/builds/subversion-$SVN/sqlite-amalgamation); fi
   - echo $PYTHONPATH
   - python -c 'import sys;print(sys.path)'
   - python setup.py build
