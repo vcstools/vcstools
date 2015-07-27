@@ -208,6 +208,15 @@ class BzrClient(VcsClientBase):
                                                  us_env=True)
                 return output.strip()
 
+    def get_current_version_label(self):
+        # url contains branch information
+        return None
+
+    def get_remote_version(self, fetch=False):
+        # Not sure how to get any useful information from bzr about this,
+        # since bzr has no globally unique IDs
+        return None
+
     def get_diff(self, basepath=None):
         response = None
         if basepath is None:

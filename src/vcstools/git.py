@@ -334,6 +334,24 @@ class GitClient(VcsClientBase):
                             return False
         return (not update_submodules) or self.update_submodules(verbose=verbose, timeout=timeout)
 
+    def get_current_version_label(self):
+        branch = self.get_branch()
+        if branch is None:
+            return '<detached>'
+        result = branch
+        remote_branch = self.get_branch_parent(allow_other_remote=True)
+        if remote_branch is not None:
+            if remote_branch.startswith('origin/'):
+                remote_branch = remote_branch[len('origin/'):]
+            if remote_branch != branch:
+                result += ' < ' + remote_branch
+        return result
+
+    def get_remote_version(self, fetch=False):
+        parent_branch = self.get_branch_parent(fetch=fetch)
+        if parent_branch is not None:
+            return self.get_version(spec='origin/'+parent_branch)
+
     def get_version(self, spec=None):
         """
         :param spec: (optional) token to identify desired version. For
@@ -497,15 +515,16 @@ class GitClient(VcsClientBase):
                     return elems[1]
         return None
 
-    def get_branch_parent(self, fetch=False, current_branch=None):
+    def get_branch_parent(self, fetch=False, current_branch=None, allow_other_remote=False):
         """
-        return the name of the branch this branch tracks, if any
-
+        :param fetch: if true, performs git fetch first
+        :param current_branch: if not None, this is used as current branch (else extra shell call)
+        :param allow_other_remote: if true, result is <remote>/<branch> if remote != 'origin'
+        :returns: the name of the branch this branch tracks, if any
         :raises: GitError if fetch fails
         """
         if not self.path_exists():
             return None
-
         # get name of configured merge ref.
         branchname = current_branch or self.get_branch()
         if branchname is None:
@@ -521,13 +540,18 @@ class GitClient(VcsClientBase):
         if len(lines) > 1:
             print("vcstools unable to handle multiple merge references for branch %s:\n%s" % (branchname, output))
             return None
+
+        remote = None
         # get name of configured remote
         cmd = 'git config --get "branch.%s.remote"' % branchname
         _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
         if output2 != "origin":
-            print("vcstools only handles branches tracking remote 'origin'," +
-                  " branch '%s' tracks remote '%s'" % (branchname, output2))
-            return None
+            if not allow_other_remote:
+                print("vcstools only handles branches tracking remote 'origin'," +
+                      " branch '%s' tracks remote '%s'" % (branchname, output2))
+                return None
+            remote = output2
+
         output = lines[0]
         # output is either refname, or /refs/heads/refname, or
         # heads/refname we would like to return refname however,
@@ -544,12 +568,14 @@ class GitClient(VcsClientBase):
             candidate = candidate[len('tags/'):]
         elif candidate.startswith('remotes/'):
             candidate = candidate[len('remotes/'):]
+        result = None
         if self.is_remote_branch(candidate, fetch=fetch):
-            return candidate
+            result = candidate
         if output != candidate and self.is_remote_branch(output, fetch=False):
-            return output
-        return None
-
+            result = output
+        if (result is not None and remote is not None):
+            result = remote + '/' + result
+        return result
 
     def is_tag(self, tag_name, fetch=True):
         """

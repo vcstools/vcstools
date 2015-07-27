@@ -154,10 +154,25 @@ class SvnClient(VcsClientBase):
         :param spec: (optional) spec can be what 'svn info --help'
           allows, meaning a revnumber, {date}, HEAD, BASE, PREV, or
           COMMITTED.
+        :param path: the url to use, default is for this repo
         :returns: current revision number of the repository. Or if spec
           provided, the number of a revision specified by some
           token.
         """
+        return self._get_version_from_path(spec=spec, path=self._path)
+
+    def _get_version_from_path(self, spec=None, path=None):
+        """
+        :param spec: (optional) spec can be what 'svn info --help'
+          allows, meaning a revnumber, {date}, HEAD, BASE, PREV, or
+          COMMITTED.
+        :param path: the url to use, default is for this repo
+        :returns: current revision number of the repository. Or if spec
+          provided, the number of a revision specified by some
+          token.
+        """
+        if not self.path_exists():
+            return None
         command = 'svn info '
         if spec is not None:
             if spec.isdigit():
@@ -178,7 +193,7 @@ class SvnClient(VcsClientBase):
                 command += sanitized(spec)
             else:
                 command += sanitized('-r%s' % spec)
-        command += " %s" % self._path
+        command += " %s" % path
         # #3305: parsing not robust to non-US locales
         _, output, _ = run_shell_command(command, shell=True, us_env=True)
         if output is not None:
@@ -189,6 +204,15 @@ class SvnClient(VcsClientBase):
                 if len(split_str) == 4:
                     return '-r' + split_str[3]
         return None
+
+    def get_current_version_label(self):
+        # SVN branches are part or URL
+        return None
+
+    def get_remote_version(self, fetch=False):
+        if fetch is False:
+            return None
+        return self._get_version_from_path(path=self.get_url())
 
     def get_diff(self, basepath=None):
         response = None
