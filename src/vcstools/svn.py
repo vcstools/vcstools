@@ -183,11 +183,11 @@ class SvnClient(VcsClientBase):
         _, output, _ = run_shell_command(command, shell=True, us_env=True)
         if output is not None:
             matches = \
-                [l for l in output.splitlines() if l.startswith('Revision: ')]
+                [l for l in output.splitlines() if l.startswith('Last Changed Rev: ')]
             if len(matches) == 1:
                 split_str = matches[0].split()
-                if len(split_str) == 2:
-                    return '-r' + split_str[1]
+                if len(split_str) == 4:
+                    return '-r' + split_str[3]
         return None
 
     def get_diff(self, basepath=None):
