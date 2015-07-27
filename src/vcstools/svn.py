@@ -60,11 +60,11 @@ def _get_svn_version():
         if value == 0 and output is not None and len(output.splitlines()) > 0:
             version = output.splitlines()[0]
         else:
-            raise VcsError("svn --version returned "
-                           + "%s maybe svn is not installed" % value)
+            raise VcsError("svn --version returned " +
+                           "%s maybe svn is not installed" % value)
     except VcsError as exc:
-        raise VcsError("Could not determine whether svn is installed: "
-                       + str(exc))
+        raise VcsError("Could not determine whether svn is installed: " +
+                       str(exc))
     return version
 
 

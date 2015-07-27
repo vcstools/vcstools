@@ -215,9 +215,9 @@ class HgClient(VcsClientBase):
                                                      shell=True,
                                                      cwd=self._path,
                                                      us_env=True)
-                    if (output.strip() != ''
-                            and not output.startswith("abort")
-                            or repeated is True):
+                    if (output.strip() != '' and
+                            not output.startswith("abort") or
+                            repeated is True):
 
                         matches = [l for l in output.splitlines() if l.startswith('changeset: ')]
                         if len(matches) == 1:
