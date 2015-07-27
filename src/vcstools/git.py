@@ -503,50 +503,53 @@ class GitClient(VcsClientBase):
 
         :raises: GitError if fetch fails
         """
-        if self.path_exists():
-            # get name of configured merge ref.
-            branchname = current_branch or self.get_branch()
-            if branchname is None:
-                return None
-            cmd = 'git config --get %s' % sanitized('branch.%s.merge' % branchname)
+        if not self.path_exists():
+            return None
 
-            _, output, _ = run_shell_command(cmd,
-                                             shell=True,
-                                             cwd=self._path)
-            if not output:
-                return None
-            lines = output.splitlines()
-            if len(lines) > 1:
-                print("vcstools unable to handle multiple merge references for branch %s:\n%s" % (branchname, output))
-                return None
-            # get name of configured remote
-            cmd = 'git config --get "branch.%s.remote"' % branchname
-            _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-            if output2 != "origin":
-                print("vcstools only handles branches tracking remote 'origin'," +
-                      " branch '%s' tracks remote '%s'" % (branchname, output2))
-                return None
-            output = lines[0]
-            # output is either refname, or /refs/heads/refname, or
-            # heads/refname we would like to return refname however,
-            # user could also have named any branch
-            # "/refs/heads/refname", for some unholy reason check all
-            # known branches on remote for refname, then for the odd
-            # cases, as git seems to do
-            candidate = output
-            if candidate.startswith('refs/'):
-                candidate = candidate[len('refs/'):]
-            if candidate.startswith('heads/'):
-                candidate = candidate[len('heads/'):]
-            elif candidate.startswith('tags/'):
-                candidate = candidate[len('tags/'):]
-            elif candidate.startswith('remotes/'):
-                candidate = candidate[len('remotes/'):]
-            if self.is_remote_branch(candidate, fetch=fetch):
-                return candidate
-            if output != candidate and self.is_remote_branch(output, fetch=False):
-                return output
+        # get name of configured merge ref.
+        branchname = current_branch or self.get_branch()
+        if branchname is None:
+            return None
+        cmd = 'git config --get %s' % sanitized('branch.%s.merge' % branchname)
+
+        _, output, _ = run_shell_command(cmd,
+                                         shell=True,
+                                         cwd=self._path)
+        if not output:
+            return None
+        lines = output.splitlines()
+        if len(lines) > 1:
+            print("vcstools unable to handle multiple merge references for branch %s:\n%s" % (branchname, output))
+            return None
+        # get name of configured remote
+        cmd = 'git config --get "branch.%s.remote"' % branchname
+        _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if output2 != "origin":
+            print("vcstools only handles branches tracking remote 'origin'," +
+                  " branch '%s' tracks remote '%s'" % (branchname, output2))
+            return None
+        output = lines[0]
+        # output is either refname, or /refs/heads/refname, or
+        # heads/refname we would like to return refname however,
+        # user could also have named any branch
+        # "/refs/heads/refname", for some unholy reason check all
+        # known branches on remote for refname, then for the odd
+        # cases, as git seems to do
+        candidate = output
+        if candidate.startswith('refs/'):
+            candidate = candidate[len('refs/'):]
+        if candidate.startswith('heads/'):
+            candidate = candidate[len('heads/'):]
+        elif candidate.startswith('tags/'):
+            candidate = candidate[len('tags/'):]
+        elif candidate.startswith('remotes/'):
+            candidate = candidate[len('remotes/'):]
+        if self.is_remote_branch(candidate, fetch=fetch):
+            return candidate
+        if output != candidate and self.is_remote_branch(output, fetch=False):
+            return output
         return None
+
 
     def is_tag(self, tag_name, fetch=True):
         """
