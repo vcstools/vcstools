@@ -237,6 +237,34 @@ class HgClient(VcsClientBase):
             # changes, inconsistent to hg log
             return output.strip().rstrip('+')
 
+    def get_current_version_label(self):
+        """
+        :param spec: (optional) spec can be what 'svn info --help'
+          allows, meaning a revnumber, {date}, HEAD, BASE, PREV, or
+          COMMITTED.
+        :returns: current revision number of the repository. Or if spec
+          provided, the number of a revision specified by some
+          token.
+        """
+        return self.get_branch()
+
+    def get_branch(self):
+        if self.path_exists():
+            command = "hg branch --repository %s" % self.get_path()
+            _, output, _ = run_shell_command(command, shell=True)
+            if output is not None:
+                return output.strip()
+        return None
+
+    def get_remote_version(self, fetch=False):
+        if fetch:
+            self._do_pull(filter=True)
+        # use local information only
+        result = self.get_log(limit=1)
+        if (len(result) == 1 and 'id' in result[0]):
+            return result[0]['id']
+        return None
+
     def get_diff(self, basepath=None):
         response = None
         if basepath is None:
@@ -262,10 +290,10 @@ class HgClient(VcsClientBase):
                                          '{autor|email}', '{date|isodate}',
                                          '{desc}']) + '\x1e'
 
-            command = "hg log %s --template '%s' %s" % (sanitized(relpath),
-                                                        HG_LOG_FORMAT,
-                                                        limit_cmd)
-
+            command = "hg log %s -b %s --template '%s' %s" % (sanitized(relpath),
+                                                              self.get_branch(),
+                                                              HG_LOG_FORMAT,
+                                                              limit_cmd)
             return_code, response_str, stderr = run_shell_command(command, shell=True, cwd=self._path)
 
             if return_code == 0:
@@ -318,11 +346,11 @@ class HgClient(VcsClientBase):
             os.remove(basepath + '.tar')
         return True
 
-    def _do_pull(self):
+    def _do_pull(self, filter=False):
         value, _, _ = run_shell_command("hg pull",
                                         cwd=self._path,
                                         shell=True,
-                                        no_filter=True)
+                                        no_filter=not filter)
         return value == 0
 
 # backwards compat

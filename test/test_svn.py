@@ -88,6 +88,18 @@ class SvnClientTestSetups(unittest.TestCase):
             "svn commit -m modified"]:
             subprocess.check_call(cmd, shell=True, cwd=self.init_path)
 
+        self.local_version_master = "-r3"
+
+        # files to be modified in "local" repo
+        for cmd in [
+            "mkdir branches/foo",
+            "touch branches/foo/modified.txt",
+            "svn add branches/foo",
+            "svn commit -m 'foo branch'"]:
+            subprocess.check_call(cmd, shell=True, cwd=self.init_path)
+        self.branch_url = self.local_root_url + "/branches/foo"
+        self.local_version_foo_branch = "-r4"
+
         self.local_path = os.path.join(self.root_directory, "local")
 
     @classmethod
@@ -108,7 +120,7 @@ class SvnClientTest(SvnClientTestSetups):
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(self.local_url, client.get_url())
-        #self.assertEqual(client.get_version(), self.local_version)
+        self.assertEqual(client.get_version(), self.local_version_master)
         self.assertEqual(client.get_version("PREV"), "-r2")
         self.assertEqual(client.get_version("2"), "-r2")
         self.assertEqual(client.get_version("-r2"), "-r2")
@@ -175,6 +187,25 @@ class SvnClientTest(SvnClientTestSetups):
         new_version = '2'
         self.assertTrue(client.update(new_version))
         self.assertEqual(client.get_version(), "-r2")
+
+    def test_get_remote_version(self):
+        url = self.local_url
+        client = SvnClient(self.local_path)
+        client.checkout(url)
+        self.assertEqual(client.get_remote_version(fetch=True),
+                         self.local_version_master)
+        self.assertEqual(client.get_remote_version(fetch=False),
+                         None)
+
+    def test_get_remote_branch_version(self):
+        url = self.branch_url
+        client = SvnClient(self.local_path)
+        client.checkout(url)
+        self.assertEqual(client.get_remote_version(fetch=True),
+                         self.local_version_foo_branch)
+        self.assertEqual(client.get_remote_version(fetch=False),
+                         None)
+
 
     def testDiffClean(self):
         client = SvnClient(self.remote_path)

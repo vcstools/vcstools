@@ -377,6 +377,70 @@ class GitClientTest(GitClientTestSetups):
 
         self.assertTrue(client.get_branch_parent() is not None)
 
+    def test_get_branch_parent(self):
+        client = GitClient(path=self.local_path)
+        client.checkout(url=self.remote_path, version='test_branch')
+        self.assertEqual(client.get_branch_parent(), 'test_branch')
+
+        # with rewrited tracking branch
+        cmd = 'git config --replace-all branch.test_branch.merge master'
+        subprocess.check_call(cmd, shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_branch_parent(), 'master')
+        # with other remote than origin
+        cmd = 'git remote add remote2 %s' % self.remote_path
+        subprocess.check_call(cmd, shell=True, cwd=self.local_path)
+        cmd = 'git config --replace-all branch.test_branch.remote remote2'
+        subprocess.check_call(cmd, shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_branch_parent(), None)
+        self.assertEqual(client.get_branch_parent(allow_other_remote=True),
+                         'remote2/master')
+        # with not actual remote branch
+        cmd = 'git config --replace-all branch.test_branch.merge dummy_branch'
+        subprocess.check_call(cmd, shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_branch_parent(allow_other_remote=True),
+                         None)
+        # return remote back to original config
+        cmd = 'git config --replace-all branch.test_branch.remote origin'
+        subprocess.check_call(cmd, shell=True, cwd=self.local_path)
+        cmd = 'git config --replace-all branch.test_branch.merge test_branch'
+        subprocess.check_call(cmd, shell=True, cwd=self.local_path)
+
+        # with detached local status
+        client.update(version='test_tag')
+        self.assertEqual(client.get_branch_parent(), None)
+        # back to master branch
+        client.update(version='master')
+
+    def test_get_current_version_label(self):
+        url = self.remote_path
+        client = GitClient(path=self.local_path)
+        client.checkout(url, version='test_tag')
+        self.assertEqual(client.get_current_version_label(), '<detached>')
+        client.update(version='master')
+        self.assertEqual(client.get_current_version_label(), 'master')
+        subprocess.check_call("git config --replace-all branch.master.merge test_branch", shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_current_version_label(), 'master < test_branch')
+        subprocess.check_call("git config --replace-all branch.master.merge master", shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_current_version_label(), 'master')
+        subprocess.check_call("git remote add remote2 %s" % self.remote_path, shell=True, cwd=self.local_path)
+        subprocess.check_call("git config --replace-all branch.master.remote remote2", shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_current_version_label(), 'master < remote2/master')
+        subprocess.check_call("git config --replace-all branch.master.merge test_branch", shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_current_version_label(), 'master < remote2/test_branch')
+
+    def test_get_remote_version(self):
+        url = self.remote_path
+        client = GitClient(path=self.local_path)
+        client.checkout(url, version='master')
+        self.assertEqual(client.get_remote_version(fetch=True), self.readonly_version)
+        self.assertEqual(client.get_remote_version(fetch=False), self.readonly_version)
+        subprocess.check_call("git reset --hard test_tag", shell=True, cwd=self.local_path)
+        self.assertEqual(client.get_remote_version(fetch=True), self.readonly_version)
+        client.update(version='test_branch')
+        self.assertEqual(client.get_remote_version(fetch=True), self.readonly_version_init)
+        client.update(version='test_branch')
+        self.assertEqual(client.get_remote_version(fetch=False), self.readonly_version_init)
+
     def testDiffClean(self):
         client = GitClient(self.remote_path)
         self.assertEquals('', client.get_diff())
@@ -434,6 +498,31 @@ test_tag
   remotes/origin/master
   remotes/origin/test_branch
 ''', output)
+
+
+class GitClientRemoteVersionFetchTest(GitClientTestSetups):
+
+    def test_update_fetch_all_tags(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url, "master"))
+        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client.get_remote_version(fetch=False), self.readonly_version)
+        self.assertEqual(client.get_remote_version(fetch=True), self.readonly_version)
+
+        subprocess.check_call("touch new_file.txt", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git add *", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m newfile", shell=True, cwd=self.remote_path)
+
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
+        remote_new_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
+        self.assertNotEqual(self.readonly_version, remote_new_version)
+
+        # remote version stays same until we fetch
+        self.assertEqual(client.get_remote_version(fetch=False), self.readonly_version)
+        self.assertEqual(client.get_remote_version(fetch=True), remote_new_version)
+        self.assertEqual(client.get_remote_version(fetch=False), remote_new_version)
 
 
 class GitClientLogTest(GitClientTestSetups):
@@ -785,7 +874,7 @@ class GitTimeoutTest(unittest.TestCase):
 
     def test_checkout_timeout(self):
         ## SSH'ing to a mute server will hang for a very long time
-        url = 'ssh://test@localhost:{0}/test'.format(self.mute_port)
+        url = 'ssh://test@127.0.0.1:{0}/test'.format(self.mute_port)
         client = GitClient(self.local_path)
         start = time.time()
         self.assertFalse(client.checkout(url, timeout=2.0))
@@ -806,4 +895,3 @@ class GitTimeoutTest(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
-

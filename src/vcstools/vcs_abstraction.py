@@ -101,6 +101,12 @@ class VcsClient(object):
     def get_version(self, spec=None):
         return self.vcs.get_version(spec)
 
+    def get_current_version_label(self):
+        return self.vcs.get_current_version_label()
+
+    def get_remote_version(self, fetch=False):
+        return self.vcs.get_remote_version(fetch)
+
     def checkout(self, url, version='', verbose=False, shallow=False):
         return self.vcs.checkout(url,
                                  version,

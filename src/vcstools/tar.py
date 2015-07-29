@@ -169,6 +169,14 @@ class TarClient(VcsClientBase):
                     return metadata['version']
         return None
 
+    def get_current_version_label(self):
+        # exploded tar has no local version
+        return None
+
+    def get_remote_version(self, fetch=False):
+        # exploded tar has no remote version (not a required feature)
+        return None
+
     def get_diff(self, basepath=None):
         return ''
 
