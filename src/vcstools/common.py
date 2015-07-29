@@ -341,7 +341,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
             if cwd is not None:
                 message += "\n run at: '%s'" % (cwd)
             message += "\n errcode: %s:\n%s" % (proc.returncode, stderr)
-            logger.warn(message)
+            if not no_warn:
+                logger.warn(message)
         result = stdout
         if result is not None:
             result = result.rstrip()
