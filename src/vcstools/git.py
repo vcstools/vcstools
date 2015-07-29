@@ -366,22 +366,27 @@ class GitClient(VcsClientBase):
             if spec is not None:
                 command += " %s" % sanitized(spec)
             command += " --format='%H'"
-            output = ''
-            # we repeat the call once after fetching if necessary
-            for _ in range(2):
-                _, output, _ = run_shell_command(command,
-                                                 shell=True,
-                                                 cwd=self._path)
-                if (output != '' or spec is None):
-                    break
-                # we try again after fetching if given spec had not been found
-                try:
-                    self._do_fetch()
-                except GitError:
-                    return None
-            # On Windows the version can have single quotes around it
-            output = output.strip("'")
-            return output
+            _, output, _ = run_shell_command(command, shell=True,
+                                             no_warn=True, cwd=self._path)
+            if output.strip() != '':
+                # On Windows the version can have single quotes around it
+                version = output.strip().strip("'")
+                return version  # found SHA-ID
+            elif spec is None:
+                return None
+            # we try again after fetching if given spec had not been found
+            try:
+                self._do_fetch()
+            except GitError:
+                return None
+            # we repeat the call once again after fetching
+            _, output, _ = run_shell_command(command, shell=True,
+                                             no_warn=True, cwd=self._path)
+            if output.strip() == '':
+                # even if after fetching, not found specified version
+                return None
+            version = output.strip().strip("'")
+            return version
         return None
 
     def get_diff(self, basepath=None):
