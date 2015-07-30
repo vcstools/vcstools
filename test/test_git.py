@@ -377,6 +377,11 @@ class GitClientTest(GitClientTestSetups):
 
         self.assertTrue(client.get_branch_parent() is not None)
 
+    def test_get_version_not_exist(self):
+        client = GitClient(path=self.local_path)
+        client.checkout(url=self.remote_path, version='master')
+        self.assertEqual(client.get_version(spec='not_exist_version'), None)
+
     def test_get_branch_parent(self):
         client = GitClient(path=self.local_path)
         client.checkout(url=self.remote_path, version='test_branch')

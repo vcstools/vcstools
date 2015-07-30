@@ -261,7 +261,7 @@ def _read_shell_output(proc, no_filter, verbose, show_stdout, output_queue):
 
 def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
                       show_stdout=False, verbose=False, timeout=None,
-                      no_filter=False):
+                      no_warn=False, no_filter=False):
     """
     executes a command and hides the stdout output, loggs stderr
     output when command result is not zero. Make sure to sanitize
@@ -271,7 +271,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
     :param shell: Whether to use os shell.
     :param us_env: changes env var LANG before running command, can influence program output
     :param show_stdout: show some of the output (except for discarded lines in _discard_line()), ignored if no_filter
-    :param verbose: show all output, ignored if no_filter
+    :param no_warn: hides warnings
+    :param verbose: show all output, overrides no_warn, ignored if no_filter
     :param timeout: time allocated to the subprocess
     :param no_filter: does not wrap stdout, so invoked command prints everything outside our knowledge
     this is DANGEROUS, as vulnerable to shell injection.
@@ -340,7 +341,8 @@ def run_shell_command(cmd, cwd=None, shell=False, us_env=True,
             if cwd is not None:
                 message += "\n run at: '%s'" % (cwd)
             message += "\n errcode: %s:\n%s" % (proc.returncode, stderr)
-            logger.warn(message)
+            if not no_warn:
+                logger.warn(message)
         result = stdout
         if result is not None:
             result = result.rstrip()
