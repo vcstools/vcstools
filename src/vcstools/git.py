@@ -573,14 +573,14 @@ class GitClient(VcsClientBase):
         _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
         remote = output2 or 'origin'
 
-        output = lines[0]
-        # output is either refname, or /refs/heads/refname, or
+        branch_reference = lines[0]
+        # branch_reference is either refname, or /refs/heads/refname, or
         # heads/refname we would like to return refname however,
         # user could also have named any branch
         # "/refs/heads/refname", for some unholy reason check all
         # known branches on remote for refname, then for the odd
         # cases, as git seems to do
-        candidate = output
+        candidate = branch_reference
         if candidate.startswith('refs/'):
             candidate = candidate[len('refs/'):]
         if candidate.startswith('heads/'):
@@ -591,10 +591,10 @@ class GitClient(VcsClientBase):
             candidate = candidate[len('remotes/'):]
 
         result = None
-        if self.is_remote_branch(candidate, fetch=fetch):
+        if self.is_remote_branch(candidate, remote_name=remote, fetch=fetch):
             result = candidate
-        if output != candidate and self.is_remote_branch(output, fetch=False):
-            result = output
+        elif branch_reference != candidate and self.is_remote_branch(branch_reference, remote_name=remote, fetch=False):
+            result = branch_reference
 
         if result is not None:
             return (result, remote)
