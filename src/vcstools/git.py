@@ -53,6 +53,7 @@ disambiguation, and in some cases warns.
 
 from __future__ import absolute_import, print_function, unicode_literals
 import os
+import sys
 import gzip
 import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
@@ -317,7 +318,7 @@ class GitClient(VcsClientBase):
                     # commit becomes dangling unless we move to one of its descendants
                     if not self.rev_list_contains(refname, current_version, fetch=False):
                         # TODO: should raise error instead of printing message
-                        print("vcstools refusing to move away from dangling commit, to protect your work.")
+                        sys.stderr.write("vcstools refusing to move away from dangling commit, to protect your work.\n")
                         return False
 
             # git checkout makes all the decisions for us
@@ -543,7 +544,8 @@ class GitClient(VcsClientBase):
             return None
         lines = output.splitlines()
         if len(lines) > 1:
-            print("vcstools unable to handle multiple merge references for branch %s:\n%s" % (branchname, output))
+            sys.stderr.write("vcstools unable to handle multiple merge references for branch %s:\n%s\n"
+                             % (branchname, output))
             return None
 
         remote = None
