@@ -263,7 +263,7 @@ class GitClient(VcsClientBase):
             # local branch might be named differently from remote by user, we respect that
             same_branch = (refname == current_branch)
             if not same_branch:
-                branch_parent = self.get_branch_parent(current_branch=current_branch)
+                (branch_parent, remote) = self.get_branch_parent(current_branch=current_branch)
                 if not refname:
                     # ! changing refname to cause fast-forward
                     refname = branch_parent
@@ -284,7 +284,12 @@ class GitClient(VcsClientBase):
         if same_branch:
             if fast_foward:
                 if not branch_parent and current_branch:
-                    branch_parent = self.get_branch_parent(current_branch=current_branch)
+                    (branch_parent, remote) = self.get_branch_parent(current_branch=current_branch)
+                    if remote != 'origin':
+                        # if remote is not origin, must not fast-forward (because based on origin)
+                        sys.stderr.write("vcstools only handles branches tracking remote 'origin'," +
+                                         " branch '%s' tracks remote '%s'\n" % (current_branch, remote))
+                        branch_parent = None
                 # already on correct branch, fast-forward if there is a parent
                 if branch_parent:
                     if not self._do_fast_forward(branch_parent=branch_parent,
@@ -326,7 +331,12 @@ class GitClient(VcsClientBase):
 
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
-                new_branch_parent = self.get_branch_parent(current_branch=refname)
+                (new_branch_parent, remote) = self.get_branch_parent(current_branch=refname)
+                if remote != 'origin':
+                    # if remote is not origin, must not fast-forward (because based on origin)
+                    sys.stderr.write("vcstools only handles branches tracking remote 'origin'," +
+                                     " branch '%s' tracks remote '%s'\n" % (current_branch, remote))
+                    new_branch_parent = None
                 if new_branch_parent is not None:
                     if fast_foward:
                         if not self._do_fast_forward(branch_parent=new_branch_parent,
@@ -336,22 +346,29 @@ class GitClient(VcsClientBase):
         return (not update_submodules) or self.update_submodules(verbose=verbose, timeout=timeout)
 
     def get_current_version_label(self):
+        """
+        For git we change the label to clarify when a different remote
+        is configured.
+        """
         branch = self.get_branch()
         if branch is None:
             return '<detached>'
         result = branch
-        remote_branch = self.get_branch_parent(allow_other_remote=True)
+        (remote_branch, remote) = self.get_branch_parent()
         if remote_branch is not None:
-            if remote_branch.startswith('origin/'):
-                remote_branch = remote_branch[len('origin/'):]
-            if remote_branch != branch:
-                result += ' < ' + remote_branch
+            # if not following 'origin/branch', display 'branch < tracked ref'
+            if (remote_branch != branch or remote != 'origin'):
+                result += ' < '
+                if remote != 'origin':
+                    result += remote + '/'
+                result += remote_branch
         return result
 
     def get_remote_version(self, fetch=False):
-        parent_branch = self.get_branch_parent(fetch=fetch)
+        # try tracked branch on origin (returns None if on other remote)
+        (parent_branch, remote) = self.get_branch_parent(fetch=fetch)
         if parent_branch is not None:
-            return self.get_version(spec='origin/'+parent_branch)
+            return self.get_version(spec=remote+'/'+parent_branch)
 
     def get_version(self, spec=None):
         """
@@ -474,13 +491,16 @@ class GitClient(VcsClientBase):
             response = response_processed
         return response
 
-    def is_remote_branch(self, branch_name, fetch=True):
+    def is_remote_branch(self, branch_name, remote_name=None, fetch=True):
         """
         checks list of remote branches for match. Set fetch to False if you just fetched already.
 
-        :returns: True if git branch knows ref for remote "origin"
+        :returns: True if branch_name exists for remote <remote_name> (or 'origin' if None)
         :raises: GitError when git fetch fails
         """
+        if remote_name is None:
+            remote_name = "origin"  # default remote name is origin
+
         if self.path_exists():
             if fetch:
                 self._do_fetch()
@@ -491,7 +511,7 @@ class GitClient(VcsClientBase):
                 elem = l.split()[0]
                 rem_name = elem[:elem.find('/')]
                 br_name = elem[elem.find('/') + 1:]
-                if rem_name == "origin" and br_name == branch_name:
+                if rem_name == remote_name and br_name == branch_name:
                     return True
         return False
 
@@ -521,43 +541,37 @@ class GitClient(VcsClientBase):
                     return elems[1]
         return None
 
-    def get_branch_parent(self, fetch=False, current_branch=None, allow_other_remote=False):
+    def get_branch_parent(self, fetch=False, current_branch=None):
         """
         :param fetch: if true, performs git fetch first
         :param current_branch: if not None, this is used as current branch (else extra shell call)
-        :param allow_other_remote: if true, result is <remote>/<branch> if remote != 'origin'
-        :returns: the name of the branch this branch tracks, if any
+        :returns: (branch, remote) the name of the branch this branch tracks and its remote
         :raises: GitError if fetch fails
         """
         if not self.path_exists():
-            return None
+            return (None, None)
         # get name of configured merge ref.
         branchname = current_branch or self.get_branch()
         if branchname is None:
-            return None
+            return (None, None)
+
         cmd = 'git config --get %s' % sanitized('branch.%s.merge' % branchname)
 
         _, output, _ = run_shell_command(cmd,
                                          shell=True,
                                          cwd=self._path)
         if not output:
-            return None
+            return (None, None)
         lines = output.splitlines()
         if len(lines) > 1:
             sys.stderr.write("vcstools unable to handle multiple merge references for branch %s:\n%s\n"
                              % (branchname, output))
-            return None
+            return (None, None)
 
-        remote = None
         # get name of configured remote
         cmd = 'git config --get "branch.%s.remote"' % branchname
         _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if output2 != "origin":
-            if not allow_other_remote:
-                print("vcstools only handles branches tracking remote 'origin'," +
-                      " branch '%s' tracks remote '%s'" % (branchname, output2))
-                return None
-            remote = output2
+        remote = output2 or 'origin'
 
         output = lines[0]
         # output is either refname, or /refs/heads/refname, or
@@ -575,14 +589,16 @@ class GitClient(VcsClientBase):
             candidate = candidate[len('tags/'):]
         elif candidate.startswith('remotes/'):
             candidate = candidate[len('remotes/'):]
+
         result = None
         if self.is_remote_branch(candidate, fetch=fetch):
             result = candidate
         if output != candidate and self.is_remote_branch(output, fetch=False):
             result = output
-        if (result is not None and remote is not None):
-            result = remote + '/' + result
-        return result
+
+        if result is not None:
+            return (result, remote)
+        return None, None
 
     def is_tag(self, tag_name, fetch=True):
         """
