@@ -217,3 +217,17 @@ man_pages = [
     ('index', 'vcstools', u'vcstools Documentation',
      [u'Tully Foote, Thibault Kruse, Ken Conley'], 1)
 ]
+
+autodoc_default_flags = ['members', 'private-members', 'special-members',
+                         #'undoc-members',
+                         'show-inheritance']
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    exclusions = ('__weakref__',  # special-members
+                  '__doc__', '__module__', '__dict__',  # undoc-members
+                  )
+    exclude = name in exclusions
+    return skip or exclude
+
+def setup(app):
+    app.connect('autodoc-skip-member', autodoc_skip_member)
