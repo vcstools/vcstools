@@ -286,6 +286,14 @@ class BzrClient(VcsClientBase):
             response = response_processed
         return response
 
+    def get_branches(self, local_only=False):
+        # see http://doc.bazaar.canonical.com/beta/en/user-guide/shared_repository_layouts.html
+        # the 'bzr branches' command exists, but is not useful here (too many assumptions)
+        # Else bazaar branches are equivalent to forks in git and hg
+        # such branches (forks) on launchpad could be retrieved using
+        # the launchpadlib, but the API is probably not stable.
+        raise NotImplementedError("get_branches is not implemented for bzr")
+
     def export_repository(self, version, basepath):
         # execute the bzr export cmd
         cmd = 'bzr export --format=tgz {0} '.format(basepath + '.tar.gz')

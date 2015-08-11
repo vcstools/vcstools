@@ -395,3 +395,37 @@ class HGExportRepositoryClientTest(HGClientTestSetups):
         self.assertTrue(os.path.exists(self.basepath_export + '.tar.gz'))
         self.assertFalse(os.path.exists(self.basepath_export + '.tar'))
         self.assertFalse(os.path.exists(self.basepath_export))
+
+
+class HGGetBranchesClientTest(HGClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        HGClientTestSetups.setUpClass()
+        url = self.local_url
+        client = HgClient(self.local_path)
+        client.checkout(url)
+
+    def tearDown(self):
+        pass
+
+    def test_get_branches(self):
+        client = HgClient(self.local_path)
+        # Make a local branch
+        subprocess.check_call('hg branch test_branch2', shell=True,
+                              cwd=self.local_path, stdout=subprocess.PIPE)
+        subprocess.check_call('hg commit -m "Making test_branch2"', shell=True,
+                              cwd=self.local_path, stdout=subprocess.PIPE)
+        self.assertEqual(client.get_branches(), ['test_branch2', 'test_branch', 'default'])
+
+        # Make a remote branch
+        subprocess.check_call('hg branch remote_branch', shell=True,
+                              cwd=self.remote_path, stdout=subprocess.PIPE)
+        subprocess.check_call("touch fixed.txt", shell=True,
+                              cwd=self.remote_path)
+        subprocess.check_call("hg add fixed.txt", shell=True,
+                              cwd=self.remote_path)
+        subprocess.check_call("hg commit -m initial", shell=True,
+                              cwd=self.remote_path)
+        self.assertEqual(client.get_branches(local_only=True), ['test_branch2', 'test_branch', 'default'])
+        self.assertEqual(client.get_branches(), ['remote_branch', 'test_branch2', 'test_branch', 'default'])

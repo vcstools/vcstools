@@ -140,5 +140,9 @@ class VcsClient(object):
     def export_repository(self, version, basepath):
         return self.vcs.export_repository(version, basepath)
 
+    def get_branches(self, local_only=False):
+        return self.vcs.get_branches(local_only)
+
+
 # backwards compat
 VCSClient = VcsClient

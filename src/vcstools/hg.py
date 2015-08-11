@@ -346,6 +346,21 @@ class HgClient(VcsClientBase):
             os.remove(basepath + '.tar')
         return True
 
+    def get_branches(self, local_only=False):
+        if not local_only:
+            self._do_pull()
+        cmd = 'hg branches'
+        result, out, _ = run_shell_command(cmd, shell=True, cwd=self._path,
+                                           show_stdout=False)
+        if result:
+            return []
+        branches = []
+        for line in out.splitlines():
+            line = line.strip()
+            line = line.split()
+            branches.append(line[0])
+        return branches
+
     def _do_pull(self, filter=False):
         value, _, _ = run_shell_command("hg pull",
                                         cwd=self._path,

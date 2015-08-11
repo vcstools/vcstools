@@ -34,11 +34,15 @@
 svn vcs support.
 """
 
-
 from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
-
+try:
+    # PY3K
+    from urlparse import urlsplit
+except ImportError:
+    from urllib.parse import urlsplit
+import re
 import tarfile
 
 import dateutil.parser  # For parsing date strings
@@ -47,6 +51,67 @@ import xml.dom.minidom  # For parsing logfiles
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, \
     run_shell_command, ensure_dir_notexists
+
+
+def canonical_svn_url_split(url):
+    """
+    checks url for traces of canonical svn structure,
+    and return root, type, name (of tag or branch), subfolder, query and fragment (see urllib urlparse)
+    This should allow creating a different url for switching to a different tag or branch
+
+    :param url: location of central repo, ``str``
+    :returns: dict {root, type, name, subfolder, query, fragment}
+    with type one of "trunk", "tags", "branches"
+    """
+    result = {'root': url, 'type': None, 'name': None, 'subfolder': None, 'query': None, 'fragment': None}
+    if not url:
+        return result
+    splitresult = urlsplit(url)
+    if not splitresult.scheme:
+        # svn does not accept mere paths
+        return result
+    canonical_pattern = re.compile('(.*/)?(trunk|branches|tags)(/.*)?')
+    matches = canonical_pattern.findall(splitresult.path)
+    if len(matches) > 0:
+        if len(matches) > 1:
+            raise ValueError('Invalid path in url %s' % splitresult.path)
+        prefix, branchtype, rest = matches[0]
+        prefix = prefix.rstrip('/')
+        rest = rest.lstrip('/')
+        if branchtype == 'trunk':
+            result['root'] = '%s://%s%s' % (splitresult.scheme,
+                                            splitresult.netloc,
+                                            prefix)
+            result['type'] = branchtype
+            result['query'] = splitresult.query or None
+            result['fragment'] = splitresult.fragment or None
+            if rest:
+                result['subfolder'] = rest
+        elif branchtype in ['tags', 'branches']:
+            result['type'] = branchtype
+            result['root'] = '%s://%s%s' % (splitresult.scheme,
+                                            splitresult.netloc,
+                                            prefix)
+            result['query'] = splitresult.query or None
+            result['fragment'] = splitresult.fragment or None
+            if rest:
+                splitrest = rest.split('/', 1)
+                print(splitrest)
+                result['name'] = splitrest[0]
+                if len(splitrest) == 2 and splitrest[1]:
+                    result['subfolder'] = splitrest[1]
+    return result
+
+
+def get_remote_contents(url):
+    contents = []
+    if url:
+        cmd = 'svn ls %s' % (url)
+        result_code, output, _ = run_shell_command(cmd, shell=True)
+        if result_code:
+            return []
+        contents = [line.strip('/') for line in output.splitlines()]
+    return contents
 
 
 def _get_svn_version():
@@ -300,6 +365,20 @@ class SvnClient(VcsClientBase):
             from shutil import rmtree
             rmtree(basepath)
         return True
+
+    def get_branches(self, local_only=False):
+        url = self.get_url()
+        canonical_dict = canonical_svn_url_split(url)
+        if local_only:
+            if canonical_dict['type'] == 'branches':
+                return [canonical_dict['name']]
+            return []
+
+        branches = []
+        if canonical_dict['type']:
+            branches = get_remote_contents('%s/%s' % (canonical_dict['root'], 'branches'))
+
+        return branches
 
 
 SVNClient = SvnClient
