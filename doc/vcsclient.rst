@@ -28,7 +28,15 @@ The :class:`VcsClient` class provides a generic API for
     
       :returns: filesystem path this client is initialized with.
 
-   .. method:: get_version([spec=None])
+   .. method:: url_matches(self, url, url_or_shortcut) -> bool
+
+        client can decide whether the url and the other url are equivalent.
+        Checks string equality by default
+
+        :param url_or_shortcut: url or shortcut (e.g. bzr launchpad url)
+        :returns: bool if params are equivalent
+
+   .. method:: get_version([spec=None]) -> str
     
       :param spec: token for identifying repository revision
         desired.  Token might be a tagname, branchname, version-id,
@@ -49,6 +57,22 @@ The :class:`VcsClient` class provides a generic API for
         (e.g. revision number, or SHA-ID) of a revision specified by
         some token.
 
+   .. method:: get_remote_version(self, fatch=False) -> str
+
+        Find an identifier for the current revision on remote.
+        Token spec might be a tagname,
+        version-id, SHA-ID, ... depending on the VCS implementation.
+
+        :param fetch: if False, only local information may be used
+        :returns: current revision number of the remote repository.
+
+   .. method:: get_current_version_label() -> str
+
+      Find an description for the current local version.
+      Token spec might be a branchname,
+      version-id, SHA-ID, ... depending on the VCS implementation.
+
+        :returns: short description of local version (e.g. branchname, tagename).
 
    .. method:: checkout(url, [version=''], [verbose=False], [shallow=False])
 

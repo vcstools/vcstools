@@ -20,8 +20,7 @@ Changelog
 Bug reports and feature requests
 --------------------------------
 
-- `Submit a bug report <https://kforge.ros.org/vcstools/trac/newticket?component=vcstools&type=defect>`_
-- `Submit a feature request <https://kforge.ros.org/vcstools/trac/newticket?component=vcstools&type=enhancement&vcstools>`_
+- `Submit a bug report <https://github.com/vcstools/vcstools>`_
 
 Developer Setup
 ---------------
@@ -31,17 +30,9 @@ which you will need to download and install in order to run the
 packaging.  We use setuptools instead of distutils in order to be able
 use ``setup()`` keys like ``install_requires``.
 
-Configure your :envvar:`PYTHONPATH`::
-
     cd vcstools
-    . setup.sh
+    python setup.py develop
 
-OR::
-
-    cd vcstools
-    python setup.py install
-
-The first will prepend ``vcstools/src`` to your :envvar:`PYTHONPATH`. The second will install vcstools into your dist/site-packages.
 
 Testing
 -------

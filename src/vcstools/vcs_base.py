@@ -136,21 +136,19 @@ class VcsClientBase(object):
         Token spec might be a branchname,
         version-id, SHA-ID, ... depending on the VCS implementation.
 
-        :type spec: str
         :returns: short description of local version (e.g. branchname, tagename).
         :rtype: str
         """
         raise NotImplementedError("Base class get_current_version method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
-    def get_remote_version(self, fatch=False):
+    def get_remote_version(self, fetch=False):
         """
         Find an identifier for the current revision on remote.
         Token spec might be a tagname,
         version-id, SHA-ID, ... depending on the VCS implementation.
 
         :param fetch: if False, only local information may be used
-        :type spec: str
         :returns: current revision number of the remote repository.
         :rtype: str
         """
