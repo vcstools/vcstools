@@ -33,6 +33,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 import errno
 import os
+import sys
 import copy
 import shlex
 import subprocess
@@ -241,7 +242,7 @@ def _read_shell_output(proc, no_filter, verbose, show_stdout, output_queue):
                 line = line.decode('UTF-8')
                 if line is not None and line != '':
                     if verbose or not _discard_line(line):
-                        print(line),
+                        sys.stdout.write(line),
                         stdout_buf.append(line)
                 if (not line or proc.returncode is not None):
                     break
@@ -250,7 +251,7 @@ def _read_shell_output(proc, no_filter, verbose, show_stdout, output_queue):
             for line in iter(proc.stderr.readline, b''):
                 line = line.decode('UTF-8')
                 if line != '':
-                    print(line),
+                    sys.stdout.write(line),
                     stderr_buf.append(line)
                 if not line:
                     break
