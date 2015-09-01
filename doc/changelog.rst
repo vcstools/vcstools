@@ -4,6 +4,18 @@ Changelog
 0.1
 ===
 
+0.1.37
+------
+
+- Fix an issue where log were restricted to the named branch (hg).
+- Fixed svn to use a global revision number rather than a branch-local revision.
+- Added the get_remote_version() and get_current_version_label() API calls.
+- Enhanced use of ``no_warn`` in run_shell_command().
+- Fix get_version() to catch stderr.
+- Added get_branches() API call.
+- Fix some errors and warnings to output to stderr.
+- Fix output to avoid extra newlines when show_stdout=True.
+
 0.1.36
 ------
 
