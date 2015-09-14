@@ -371,6 +371,8 @@ class SvnDiffStatClientTest(SvnClientTestSetups):
                     # new svn versions use different labels for added
                     # files (working copy) vs (revision x)
                     fixedline = re.sub('\(revision [0-9]+\)', '(working copy)', line)
+                    # svn 1.9 added (nonexistent)
+                    fixedline = re.sub('\(nonexistent\)', '(working copy)', fixedline)
                     newblock.append(fixedline)
             return "\n".join(newblock)
 
