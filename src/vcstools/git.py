@@ -364,6 +364,17 @@ class GitClient(VcsClientBase):
                 result += remote_branch
         return result
 
+    def get_default_remote_version_label(self):
+        if self.detect_presence():
+            _, output, _ = run_shell_command('git remote show %s' % self._get_default_remote(),
+                                             shell=True,
+                                             cwd=self._path)
+            for line in output.splitlines():
+                elems = line.split()
+                if elems[0:2] == ['HEAD', 'branch:']:
+                    return elems[2]
+        return None
+
     def get_remote_version(self, fetch=False):
         # try tracked branch on origin (returns None if on other remote)
         (parent_branch, remote) = self.get_branch_parent(fetch=fetch)

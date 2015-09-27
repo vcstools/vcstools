@@ -101,6 +101,16 @@ class GitClientTestSetups(unittest.TestCase):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
 
+class GitSwitchDefaultBranchTest(GitClientTestSetups):
+    def test_get_default_remote_version_label(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        self.assertTrue(client.checkout(url))
+        self.assertEqual(client.get_default_remote_version_label(), 'master')
+        subprocess.check_call("git symbolic-ref HEAD refs/heads/test_branch", shell=True, cwd=self.remote_path)
+        self.assertEqual(client.get_default_remote_version_label(), 'test_branch')
+
+
 
 class GitClientTest(GitClientTestSetups):
 
@@ -927,7 +937,7 @@ class GitTimeoutTest(unittest.TestCase):
         url = 'ssh://test@127.0.0.1:{0}/test'.format(self.mute_port)
         client = GitClient(self.local_path)
         start = time.time()
-                          
+
         self.assertFalse(client.checkout(url, timeout=2.0))
         stop = time.time()
         self.assertTrue(stop - start > 1.9)
