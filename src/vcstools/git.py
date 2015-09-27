@@ -37,9 +37,11 @@ refnames in git can be branchnames, hashes, partial hashes, tags. On
 checkout, git will disambiguate by checking them in that order, taking
 the first that applies
 
-This class aims to provide git for linear centralized workflows.  This
-means we assume that the only relevant remote is the one named
-"origin", and we assume that commits once on origin remain on origin.
+This class aims to provide git for linear centralized workflows. This
+means in case of ambiguity, we assume that the only relevant remote
+is the one named "origin", and we assume that commits once on origin
+remain on origin.
+
 
 A challenge with git is that it has strong reasonable conventions, but
 is very allowing for breaking them. E.g. it is possible to name
@@ -149,13 +151,28 @@ class GitClient(VcsClientBase):
 
     def get_url(self):
         """
-        :returns: GIT URL of the directory path (output of git info command), or None if it cannot be determined
+        :returns: git URL of the directory path (output of git info command), or None if it cannot be determined
         """
         if self.detect_presence():
-            cmd = "git config --get remote.origin.url"
+            cmd = "git config --get remote.%s.url" % self._get_default_remote()
             _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
             return output.rstrip()
         return None
+
+    def _get_default_remote(self):
+        """
+        in order to support users who name their default origin
+        something else than origin, read remote name.
+        """
+        if self.detect_presence():
+            cmd = "git remote show"
+            _, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+            lines = output.splitlines():
+            if lines.length == 1:
+                return lines[0]
+            # else: # if more than one remote configured,
+            ## there is obvious strategy
+        return 'origin'
 
     @staticmethod
     def static_detect_presence(path):
@@ -281,13 +298,14 @@ class GitClient(VcsClientBase):
             return (not update_submodules) or self.update_submodules(verbose=verbose,
                                                                      timeout=timeout)
 
+        default_remote = self._get_default_remote()
         if same_branch:
             if fast_foward:
                 if not branch_parent and current_branch:
                     (branch_parent, remote) = self.get_branch_parent(current_branch=current_branch)
-                    if remote != 'origin':
+                    if remote != default_remote:
                         # if remote is not origin, must not fast-forward (because based on origin)
-                        sys.stderr.write("vcstools only handles branches tracking remote 'origin'," +
+                        sys.stderr.write("vcstools only handles branches tracking default remote," +
                                          " branch '%s' tracks remote '%s'\n" % (current_branch, remote))
                         branch_parent = None
                 # already on correct branch, fast-forward if there is a parent
@@ -332,9 +350,9 @@ class GitClient(VcsClientBase):
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
                 (new_branch_parent, remote) = self.get_branch_parent(current_branch=refname)
-                if remote != 'origin':
+                if remote != default_remote:
                     # if remote is not origin, must not fast-forward (because based on origin)
-                    sys.stderr.write("vcstools only handles branches tracking remote 'origin'," +
+                    sys.stderr.write("vcstools only handles branches tracking default remote," +
                                      " branch '%s' tracks remote '%s'\n" % (current_branch, remote))
                     new_branch_parent = None
                 if new_branch_parent is not None:
@@ -356,10 +374,11 @@ class GitClient(VcsClientBase):
         result = branch
         (remote_branch, remote) = self.get_branch_parent()
         if remote_branch is not None:
+            default_remote = self._get_default_remote()
             # if not following 'origin/branch', display 'branch < tracked ref'
-            if (remote_branch != branch or remote != 'origin'):
+            if (remote_branch != branch or remote != default_remote):
                 result += ' < '
-                if remote != 'origin':
+                if remote != default_remote:
                     result += remote + '/'
                 result += remote_branch
         return result
@@ -499,7 +518,7 @@ class GitClient(VcsClientBase):
         :raises: GitError when git fetch fails
         """
         if remote_name is None:
-            remote_name = "origin"  # default remote name is origin
+            remote_name = self._get_default_remote()
 
         if self.path_exists():
             if fetch:
@@ -571,7 +590,7 @@ class GitClient(VcsClientBase):
         # get name of configured remote
         cmd = 'git config --get "branch.%s.remote"' % branchname
         _, output2, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        remote = output2 or 'origin'
+        remote = output2 or self._get_default_remote()
 
         branch_reference = lines[0]
         # branch_reference is either refname, or /refs/heads/refname, or
@@ -761,7 +780,8 @@ class GitClient(VcsClientBase):
         """
         assert branch_parent is not None
         current_version = self.get_version()
-        parent_version = self.get_version("remotes/origin/%s" % branch_parent)
+        default_remote = self._get_default_remote()
+        parent_version = self.get_version("remotes/%s/%s" % (default_remote, branch_parent))
         if current_version == parent_version:
             return True
         # check if we are true ancestor of tracked branch
@@ -784,7 +804,7 @@ class GitClient(VcsClientBase):
         if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
             # --keep allows o rebase even with local changes, as long as
             # local changes are not in files that change between versions
-            cmd = "git reset --keep remotes/origin/%s" % branch_parent
+            cmd = "git reset --keep remotes/%s/%s" % (default_remote, branch_parent)
             value, _, _ = run_shell_command(cmd,
                                             shell=True,
                                             cwd=self._path,
@@ -798,7 +818,7 @@ class GitClient(VcsClientBase):
                 verboseflag = '-v'
             # prior to version 1.7.1, git does not know --keep
             # Do not merge, rebase does nothing when there are local changes
-            cmd = "git rebase %s remotes/origin/%s" % (verboseflag, branch_parent)
+            cmd = "git rebase %s remotes/%s/%s" % (verboseflag, default_remote, branch_parent)
             value, _, _ = run_shell_command(cmd,
                                             shell=True,
                                             cwd=self._path,
