@@ -108,7 +108,7 @@ class VcsClientBase(object):
 
     def get_url(self):
         """
-        :returns: The source control url for the path
+        :returns: The source control url for the path or None if not set
         :rtype: str
         """
         raise NotImplementedError(
