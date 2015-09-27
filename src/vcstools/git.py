@@ -204,7 +204,7 @@ class GitClient(VcsClientBase):
         except GitError:
             return False
 
-    def update_submodules(self, verbose=False, timeout=None):
+    def _update_submodules(self, verbose=False, timeout=None):
 
         # update and or init submodules too
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
@@ -257,13 +257,13 @@ class GitClient(VcsClientBase):
         :param update_submodules: if false, does not attempt to update submodules
         '''
         # are we on any branch?
-        current_branch = self.get_branch()
+        current_branch = self._get_branch()
         branch_parent = None
         if current_branch:
             # local branch might be named differently from remote by user, we respect that
             same_branch = (refname == current_branch)
             if not same_branch:
-                (branch_parent, remote) = self.get_branch_parent(current_branch=current_branch)
+                (branch_parent, remote) = self._get_branch_parent(current_branch=current_branch)
                 if not refname:
                     # ! changing refname to cause fast-forward
                     refname = branch_parent
@@ -278,13 +278,13 @@ class GitClient(VcsClientBase):
 
         if not refname:
             # we are neither tracking, nor did we get any refname to update to
-            return (not update_submodules) or self.update_submodules(verbose=verbose,
-                                                                     timeout=timeout)
+            return (not update_submodules) or self._update_submodules(verbose=verbose,
+                                                                      timeout=timeout)
 
         if same_branch:
             if fast_foward:
                 if not branch_parent and current_branch:
-                    (branch_parent, remote) = self.get_branch_parent(current_branch=current_branch)
+                    (branch_parent, remote) = self._get_branch_parent(current_branch=current_branch)
                     if remote != 'origin':
                         # if remote is not origin, must not fast-forward (because based on origin)
                         sys.stderr.write("vcstools only handles branches tracking remote 'origin'," +
@@ -299,12 +299,12 @@ class GitClient(VcsClientBase):
         else:
             # refname can be a different branch or something else than a branch
 
-            refname_is_local_branch = self.is_local_branch(refname)
+            refname_is_local_branch = self._is_local_branch(refname)
             if refname_is_local_branch:
                 # might also be remote branch, but we treat it as local
                 refname_is_remote_branch = False
             else:
-                refname_is_remote_branch = self.is_remote_branch(refname, fetch=False)
+                refname_is_remote_branch = self._is_remote_branch(refname, fetch=False)
             refname_is_branch = refname_is_remote_branch or refname_is_local_branch
 
             current_version = None
@@ -312,16 +312,16 @@ class GitClient(VcsClientBase):
             if not refname_is_branch:
                 current_version = self.get_version()
                 if current_version == refname:
-                    return (not update_submodules) or self.update_submodules(verbose=verbose,
-                                                                             timeout=timeout)
+                    return (not update_submodules) or self._update_submodules(verbose=verbose,
+                                                                              timeout=timeout)
 
             if current_branch is None:
                 if not current_version:
                     current_version = self.get_version()
                 # prevent commit from becoming dangling
-                if self.is_commit_in_orphaned_subtree(current_version, fetch=False):
+                if self._is_commit_in_orphaned_subtree(current_version, fetch=False):
                     # commit becomes dangling unless we move to one of its descendants
-                    if not self.rev_list_contains(refname, current_version, fetch=False):
+                    if not self._rev_list_contains(refname, current_version, fetch=False):
                         # TODO: should raise error instead of printing message
                         sys.stderr.write("vcstools refusing to move away from dangling commit, to protect your work.\n")
                         return False
@@ -331,7 +331,7 @@ class GitClient(VcsClientBase):
 
             if refname_is_local_branch:
                 # if we just switched to a local tracking branch (not created one), we should also fast forward
-                (new_branch_parent, remote) = self.get_branch_parent(current_branch=refname)
+                (new_branch_parent, remote) = self._get_branch_parent(current_branch=refname)
                 if remote != 'origin':
                     # if remote is not origin, must not fast-forward (because based on origin)
                     sys.stderr.write("vcstools only handles branches tracking remote 'origin'," +
@@ -343,18 +343,18 @@ class GitClient(VcsClientBase):
                                                      fetch=False,
                                                      verbose=verbose):
                             return False
-        return (not update_submodules) or self.update_submodules(verbose=verbose, timeout=timeout)
+        return (not update_submodules) or self._update_submodules(verbose=verbose, timeout=timeout)
 
     def get_current_version_label(self):
         """
         For git we change the label to clarify when a different remote
         is configured.
         """
-        branch = self.get_branch()
+        branch = self._get_branch()
         if branch is None:
             return '<detached>'
         result = branch
-        (remote_branch, remote) = self.get_branch_parent()
+        (remote_branch, remote) = self._get_branch_parent()
         if remote_branch is not None:
             # if not following 'origin/branch', display 'branch < tracked ref'
             if (remote_branch != branch or remote != 'origin'):
@@ -377,7 +377,7 @@ class GitClient(VcsClientBase):
 
     def get_remote_version(self, fetch=False):
         # try tracked branch on origin (returns None if on other remote)
-        (parent_branch, remote) = self.get_branch_parent(fetch=fetch)
+        (parent_branch, remote) = self._get_branch_parent(fetch=fetch)
         if parent_branch is not None:
             return self.get_version(spec=remote+'/'+parent_branch)
 
@@ -502,7 +502,7 @@ class GitClient(VcsClientBase):
             response = response_processed
         return response
 
-    def is_remote_branch(self, branch_name, remote_name=None, fetch=True):
+    def _is_remote_branch(self, branch_name, remote_name=None, fetch=True):
         """
         checks list of remote branches for match. Set fetch to False if you just fetched already.
 
@@ -526,7 +526,7 @@ class GitClient(VcsClientBase):
                     return True
         return False
 
-    def is_local_branch(self, branch_name):
+    def _is_local_branch(self, branch_name):
         if self.path_exists():
             _, output, _ = run_shell_command('git branch',
                                              shell=True,
@@ -541,7 +541,7 @@ class GitClient(VcsClientBase):
                         return True
         return False
 
-    def get_branch(self):
+    def _get_branch(self):
         if self.path_exists():
             _, output, _ = run_shell_command('git branch',
                                              shell=True,
@@ -552,7 +552,7 @@ class GitClient(VcsClientBase):
                     return elems[1]
         return None
 
-    def get_branch_parent(self, fetch=False, current_branch=None):
+    def _get_branch_parent(self, fetch=False, current_branch=None):
         """
         :param fetch: if true, performs git fetch first
         :param current_branch: if not None, this is used as current branch (else extra shell call)
@@ -562,7 +562,7 @@ class GitClient(VcsClientBase):
         if not self.path_exists():
             return (None, None)
         # get name of configured merge ref.
-        branchname = current_branch or self.get_branch()
+        branchname = current_branch or self._get_branch()
         if branchname is None:
             return (None, None)
 
@@ -602,9 +602,11 @@ class GitClient(VcsClientBase):
             candidate = candidate[len('remotes/'):]
 
         result = None
-        if self.is_remote_branch(candidate, remote_name=remote, fetch=fetch):
+        if self._is_remote_branch(candidate, remote_name=remote, fetch=fetch):
             result = candidate
-        elif branch_reference != candidate and self.is_remote_branch(branch_reference, remote_name=remote, fetch=False):
+        elif branch_reference != candidate and self._is_remote_branch(branch_reference,
+                                                                      remote_name=remote,
+                                                                      fetch=False):
             result = branch_reference
 
         if result is not None:
@@ -631,7 +633,7 @@ class GitClient(VcsClientBase):
                 return True
         return False
 
-    def rev_list_contains(self, refname, version, fetch=True):
+    def _rev_list_contains(self, refname, version, fetch=True):
         """
         calls git rev-list with refname and returns True if version
         can be found in rev-list result
@@ -664,7 +666,7 @@ class GitClient(VcsClientBase):
                         return True
         return False
 
-    def is_commit_in_orphaned_subtree(self, version, mask_self=False, fetch=True):
+    def _is_commit_in_orphaned_subtree(self, version, mask_self=False, fetch=True):
         """
         checks git log --all (the list of all commits reached by
         references, meaning branches or tags) for version. If it shows
@@ -776,15 +778,15 @@ class GitClient(VcsClientBase):
         if current_version == parent_version:
             return True
         # check if we are true ancestor of tracked branch
-        if not self.rev_list_contains(parent_version,
-                                      current_version,
-                                      fetch=fetch):
+        if not self._rev_list_contains(parent_version,
+                                       current_version,
+                                       fetch=fetch):
             # if not rev_list_contains this version, we are on same
             # commit (checked before), have advanced, or have diverged.
             # Now check whether tracked branch is a true ancestor of us
-            if self.rev_list_contains(current_version,
-                                      parent_version,
-                                      fetch=False):
+            if self._rev_list_contains(current_version,
+                                       parent_version,
+                                       fetch=False):
                 return True
             print("Cannot fast-forward, local repository and remote '%s' have diverged." % branch_parent)
             return False

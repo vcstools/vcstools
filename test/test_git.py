@@ -127,10 +127,10 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(client.get_version(self.readonly_version_init[0:6]), self.readonly_version_init)
         self.assertEqual(client.get_version("test_tag"), self.readonly_version_init)
         # private functions
-        self.assertFalse(client.is_local_branch("test_branch"))
-        self.assertTrue(client.is_remote_branch("test_branch"))
+        self.assertFalse(client._is_local_branch("test_branch"))
+        self.assertTrue(client._is_remote_branch("test_branch"))
         self.assertTrue(client.is_tag("test_tag"))
-        self.assertFalse(client.is_remote_branch("test_tag"))
+        self.assertFalse(client._is_remote_branch("test_tag"))
         self.assertFalse(client.is_tag("test_branch"))
 
     def test_get_url_nonexistant(self):
@@ -153,8 +153,8 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
-        self.assertEqual(client.get_branch(), "master")
-        self.assertEqual(client.get_branch_parent(), ("master", "origin"))
+        self.assertEqual(client._get_branch(), "master")
+        self.assertEqual(client._get_branch_parent(), ("master", "origin"))
         #self.assertEqual(client.get_version(), '-r*')
 
     def test_checkout_dir_exists(self):
@@ -185,7 +185,7 @@ class GitClientTest(GitClientTestSetups):
             return True
         client._do_fetch = types.MethodType(ifetch, client)
         client._do_fast_forward = types.MethodType(iff, client)
-        client.update_submodules = types.MethodType(isubm, client)
+        client._update_submodules = types.MethodType(isubm, client)
         url = self.remote_path
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
@@ -225,7 +225,7 @@ class GitClientTest(GitClientTestSetups):
             return True
         client._do_fetch = types.MethodType(ifetch, client)
         client._do_fast_forward = types.MethodType(iff, client)
-        client.update_submodules = types.MethodType(isubm, client)
+        client._update_submodules = types.MethodType(isubm, client)
         url = self.remote_path
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
@@ -244,8 +244,8 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
-        self.assertEqual(client.get_branch(), "master")
-        self.assertEqual(client.get_branch_parent(), ("master", "origin"))
+        self.assertEqual(client._get_branch(), "master")
+        self.assertEqual(client._get_branch_parent(), ("master", "origin"))
         po = subprocess.Popen("git log --pretty=format:%H", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         log = po.stdout.read().decode('UTF-8').strip().splitlines()
         if LooseVersion(client.gitversion) >= LooseVersion('1.8.2'):
@@ -284,10 +284,10 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
-        self.assertEqual(client.get_branch_parent(), (branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (branch, "origin"))
 
         self.assertTrue(client.update(branch))
-        self.assertEqual(client.get_branch_parent(), (branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (branch, "origin"))
 
     def test_checkout_specific_branch_and_update(self):
         # subdir = "checkout_specific_version_test"
@@ -299,27 +299,27 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.checkout(url, branch))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertTrue(client.is_local_branch(branch))
+        self.assertTrue(client._is_local_branch(branch))
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertEqual(client.get_version(), self.readonly_version_init)
-        self.assertEqual(client.get_branch(), branch)
-        self.assertEqual(client.get_branch_parent(), (branch, "origin"))
+        self.assertEqual(client._get_branch(), branch)
+        self.assertEqual(client._get_branch_parent(), (branch, "origin"))
 
         self.assertTrue(client.update())  # no arg
-        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client._get_branch(), branch)
         self.assertEqual(client.get_version(), self.readonly_version_init)
-        self.assertEqual(client.get_branch_parent(), (branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (branch, "origin"))
 
         self.assertTrue(client.update(branch))  # same branch arg
-        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client._get_branch(), branch)
         self.assertEqual(client.get_version(), self.readonly_version_init)
-        self.assertEqual(client.get_branch_parent(), (branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (branch, "origin"))
 
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
-        self.assertEqual(client.get_branch(), new_branch)
-        self.assertEqual(client.get_branch_parent(), (new_branch, "origin"))
+        self.assertEqual(client._get_branch(), new_branch)
+        self.assertEqual(client._get_branch_parent(), (new_branch, "origin"))
 
     def test_checkout_local_only_branch_and_update(self):
         # prevent regression on wstool#25: no rebase after switching branch
@@ -331,15 +331,15 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.checkout(url, branch))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertTrue(client.is_local_branch(branch))
+        self.assertTrue(client._is_local_branch(branch))
 
         subprocess.check_call("git reset --hard HEAD~1", shell=True, cwd=self.local_path)
         subprocess.check_call("git checkout -b new_local_branch", shell=True, cwd=self.local_path)
 
         self.assertTrue(client.update(branch))  # same branch arg
-        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client._get_branch(), branch)
         self.assertEqual(client.get_version(), self.readonly_version)
-        self.assertEqual(client.get_branch_parent(), (branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (branch, "origin"))
 
 
     def test_checkout_specific_tag_and_update(self):
@@ -353,14 +353,14 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
         tag = "test_tag"
         self.assertTrue(client.update(tag))
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
-        self.assertEqual(client.get_branch_parent(), (new_branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (new_branch, "origin"))
         tag = "test_tag"
         self.assertTrue(client.update(tag))
 
@@ -390,7 +390,7 @@ class GitClientTest(GitClientTestSetups):
         # replace "refs/head/master" with just "master"
         subprocess.check_call("git config --replace-all branch.master.merge master", shell=True, cwd=self.local_path)
 
-        self.assertTrue(client.get_branch_parent() is not (None, None))
+        self.assertTrue(client._get_branch_parent() is not (None, None))
 
     def test_get_version_not_exist(self):
         client = GitClient(path=self.local_path)
@@ -400,18 +400,18 @@ class GitClientTest(GitClientTestSetups):
     def test_get_branch_parent(self):
         client = GitClient(path=self.local_path)
         client.checkout(url=self.remote_path, version='master')
-        self.assertEqual(client.get_branch_parent(), ("master", "origin"))
+        self.assertEqual(client._get_branch_parent(), ("master", "origin"))
 
         # with other remote than origin
         for cmd in ['git remote add remote2 %s' % self.remote_path,
                     'git config --replace-all branch.master.remote remote2']:
             subprocess.check_call(cmd, shell=True, cwd=self.local_path)
-        self.assertEqual(client.get_branch_parent(), (None, None))
-        self.assertEqual(client.get_branch_parent(fetch=True), ('master', "remote2"))
+        self.assertEqual(client._get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(fetch=True), ('master', "remote2"))
         # with not actual remote branch
         cmd = 'git config --replace-all branch.master.merge dummy_branch'
         subprocess.check_call(cmd, shell=True, cwd=self.local_path)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
         # return remote back to original config
         for cmd in [
              'git config --replace-all branch.master.remote origin',
@@ -420,7 +420,7 @@ class GitClientTest(GitClientTestSetups):
 
         # with detached local status
         client.update(version='test_tag')
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
         # back to master branch
         client.update(version='master')
 
@@ -498,7 +498,7 @@ class GitClientUpdateTest(GitClientTestSetups):
         url = self.remote_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url, "master"))
-        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client._get_branch(), "master")
         self.assertTrue(client.update())
         p = subprocess.Popen("git tag", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         output = p.communicate()[0].decode('utf-8')
@@ -540,7 +540,7 @@ class GitClientRemoteVersionFetchTest(GitClientTestSetups):
         url = self.remote_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url, "master"))
-        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client._get_branch(), "master")
         self.assertEqual(client.get_remote_version(fetch=False), self.readonly_version)
         self.assertEqual(client.get_remote_version(fetch=True), self.readonly_version)
 
@@ -649,30 +649,30 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def test_is_commit_in_orphaned_subtree(self):
         client = GitClient(self.local_path)
-        self.assertTrue(client.is_commit_in_orphaned_subtree(self.dangling_version))
-        self.assertFalse(client.is_commit_in_orphaned_subtree(self.no_br_tag_version))
-        self.assertFalse(client.is_commit_in_orphaned_subtree(self.diverged_branch_version))
+        self.assertTrue(client._is_commit_in_orphaned_subtree(self.dangling_version))
+        self.assertFalse(client._is_commit_in_orphaned_subtree(self.no_br_tag_version))
+        self.assertFalse(client._is_commit_in_orphaned_subtree(self.diverged_branch_version))
 
     def test_protect_dangling(self):
         client = GitClient(self.local_path)
         # url = self.remote_path
-        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client._get_branch(), "master")
         tag = "no_br_tag"
         self.assertTrue(client.update(tag))
-        self.assertEqual(client.get_branch(), None)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch(), None)
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         tag = "test_tag"
         self.assertTrue(client.update(tag))
-        self.assertEqual(client.get_branch(), None)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch(), None)
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         # to dangling commit
         sha = self.dangling_version
         self.assertTrue(client.update(sha))
-        self.assertEqual(client.get_branch(), None)
+        self.assertEqual(client._get_branch(), None)
         self.assertEqual(client.get_version(), self.dangling_version)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         # now HEAD protects the dangling commit, should not be allowed to move off.
         new_branch = 'master'
@@ -681,75 +681,75 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
     def test_detached_to_branch(self):
         client = GitClient(self.local_path)
         # url = self.remote_path
-        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client._get_branch(), "master")
         tag = "no_br_tag"
         self.assertTrue(client.update(tag))
-        self.assertEqual(client.get_branch(), None)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch(), None)
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         tag = "test_tag"
         self.assertTrue(client.update(tag))
-        self.assertEqual(client.get_branch(), None)
+        self.assertEqual(client._get_branch(), None)
         self.assertEqual(client.get_version(), self.readonly_version_init)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         #update should not change anything
         self.assertTrue(client.update())  # no arg
-        self.assertEqual(client.get_branch(), None)
+        self.assertEqual(client._get_branch(), None)
         self.assertEqual(client.get_version(), self.readonly_version_init)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
-        self.assertEqual(client.get_branch(), new_branch)
+        self.assertEqual(client._get_branch(), new_branch)
         self.assertEqual(client.get_version(), self.readonly_version)
-        self.assertEqual(client.get_branch_parent(), (new_branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (new_branch, "origin"))
 
     def test_checkout_untracked_branch_and_update(self):
         # difference to tracked branches is that branch parent is None, and we may hop outside lineage
         client = GitClient(self.local_path)
         url = self.remote_path
         branch = "localbranch"
-        self.assertEqual(client.get_branch(), "master")
+        self.assertEqual(client._get_branch(), "master")
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertTrue(client.is_local_branch(branch))
+        self.assertTrue(client._is_local_branch(branch))
         self.assertEqual(client.get_path(), self.local_path)
         self.assertEqual(client.get_url(), url)
         self.assertTrue(client.update(branch))
         self.assertEqual(client.get_version(), self.untracked_version)
-        self.assertEqual(client.get_branch(), branch)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch(), branch)
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         self.assertTrue(client.update())  # no arg
-        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client._get_branch(), branch)
         self.assertEqual(client.get_version(), self.untracked_version)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         self.assertTrue(client.update(branch))  # same branch arg
-        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client._get_branch(), branch)
         self.assertEqual(client.get_version(), self.untracked_version)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         # to master
         new_branch = 'master'
         self.assertTrue(client.update(new_branch))
-        self.assertEqual(client.get_branch(), new_branch)
+        self.assertEqual(client._get_branch(), new_branch)
         self.assertEqual(client.get_version(), self.readonly_version)
-        self.assertEqual(client.get_branch_parent(), (new_branch, "origin"))
+        self.assertEqual(client._get_branch_parent(), (new_branch, "origin"))
 
         # and back
         self.assertTrue(client.update(branch))  # same branch arg
-        self.assertEqual(client.get_branch(), branch)
+        self.assertEqual(client._get_branch(), branch)
         self.assertEqual(client.get_version(), self.untracked_version)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         # to dangling commit
         sha = self.dangling_version
         self.assertTrue(client.update(sha))
-        self.assertEqual(client.get_branch(), None)
+        self.assertEqual(client._get_branch(), None)
         self.assertEqual(client.get_version(), self.dangling_version)
-        self.assertEqual(client.get_branch_parent(), (None, None))
+        self.assertEqual(client._get_branch_parent(), (None, None))
 
         #should not work to protect commits from becoming dangled
         # to commit outside lineage
@@ -764,12 +764,12 @@ class GitClientDanglingCommitsTest(GitClientTestSetups):
         except VcsError:
             pass
         try:
-            client.rev_list_contains('foo"; echo bar"', "foo", fetch=False)
+            client._rev_list_contains('foo"; echo bar"', "foo", fetch=False)
             self.fail("expected Exception")
         except VcsError:
             pass
         try:
-            client.rev_list_contains('foo', 'foo"; echo bar"', fetch=False)
+            client._rev_list_contains('foo', 'foo"; echo bar"', fetch=False)
             self.fail("expected Exception")
         except VcsError:
             pass
@@ -799,7 +799,7 @@ class GitClientOverflowTest(GitClientTestSetups):
     def test_orphaned_overflow(self):
         client = GitClient(self.local_path)
         # this failed when passing all ref ids to git log
-        self.assertFalse(client.is_commit_in_orphaned_subtree(self.last_version))
+        self.assertFalse(client._is_commit_in_orphaned_subtree(self.last_version))
 
 
 class GitDiffStatClientTest(GitClientTestSetups):
