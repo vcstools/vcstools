@@ -42,7 +42,7 @@ install:
   - python setup.py build
 # cannot build mercurial and bzr using py3k, but cannot use python2 in python2.6 case
   - export PY2K=`python -c 'import sys; print("python2" if (sys.version_info[0] == 3) else  "python")'`
-  - pip install coverage
+  - pip install 'coverage<4'
   - pip install cython
   - pip install pep8
   - pip install "pyyaml<=$PYYAML" > pyaml-warnings.log 2>&1 || (cat pyaml-warnings.log && false)

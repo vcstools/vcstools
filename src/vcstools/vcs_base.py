@@ -108,7 +108,7 @@ class VcsClientBase(object):
 
     def get_url(self):
         """
-        :returns: The source control url for the path
+        :returns: The source control url for the path or None if not set
         :rtype: str
         """
         raise NotImplementedError(
@@ -153,6 +153,18 @@ class VcsClientBase(object):
         :rtype: str
         """
         raise NotImplementedError("Base class get_remote_version method must be overridden for client type %s " %
+                                  self._vcs_type_name)
+
+    def get_default_remote_version_label(self):
+        """
+        Find a label for the default branch on remote, meaning
+        the one that would be checked out on a clean checkout.
+
+        :returns: a label or None (if not applicable)
+        :rtype: str
+        """
+        raise NotImplementedError("Base class get_default_remote_version_label" +
+                                  "method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
     def checkout(self, url, version=None, verbose=False, shallow=False, timeout=None):
