@@ -163,7 +163,8 @@ class VcsClientBase(object):
         :returns: a label or None (if not applicable)
         :rtype: str
         """
-        raise NotImplementedError("Base class get_default_remote_version_label method must be overridden for client type %s " %
+        raise NotImplementedError("Base class get_default_remote_version_label" +
+                                  "method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
     def checkout(self, url, version=None, verbose=False, shallow=False, timeout=None):
