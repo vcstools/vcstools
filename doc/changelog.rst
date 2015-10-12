@@ -4,6 +4,13 @@ Changelog
 0.1
 ===
 
+0.1.38
+------
+
+- Fixed test failures due to SVN 1.9.
+- Added the ``get_default_remote_version_label()`` API method to support changes in ``wstool``.
+- Renamed some internal functions to have a leading ``_`` to indicate that they are private.
+
 0.1.37
 ------
 
