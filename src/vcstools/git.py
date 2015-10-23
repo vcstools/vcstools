@@ -56,6 +56,7 @@ disambiguation, and in some cases warns.
 from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
+import shutil
 import gzip
 import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
@@ -200,6 +201,18 @@ class GitClient(VcsClientBase):
                 self.logger.error('%s' % msg)
             return False
 
+        # Checking out : the first time, we need to init submodules
+        # this way subsequent updates can deinit properly.
+        cmd = "git submodule init"
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        cwd=self._path,
+                                        show_stdout=True,
+                                        timeout=timeout,
+                                        verbose=verbose)
+        if value != 0:
+            return False
+
         try:
             # update to make sure we are on the right branch. Do not
             # check for "master" here, as default branch could be anything
@@ -216,7 +229,7 @@ class GitClient(VcsClientBase):
 
     def _update_submodules(self, verbose=False, timeout=None):
 
-        # update and or init submodules too
+        # update submodules ( and init if necessary ).
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
             cmd = "git submodule update --init --recursive"
             value, _, _ = run_shell_command(cmd,
@@ -228,6 +241,92 @@ class GitClient(VcsClientBase):
             if value != 0:
                 return False
         return True
+
+    def _deinit_submodules(self, verbose=False, timeout=None):
+        # deinit submodules.
+
+        if LooseVersion(self.gitversion) < LooseVersion('1.8.3'):
+            # listing submodules
+            cmd = "git submodule status"
+            value, subm_lines, _ = run_shell_command(cmd,
+                                                     shell=True,
+                                                     cwd=self._path,
+                                                     show_stdout=True,
+                                                     timeout=timeout,
+                                                     verbose=verbose)
+            if value != 0:
+                raise GitError("Unable to determine the status of Submodules."
+                               " Deinit cancelled.".format(subm))
+            subm_list = subm_lines.splitlines()
+            for subh in subm_list:
+                if subh[0] == '-':  # '-' means not initialized : we dont need to deinit
+                    pass
+                elif subh[0] != ' ':  # documented : '+' 'U' -> cannot deinit
+                    raise GitError("Submodule {0} contains local modifications."
+                                   " Deinit cancelled.".format(subh.split()[1]))
+                elif subh[0] == ' ':
+                    subm = subh.split()[1]
+
+                    # remove the submodule work tree ( unless the user already did it )
+                    if os.path.exists(os.path.join(self._path, subm)):
+                        # Check for local modification with git status
+                        # Note : git-submodule.sh deinit code has checks that are not working with git version < 1.8.3
+                        cmd = "git status -s"
+                        value, gitindex, _ = run_shell_command(cmd,
+                                                               shell=True,
+                                                               cwd=os.path.join(self._path, subm),
+                                                               show_stdout=True,
+                                                               timeout=timeout,
+                                                               verbose=True)
+                        if value != 0:
+                            raise GitError("Unable to determine the status of Submodule work tree {0}."
+                                           " Deinit cancelled.".format(subm))
+                        if gitindex:  # if we have any output from status
+                            raise GitError("Submodule work tree {0} contains local modifications."
+                                           " Deinit cancelled.".format(subm))
+
+                        # It s fine to remove submodule worktree. All changes have been stored
+                        shutil.rmtree(os.path.join(self._path, subm))
+
+                    # Recreate empty folder
+                    os.makedirs(os.path.join(self._path, subm))
+
+                    # remove the .git/config entries ( unless the user already did it )
+                    cmd = "git config --get-regexp submodule.\"{0}\\.\"".format(subm)
+                    value, result, _ = run_shell_command(cmd,
+                                                         shell=True,
+                                                         cwd=self._path,
+                                                         show_stdout=True,
+                                                         timeout=timeout,
+                                                         verbose=verbose)
+                    if result:
+                        cmd = "git config --get-regexp submodule.\"{0}\".url | awk '{{print $2}}'".format(subm)
+                        value, url, _ = run_shell_command(cmd,
+                                                          shell=True,
+                                                          cwd=self._path,
+                                                          show_stdout=True,
+                                                          timeout=timeout,
+                                                          verbose=verbose)
+
+                        cmd = "git config --remove-section submodule.\"{0}\" 2> /dev/null".format(subm)
+                        value, result, _ = run_shell_command(cmd,
+                                                             shell=True,
+                                                             cwd=self._path,
+                                                             show_stdout=True,
+                                                             timeout=timeout,
+                                                             verbose=verbose)
+                        if value == 0:
+                            print("Submodule '{0}' ({1}) unregistered for path '{0}'".format(subm, url))
+
+        else:  # git > '1.8.3', lets just use deinit
+            cmd = "git submodule deinit ."
+            value, _, _ = run_shell_command(cmd,
+                                            shell=True,
+                                            cwd=self._path,
+                                            show_stdout=True,
+                                            timeout=timeout,
+                                            verbose=verbose)
+        return value == 0
 
     def update(self, version=None, verbose=False, force_fetch=False, timeout=None):
         """
@@ -290,6 +389,11 @@ class GitClient(VcsClientBase):
             # we are neither tracking, nor did we get any refname to update to
             return (not update_submodules) or self._update_submodules(verbose=verbose,
                                                                       timeout=timeout)
+
+        if update_submodules:
+            # we must first deinit submodule to allow changing version without leaving files behind
+            if not self._deinit_submodules(verbose=verbose, timeout=timeout):
+                return False  # if any error, we stop the update
 
         default_remote = self._get_default_remote()
         if same_branch:
