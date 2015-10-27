@@ -121,13 +121,7 @@ class GitClientTestSetups(unittest.TestCase):
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
         self.version_test = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
-        # attach submodule to remote on master
-        if LooseVersion(_get_git_version()) < LooseVersion('1.8.3'):
-            subprocess.check_call("rm -rf submodule2 && mkdir submodule2", shell=True, cwd=self.remote_path)
-            subprocess.check_call("git config --remove-section submodule.submodule2", shell=True, cwd=self.remote_path)
-            print("Submodule 'submodule2' unregistered for path 'submodule2'")
-        else:
-            subprocess.check_call("git submodule deinit .", shell=True, cwd=self.remote_path)
+        # attach submodule to remote on master. CAREFUL : submodule2 is still in working tree (git does not clean it)
         subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
                               shell=True, cwd=self.remote_path)
