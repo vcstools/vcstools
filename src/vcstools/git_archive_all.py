@@ -24,7 +24,7 @@
 # THE SOFTWARE.
 
 # from
-# https://github.com/Kentzo/git-archive-all/blob/master/git-archive-all @ 497049571f1cfe1c183cd3513b69914fa7379824
+# https://github.com/Kentzo/git-archive-all/blob/497049571f1cfe1c183cd3513b69914fa7379824/git_archive_all.py
 
 
 from __future__ import print_function
