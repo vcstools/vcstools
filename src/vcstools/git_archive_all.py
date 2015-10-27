@@ -3,7 +3,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2010, 2011, 2012, 2013, 2014 Ilya Kulakov
+# Copyright (c) 2010 Ilya Kulakov
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 # THE SOFTWARE.
 
 # from
-# https://github.com/Kentzo/git-archive-all/blob/master/git-archive-all @ 89b8a8b1d915a6e2319375a5b608b54ac9b33e4a
+# https://github.com/Kentzo/git-archive-all/blob/master/git-archive-all @ 497049571f1cfe1c183cd3513b69914fa7379824
 
 
 from __future__ import print_function
@@ -272,7 +272,7 @@ class GitArchiver(object):
         """
         Archive all files using archiver.
 
-        @param archiver: Function that accepts 2 arguments:
+        @param archiver: Callable that accepts 2 arguments:
             abspath to file on the system and relative path within archive.
         """
         for file_path in self.extra:
@@ -461,12 +461,12 @@ class GitArchiver(object):
         return output
 
 
-if __name__ == '__main__':
+def main():
     from optparse import OptionParser
 
     parser = OptionParser(
         usage="usage: %prog [-v] [--prefix PREFIX] [--no-exclude] [--force-submodules]"
-              "       [--extra EXTRA1 [EXTRA2]] [--dry-run] OUTPUT_FILE",
+              " [--extra EXTRA1 [EXTRA2]] [--dry-run] OUTPUT_FILE",
         version="%prog {0}".format(__version__)
     )
 
@@ -474,11 +474,9 @@ if __name__ == '__main__':
                       type='string',
                       dest='prefix',
                       default=None,
-                      help="""
-                          prepend PREFIX to each filename in the archive.
+                      help="""prepend PREFIX to each filename in the archive.
                           OUTPUT_FILE name is used by default to avoid tarbomb.
-                          You can set it to '' in order to explicitly request tarbomb
-                      """)
+                          You can set it to '' in order to explicitly request tarbomb""")
 
     parser.add_option('-v', '--verbose',
                       action='store_true',
@@ -494,9 +492,7 @@ if __name__ == '__main__':
     parser.add_option('--force-submodules',
                       action='store_true',
                       dest='force_sub',
-                      help="""
-                          force a git submodule init && git submodule update at each level before iterating submodules
-                      """)
+                      help='force a git submodule init && git submodule update at each level before iterating submodules')
 
     parser.add_option('--extra',
                       action='append',
@@ -547,3 +543,7 @@ if __name__ == '__main__':
         parser.exit(2, "{0}\n".format(e))
 
     sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
