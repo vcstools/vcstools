@@ -56,12 +56,16 @@ disambiguation, and in some cases warns.
 from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
+import shutil
+import tempfile
 import gzip
 import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
+
+from vcstools.git_archive_all import *
 
 
 class GitError(Exception):
@@ -216,7 +220,7 @@ class GitClient(VcsClientBase):
 
     def _update_submodules(self, verbose=False, timeout=None):
 
-        # update and or init submodules too
+        # update submodules ( and init if necessary ).
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
             cmd = "git submodule update --init --recursive"
             value, _, _ = run_shell_command(cmd,
@@ -718,23 +722,28 @@ class GitClient(VcsClientBase):
         return False
 
     def export_repository(self, version, basepath):
-        # Use the git archive function
-        cmd = "git archive -o {0}.tar {1}".format(basepath, version)
-        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if result:
+        if not self.detect_presence():
             return False
+
         try:
-            # Gzip the tar file
-            with open(basepath + '.tar', 'rb') as tar_file:
-                gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
-                try:
-                    gzip_file.writelines(tar_file)
-                finally:
-                    gzip_file.close()
-        finally:
-            # Clean up
-            os.remove(basepath + '.tar')
-        return True
+            # since version may relate to remote branch / tag we do not
+            # know about yet, do fetch if not already done
+            self._do_fetch()
+            tmpd_path = tempfile.mkdtemp()
+            try:
+                tmpgit = GitClient(tmpd_path)
+                if tmpgit.checkout(self._path, version=version, shallow=True):
+                    archiver = GitArchiver(main_repo_abspath=tmpgit.get_path(), force_sub=True)
+                    filepath = '{0}.tar.gz'.format(basepath)
+                    archiver.create(filepath)
+                    return filepath
+                else:
+                    return False
+            finally:
+                shutil.rmtree(tmpd_path)
+
+        except GitError:
+            return False
 
     def get_branches(self, local_only=False):
         cmd = 'git branch --no-color'

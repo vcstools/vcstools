@@ -24,6 +24,7 @@ def test_pep8_conformance():
     pep8style = pep8.StyleGuide(max_line_length=120)
     report = pep8style.options.report
     report.start()
+    pep8style.options.exclude.append('git_archive_all.py')
     pep8style.input_dir(os.path.join('..', 'vcstools', 'src'))
     report.stop()
     assert report.total_errors == 0, "Found '{0}' code style errors (and warnings).".format(report.total_errors)
