@@ -61,6 +61,7 @@ import tempfile
 import gzip
 import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
+import logging
 
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
@@ -302,8 +303,9 @@ class GitClient(VcsClientBase):
                     (branch_parent, remote) = self._get_branch_parent(current_branch=current_branch)
                     if remote != default_remote:
                         # if remote is not origin, must not fast-forward (because based on origin)
-                        sys.stderr.write("vcstools only handles branches tracking default remote," +
-                                         " branch '%s' tracks remote '%s'\n" % (current_branch, remote))
+                        logger = logging.getLogger('vcstools')
+                        logger.warn("vcstools only handles branches tracking default remote," +
+                                    " branch '%s' tracks remote '%s'" % (current_branch, remote))
                         branch_parent = None
                 # already on correct branch, fast-forward if there is a parent
                 if branch_parent:
