@@ -304,8 +304,9 @@ class GitClient(VcsClientBase):
                     if remote != default_remote:
                         # if remote is not origin, must not fast-forward (because based on origin)
                         logger = logging.getLogger('vcstools')
-                        logger.warn("vcstools only handles branches tracking default remote," +
-                                    " branch '%s' tracks remote '%s'" % (current_branch, remote))
+                        logger.warn("vcstools only handles branches tracking default remote,"
+                                    " branch '%s' tracks remote '%s'.\nRepository path is '%s'."
+                                    % (current_branch, remote, self._path))
                         branch_parent = None
                 # already on correct branch, fast-forward if there is a parent
                 if branch_parent:
