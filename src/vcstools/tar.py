@@ -110,6 +110,7 @@ class TarClient(VcsClientBase):
             temp_tarfile = tarfile.open(filename, 'r:*')
             members = None  # means all members in extractall
             if version == '' or version is None:
+                subdir = tempdir
                 self.logger.warn("No tar subdirectory chosen via the 'version' argument for url: %s" % url)
             else:
                 # getmembers lists all files contained in tar with
@@ -123,9 +124,9 @@ class TarClient(VcsClientBase):
                         subdirs.append(m.name.split('/')[0])
                 if not members:
                     raise VcsError("%s is not a subdirectory with contents in members %s" % (version, subdirs))
+                subdir = os.path.join(tempdir, version)
             temp_tarfile.extractall(path=tempdir, members=members)
 
-            subdir = os.path.join(tempdir, version)
             if not os.path.isdir(subdir):
                 raise VcsError("%s is not a subdirectory\n" % subdir)
 
@@ -153,9 +154,9 @@ class TarClient(VcsClientBase):
         """
         if not self.detect_presence():
             return False
-
         if version != self.get_version():
-            sys.stderr.write("Tarball Client does not support updating with different version.\n")
+            sys.stderr.write("Tarball Client does not support updating with different version '%s' != '%s'\n"
+                             % (version, self.get_version()))
             return False
 
         return True
