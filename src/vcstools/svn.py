@@ -291,6 +291,17 @@ class SvnClient(VcsClientBase):
                                                cwd=basepath)
         return response
 
+    def get_affected_files(self, revision):
+        cmd = "svn diff --summarize -c {0}".format(
+            revision)
+
+        code, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        affected = []
+        if code == 0:
+            for filename in output.splitlines():
+                affected.append(filename.split(" ")[7])
+        return affected
+
     def get_log(self, relpath=None, limit=None):
         response = []
 

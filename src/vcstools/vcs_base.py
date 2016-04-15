@@ -254,6 +254,15 @@ class VcsClientBase(object):
         raise NotImplementedError("Base class get_status method must be overridden for client type %s " %
                                   self._vcs_type_name)
 
+    def get_affected_files(self, revision):
+        """
+        Get the files that were affected by a specific revision
+        :param revision: SHA or revision number.
+        :returns: A list of strings with the files affected by a specific commit
+        """
+        raise NotImplemented(
+            "Base class get_affected_files method must be overriden")
+
     def get_log(self, relpath=None, limit=None):
         """
         Calls scm log command.

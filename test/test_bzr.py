@@ -260,6 +260,23 @@ class BzrClientLogTest(BzrClientTestSetups):
         self.assertEquals('initial', log[0]['message'])
 
 
+class BzrClientAffectedFilesTest(BzrClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        BzrClientTestSetups.setUpClass()
+        client = BzrClient(self.local_path)
+        client.checkout(self.remote_path)
+
+    def test_get_log_defaults(self):
+        client = BzrClient(self.local_path)
+        client.checkout(self.remote_path)
+        log = client.get_log(limit=1)[0]
+        affected = client.get_affected_files(log['id'])
+        self.assertEqual(sorted(['deleted-fs.txt', 'deleted.txt']),
+                         sorted(affected))
+
+
 class BzrDiffStatClientTest(BzrClientTestSetups):
 
     @classmethod

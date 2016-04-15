@@ -228,6 +228,18 @@ class BzrClient(VcsClientBase):
             _, response, _ = run_shell_command(command, shell=True, cwd=basepath)
         return response
 
+    def get_affected_files(self, revision):
+        cmd = "bzr status -c {0} -S -V".format(
+            revision)
+
+        code, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+
+        affected = []
+        if code == 0:
+            for filename in output.splitlines():
+                affected.append(filename.split(" ")[2])
+        return affected
+
     def get_log(self, relpath=None, limit=None):
         response = []
 

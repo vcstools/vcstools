@@ -455,6 +455,17 @@ class GitClient(VcsClientBase):
                 response += _git_diff_path_submodule_change(output, rel_path)
         return response
 
+    def get_affected_files(self, revision):
+        cmd = "git show {0} --pretty='format:' --name-only".format(
+            revision)
+        code, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        affected = []
+        if code == 0:
+            for filename in output.splitlines():
+                if filename not in ('', None, ):
+                    affected.append(filename)
+        return affected
+
     def get_log(self, relpath=None, limit=None):
         response = []
 

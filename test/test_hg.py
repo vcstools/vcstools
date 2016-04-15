@@ -276,6 +276,25 @@ class HGClientLogTest(HGClientTestSetups):
         self.assertEquals('initial', log[0]['message'])
 
 
+class HGAffectedFilesTest(HGClientTestSetups):
+
+    @classmethod
+    def setUpClass(self):
+        HGClientTestSetups.setUpClass()
+        client = HgClient(self.local_path)
+        client.checkout(self.local_url)
+
+    def test_get_log_defaults(self):
+        client = HgClient(self.local_path)
+        client.checkout(self.local_url)
+        log = client.get_log(limit=1)[0]
+        affected = client.get_affected_files(log['id'])
+
+        self.assertEqual(sorted(['deleted-fs.txt', 'deleted.txt']),
+                         sorted(affected))
+
+
+
 class HGDiffStatClientTest(HGClientTestSetups):
 
     @classmethod

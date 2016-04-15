@@ -276,6 +276,14 @@ class HgClient(VcsClientBase):
             response = _hg_diff_path_change(response, rel_path)
         return response
 
+    def get_affected_files(self, revision):
+        cmd = "hg log -r %s --template '{files}'" % revision
+        code, output, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        affected = []
+        if code == 0:
+            affected = output.split(" ")
+        return affected
+
     def get_log(self, relpath=None, limit=None):
         response = []
 

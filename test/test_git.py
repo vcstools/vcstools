@@ -595,6 +595,28 @@ class GitClientLogTest(GitClientTestSetups):
             self.assertEquals(1, len(log))
 
 
+class GitClientAffectedFiles(GitClientTestSetups):
+
+    def setUp(self):
+        client = GitClient(self.local_path)
+        client.checkout(self.remote_path)
+        # Create some local untracking branch
+
+        subprocess.check_call("git checkout test_tag -b localbranch", shell=True, cwd=self.local_path)
+        subprocess.check_call("touch local_file", shell=True, cwd=self.local_path)
+        subprocess.check_call("git add local_file", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m \"local_file\"", shell=True, cwd=self.local_path)
+
+    def test_get_affected_files(self):
+        client = GitClient(self.local_path)
+        affected = client.get_affected_files(client.get_log()[0]['id'])
+
+        self.assertEqual(sorted(['local_file']),
+                         sorted(affected))
+
+        self.assertEquals(['local_file'], affected)
+
+
 class GitClientDanglingCommitsTest(GitClientTestSetups):
 
     def setUp(self):
