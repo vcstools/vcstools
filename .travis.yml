@@ -7,7 +7,7 @@ python:
   - "3.4"
 env:
   # lucid
-  - HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
+  # - HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
   # natty
   # - HG='1.6.3' BZR=2.3.4 GIT=v1.7.4.1 SVN=1.6.6 PYYAML=3.10
   # - HG='1.7.5' BZR=2.3.4 GIT=v1.7.4.1 SVN=1.6.6 PYYAML=3.10
