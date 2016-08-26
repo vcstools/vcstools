@@ -4,6 +4,13 @@ Changelog
 0.1
 ===
 
+0.1.39
+------
+
+- Added support for git submodule in export_repository
+- Add Wily Xenial Yakkety
+- Add get_affected_files for all vcss
+
 0.1.38
 ------
 
