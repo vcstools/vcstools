@@ -7,7 +7,7 @@ python:
   - "3.4"
 env:
   # lucid
-  - HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
+  # - HG='1.4.2' BZR=2.1.4 GIT=v1.7.0.4 SVN=1.6.6 PYYAML=3.10
   # natty
   # - HG='1.6.3' BZR=2.3.4 GIT=v1.7.4.1 SVN=1.6.6 PYYAML=3.10
   # - HG='1.7.5' BZR=2.3.4 GIT=v1.7.4.1 SVN=1.6.6 PYYAML=3.10
@@ -47,7 +47,7 @@ install:
   - pip install pep8
   - pip install "pyyaml<=$PYYAML" > pyaml-warnings.log 2>&1 || (cat pyaml-warnings.log && false)
   - pip install python-dateutil
-  - cd $HOME/builds && wget http://mercurial.selenic.com/release/mercurial-$HG.tar.gz && tar -xf mercurial-$HG.tar.gz && cd mercurial-$HG && sudo $PY2K setup.py install > hg_install.log 2>&1 || (cat hg_install.log && false)
+  - cd $HOME/builds && wget https://www.mercurial-scm.org/release/mercurial-$HG.tar.gz && tar -xf mercurial-$HG.tar.gz && cd mercurial-$HG && sudo $PY2K setup.py install > hg_install.log 2>&1 || (cat hg_install.log && false)
 # did not find single source for old git tarballs
   - cd $HOME/builds && git clone git://git.kernel.org/pub/scm/git/git.git && cd git && git checkout $GIT && make prefix=/usr all > git_install.log 2>&1 || (cat git_install.log && false) && sudo make prefix=/usr install && cd $HOME/builds
   - cd $HOME/builds && wget http://archive.ubuntu.com/ubuntu/pool/main/b/bzr/bzr_$BZR.orig.tar.gz && tar -xf bzr_$BZR.orig.tar.gz && cd bzr-* && sudo $PY2K setup.py install build_ext --allow-python-fallback > bzr_install.log 2>&1 || (cat bzr_install.log && false) && cd $HOME/builds
