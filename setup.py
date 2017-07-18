@@ -28,10 +28,12 @@ setup(name='vcstools',
       url="http://wiki.ros.org/vcstools",
       download_url="http://download.ros.org/downloads/vcstools/",
       keywords=["scm", "vcs", "git", "svn", "hg", "bzr"],
-      classifiers=["Programming Language :: Python",
-                   "Programming Language :: Python :: 2",
-                   "Programming Language :: Python :: 3",
-                   "License :: OSI Approved :: BSD License"],
+      classifiers=[
+          "Programming Language :: Python",
+          "Programming Language :: Python :: 2",
+          "Programming Language :: Python :: 3",
+          "License :: OSI Approved :: BSD License"
+      ],
       description="VCS/SCM source control library for svn, git, hg, and bzr",
       long_description="""\
 Library for managing source code trees from multiple version control systems.
