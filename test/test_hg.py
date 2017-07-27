@@ -43,6 +43,9 @@ import shutil
 from vcstools.hg import HgClient
 
 
+os.environ['EMAIL'] = 'Your Name <name@example.com>'
+
+
 class HGClientTestSetups(unittest.TestCase):
 
     @classmethod

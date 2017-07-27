@@ -44,15 +44,13 @@ import unittest
 from vcstools.bzr import BzrClient, _get_bzr_version
 
 
+os.environ['EMAIL'] = 'Your Name <name@example.com>'
+
+
 class BzrClientTestSetups(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        try:
-            subprocess.check_call(["bzr", "whoami"])
-        except subprocess.CalledProcessError:
-            subprocess.check_call(["bzr", "whoami", '"ros ros@ros.org"'])
-
         self.root_directory = tempfile.mkdtemp()
         self.directories = dict(setUp=self.root_directory)
         self.remote_path = os.path.join(self.root_directory, "remote")

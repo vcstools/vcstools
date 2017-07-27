@@ -52,6 +52,11 @@ try:
 except ImportError:
     from SocketServer import TCPServer, BaseRequestHandler
 
+os.environ['GIT_AUTHOR_NAME'] = 'Your Name'
+os.environ['GIT_COMMITTER_NAME'] = 'Your Name'
+os.environ['GIT_AUTHOR_EMAIL'] = 'name@example.com'
+os.environ['EMAIL'] = 'Your Name <name@example.com>'
+
 
 class GitClientTestSetups(unittest.TestCase):
 
