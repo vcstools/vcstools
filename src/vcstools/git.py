@@ -495,7 +495,8 @@ class GitClient(VcsClientBase):
 
         return response
 
-    def get_status(self, basepath=None, untracked=False):
+    def get_status(self, basepath=None, untracked=False, porcelain=False):
+        status_flag = '--porcelain' if porcelain else '-s'
         response = None
         if basepath is None:
             basepath = self._path
@@ -503,7 +504,7 @@ class GitClient(VcsClientBase):
             rel_path = normalized_rel_path(self._path, basepath)
             # git command only works inside repo
             # self._path is safe against command injection, as long as we check path.exists
-            command = "git status -s "
+            command = "git status {0} ".format(status_flag)
             if not untracked:
                 command += " -uno"
             _, response, _ = run_shell_command(command,
@@ -517,7 +518,7 @@ class GitClient(VcsClientBase):
                                                          rel_path,
                                                          line[3:])
             if LooseVersion(self.gitversion) > LooseVersion('1.7'):
-                command = "git submodule foreach --recursive git status -s"
+                command = "git submodule foreach --recursive git status {0}".format(status_flag)
                 if not untracked:
                     command += " -uno"
                 _, response2, _ = run_shell_command(command,

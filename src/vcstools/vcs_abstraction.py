@@ -134,8 +134,8 @@ class VcsClient(object):
     def get_diff(self, basepath=None):
         return self.vcs.get_diff(basepath)
 
-    def get_status(self, basepath=None, untracked=False):
-        return self.vcs.get_status(basepath, untracked)
+    def get_status(self, basepath=None, untracked=False, **kwargs):
+        return self.vcs.get_status(basepath, untracked, **kwargs)
 
     def get_log(self, relpath=None, limit=None):
         return self.vcs.get_log(relpath, limit)

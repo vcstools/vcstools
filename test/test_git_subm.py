@@ -41,9 +41,8 @@ import shutil
 import tarfile
 import filecmp
 from contextlib import closing
-from distutils.version import LooseVersion
 
-from vcstools.git import GitClient, _get_git_version
+from vcstools.git import GitClient
 
 
 class GitClientTestSetups(unittest.TestCase):
@@ -146,14 +145,12 @@ class GitClientTestSetups(unittest.TestCase):
     def tearDownClass(self):
         for d in self.directories:
             shutil.rmtree(self.directories[d])
-        pass
 
     def tearDown(self):
         if os.path.exists(self.local_path):
             shutil.rmtree(self.local_path)
         if os.path.exists(self.export_path):
             shutil.rmtree(self.export_path)
-        pass
 
 
 class GitClientTest(GitClientTestSetups):
@@ -344,7 +341,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subclient2.path_exists())
         self.assertTrue(subsubclient2.path_exists())
 
-    def test_checkout_master_with_subs(self):
+    def test_checkout_master_with_subs2(self):
         url = self.remote_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
@@ -436,8 +433,8 @@ class GitClientTest(GitClientTestSetups):
         url = self.remote_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url))
-        output = client.get_status()
-        self.assertEqual('', output, output)
+        output = client.get_status(porcelain=True)  # porcelain=True ensures stable format
+        self.assertEqual('', output, "Expected empty string, got `{0}`".format(output))
 
         with open(os.path.join(self.local_path, 'fixed.txt'), 'a') as f:
             f.write('0123456789abcdef')
@@ -449,16 +446,38 @@ class GitClientTest(GitClientTestSetups):
             f.write('012345cdef')
         subprocess.check_call("touch subsubnew.txt", shell=True, cwd=self.subsublocal_path)
 
-        output = client.get_status()
-        self.assertEqual(
-            ' M ./fixed.txt\n M ./submodule\n M ./subfixed.txt\n M ./subsubmodule\n M ./subsubfixed.txt', output.rstrip())
+        output = client.get_status(porcelain=True)  # porcelain=True ensures stable format
+        self.assertEqual('''\
+ M ./fixed.txt
+ M ./submodule
+ M ./subfixed.txt
+ M ./subsubmodule
+ M ./subsubfixed.txt''', output.rstrip())
 
-        output = client.get_status(untracked=True)
-        self.assertEqual(
-            ' M ./fixed.txt\n M ./submodule\n?? ./new.txt\n M ./subfixed.txt\n M ./subsubmodule\n?? ./subnew.txt\n M ./subsubfixed.txt\n?? ./subsubnew.txt', output.rstrip())
+        output = client.get_status(untracked=True, porcelain=True)
+        self.assertEqual('''\
+ M ./fixed.txt
+ M ./submodule
+?? ./new.txt
+ M ./subfixed.txt
+ M ./subsubmodule
+?? ./subnew.txt
+ M ./subsubfixed.txt
+?? ./subsubnew.txt''', output.rstrip())
 
-        output = client.get_status(basepath=os.path.dirname(self.local_path), untracked=True)
-        self.assertEqual(' M local/fixed.txt\n M local/submodule\n?? local/new.txt\n M local/subfixed.txt\n M local/subsubmodule\n?? local/subnew.txt\n M local/subsubfixed.txt\n?? local/subsubnew.txt', output.rstrip())
+        output = client.get_status(
+            basepath=os.path.dirname(self.local_path),
+            untracked=True,
+            porcelain=True)
+        self.assertEqual('''\
+ M local/fixed.txt
+ M local/submodule
+?? local/new.txt
+ M local/subfixed.txt
+ M local/subsubmodule
+?? local/subnew.txt
+ M local/subsubfixed.txt
+?? local/subsubnew.txt''', output.rstrip())
 
     def test_diff(self):
         url = self.remote_path
@@ -479,10 +498,38 @@ class GitClientTest(GitClientTestSetups):
 
         output = client.get_diff()
         self.assertEqual(1094, len(output))
-        self.assertTrue('diff --git ./fixed.txt ./fixed.txt\nindex e69de29..454f6b3 100644\n--- ./fixed.txt\n+++ ./fixed.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file' in output)
-        self.assertTrue('diff --git ./submodule/subsubmodule/subsubfixed.txt ./submodule/subsubmodule/subsubfixed.txt\nindex e69de29..1a332dc 100644\n--- ./submodule/subsubmodule/subsubfixed.txt\n+++ ./submodule/subsubmodule/subsubfixed.txt\n@@ -0,0 +1 @@\n+012345cdef\n\\ No newline at end of file' in output)
+        self.assertTrue('''\
+diff --git ./fixed.txt ./fixed.txt
+index e69de29..454f6b3 100644
+--- ./fixed.txt
++++ ./fixed.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file''' in output)
+        self.assertTrue('''\
+diff --git ./submodule/subsubmodule/subsubfixed.txt ./submodule/subsubmodule/subsubfixed.txt
+index e69de29..1a332dc 100644
+--- ./submodule/subsubmodule/subsubfixed.txt
++++ ./submodule/subsubmodule/subsubfixed.txt
+@@ -0,0 +1 @@
++012345cdef
+\\ No newline at end of file''' in output)
 
         output = client.get_diff(basepath=os.path.dirname(self.local_path))
         self.assertEqual(1174, len(output))
-        self.assertTrue('diff --git local/fixed.txt local/fixed.txt\nindex e69de29..454f6b3 100644\n--- local/fixed.txt\n+++ local/fixed.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\ No newline at end of file' in output, output)
-        self.assertTrue('diff --git local/submodule/subsubmodule/subsubfixed.txt local/submodule/subsubmodule/subsubfixed.txt\nindex e69de29..1a332dc 100644\n--- local/submodule/subsubmodule/subsubfixed.txt\n+++ local/submodule/subsubmodule/subsubfixed.txt\n@@ -0,0 +1 @@\n+012345cdef\n\ No newline at end of file' in output, output)
+        self.assertTrue('''\
+diff --git local/fixed.txt local/fixed.txt
+index e69de29..454f6b3 100644
+--- local/fixed.txt
++++ local/fixed.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\ No newline at end of file''' in output, output)
+        self.assertTrue('''
+diff --git local/submodule/subsubmodule/subsubfixed.txt local/submodule/subsubmodule/subsubfixed.txt
+index e69de29..1a332dc 100644
+--- local/submodule/subsubmodule/subsubfixed.txt
++++ local/submodule/subsubmodule/subsubfixed.txt
+@@ -0,0 +1 @@
++012345cdef
+\ No newline at end of file''' in output, output)

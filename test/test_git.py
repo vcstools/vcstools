@@ -481,7 +481,7 @@ class GitClientTest(GitClientTestSetups):
 
     def testStatusClean(self):
         client = GitClient(self.remote_path)
-        self.assertEquals('', client.get_status())
+        self.assertEquals('', client.get_status(porcelain=True))
 
     def test_get_environment_metadata(self):
         # Verify that metadata is generated
@@ -815,7 +815,9 @@ class GitClientOverflowTest(GitClientTestSetups):
         # produce many tags to make git log command fail if all are added
         for count in range(4000):
             subprocess.check_call("git tag modified-%s" % count, shell=True, cwd=self.local_path)
-        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
+        po = subprocess.Popen(
+            "git log -n 1 --pretty=format:\"%H\"",
+            shell=True, cwd=self.local_path, stdout=subprocess.PIPE)
         self.last_version = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
     def test_orphaned_overflow(self):
@@ -857,31 +859,116 @@ class GitDiffStatClientTest(GitClientTestSetups):
         client = GitClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('diff --git ./added.txt ./added.txt\nnew file mode 100644\nindex 0000000..454f6b3\n--- /dev/null\n+++ ./added.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\ndiff --git ./deleted-fs.txt ./deleted-fs.txt\ndeleted file mode 100644\nindex e69de29..0000000\ndiff --git ./deleted.txt ./deleted.txt\ndeleted file mode 100644\nindex e69de29..0000000\ndiff --git ./modified-fs.txt ./modified-fs.txt\nindex e69de29..454f6b3 100644\n--- ./modified-fs.txt\n+++ ./modified-fs.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\ndiff --git ./modified.txt ./modified.txt\nindex e69de29..454f6b3 100644\n--- ./modified.txt\n+++ ./modified.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file', client.get_diff().rstrip())
+        self.assertEquals(
+            '''\
+diff --git ./added.txt ./added.txt
+new file mode 100644
+index 0000000..454f6b3
+--- /dev/null
++++ ./added.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file
+diff --git ./deleted-fs.txt ./deleted-fs.txt
+deleted file mode 100644
+index e69de29..0000000
+diff --git ./deleted.txt ./deleted.txt
+deleted file mode 100644
+index e69de29..0000000
+diff --git ./modified-fs.txt ./modified-fs.txt
+index e69de29..454f6b3 100644
+--- ./modified-fs.txt
++++ ./modified-fs.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file
+diff --git ./modified.txt ./modified.txt
+index e69de29..454f6b3 100644
+--- ./modified.txt
++++ ./modified.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file''',
+        client.get_diff().rstrip())
 
     def testDiffRelpath(self):
         client = GitClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('diff --git ros/added.txt ros/added.txt\nnew file mode 100644\nindex 0000000..454f6b3\n--- /dev/null\n+++ ros/added.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\ndiff --git ros/deleted-fs.txt ros/deleted-fs.txt\ndeleted file mode 100644\nindex e69de29..0000000\ndiff --git ros/deleted.txt ros/deleted.txt\ndeleted file mode 100644\nindex e69de29..0000000\ndiff --git ros/modified-fs.txt ros/modified-fs.txt\nindex e69de29..454f6b3 100644\n--- ros/modified-fs.txt\n+++ ros/modified-fs.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file\ndiff --git ros/modified.txt ros/modified.txt\nindex e69de29..454f6b3 100644\n--- ros/modified.txt\n+++ ros/modified.txt\n@@ -0,0 +1 @@\n+0123456789abcdef\n\\ No newline at end of file', client.get_diff(basepath=os.path.dirname(self.local_path)).rstrip())
+        self.assertEquals(
+            '''\
+diff --git ros/added.txt ros/added.txt
+new file mode 100644
+index 0000000..454f6b3
+--- /dev/null
++++ ros/added.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file
+diff --git ros/deleted-fs.txt ros/deleted-fs.txt
+deleted file mode 100644
+index e69de29..0000000
+diff --git ros/deleted.txt ros/deleted.txt
+deleted file mode 100644
+index e69de29..0000000
+diff --git ros/modified-fs.txt ros/modified-fs.txt
+index e69de29..454f6b3 100644
+--- ros/modified-fs.txt
++++ ros/modified-fs.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file
+diff --git ros/modified.txt ros/modified.txt
+index e69de29..454f6b3 100644
+--- ros/modified.txt
++++ ros/modified.txt
+@@ -0,0 +1 @@
++0123456789abcdef
+\\ No newline at end of file''',
+            client.get_diff(basepath=os.path.dirname(self.local_path)).rstrip())
 
     def testStatus(self):
         client = GitClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A  ./added.txt\n D ./deleted-fs.txt\nD  ./deleted.txt\n M ./modified-fs.txt\nM  ./modified.txt\n', client.get_status())
+        self.assertEquals(
+            '''\
+A  ./added.txt
+ D ./deleted-fs.txt
+D  ./deleted.txt
+ M ./modified-fs.txt
+M  ./modified.txt
+''',
+            client.get_status(porcelain=True))
 
     def testStatusRelPath(self):
         client = GitClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A  ros/added.txt\n D ros/deleted-fs.txt\nD  ros/deleted.txt\n M ros/modified-fs.txt\nM  ros/modified.txt\n', client.get_status(basepath=os.path.dirname(self.local_path)))
+        self.assertEquals(
+            '''\
+A  ros/added.txt
+ D ros/deleted-fs.txt
+D  ros/deleted.txt
+ M ros/modified-fs.txt
+M  ros/modified.txt
+''',
+            client.get_status(basepath=os.path.dirname(self.local_path), porcelain=True))
 
     def testStatusUntracked(self):
         client = GitClient(self.local_path)
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
-        self.assertEquals('A  ./added.txt\n D ./deleted-fs.txt\nD  ./deleted.txt\n M ./modified-fs.txt\nM  ./modified.txt\n?? ./added-fs.txt\n', client.get_status(untracked=True))
+        self.assertEquals(
+            '''\
+A  ./added.txt
+ D ./deleted-fs.txt
+D  ./deleted.txt
+ M ./modified-fs.txt
+M  ./modified.txt
+?? ./added-fs.txt
+''',
+            client.get_status(untracked=True, porcelain=True))
 
 
 class GitExportClientTest(GitClientTestSetups):
@@ -934,6 +1021,7 @@ class GitGetBranchesClientTest(GitClientTestSetups):
                          ['master', 'test_branch', 'remotes/origin/master',
                           'remotes/origin/test_branch'])
 
+
 class GitTimeoutTest(unittest.TestCase):
 
     class MuteHandler(BaseRequestHandler):
@@ -953,9 +1041,8 @@ class GitTimeoutTest(unittest.TestCase):
         self.root_directory = tempfile.mkdtemp()
         self.local_path = os.path.join(self.root_directory, "ros")
 
-
     def test_checkout_timeout(self):
-        ## SSH'ing to a mute server will hang for a very long time
+        # SSH'ing to a mute server will hang for a very long time
         url = 'ssh://test@127.0.0.1:{0}/test'.format(self.mute_port)
         client = GitClient(self.local_path)
         start = time.time()

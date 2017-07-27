@@ -236,7 +236,7 @@ class VcsClientBase(object):
         raise NotImplementedError(
             "Base class get_diff method must be overridden")
 
-    def get_status(self, basepath=None, untracked=False):
+    def get_status(self, basepath=None, untracked=False, **kwargs):
         """
         Calls scm status command. Output must be terminated by newline
         unless empty.
@@ -245,6 +245,9 @@ class VcsClientBase(object):
         In SVN, this would be new files only. In git,
         hg, bzr, this would be changes that have not been added for
         commit.
+
+        Extra keyword arguments are passed along to the underlying vcs code.
+        See the specific implementations of get_status() for extra options.
 
         :param basepath: status path will be relative to this, if any
         :param untracked: whether to also show changes that would not commit

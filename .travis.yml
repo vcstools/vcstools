@@ -12,7 +12,7 @@ install:
   - sudo apt-get install -qq git mercurial bzr subversion
   - echo $PYTHONPATH
   - python -c 'import sys;print(sys.path)'
-  - python setup.py build
+  - python setup.py install
   - hg --version
   - bzr --version
   - git --version
@@ -24,9 +24,8 @@ install:
   - echo -e "[ui]\nusername = Your Name <your@mail.com>" >> ~/.hgrc
 # Set the bzr user
   - bzr whoami "Your Name <name@example.com>"
-  - cd $REPO
 # command to run tests
 script:
-  - python setup.py nosetests --with-coverage --cover-package vcstools
+  - python -m nose --with-coverage --cover-package vcstools test
 notifications:
   email: false
