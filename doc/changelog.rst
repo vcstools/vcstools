@@ -4,6 +4,11 @@ Changelog
 0.1
 ===
 
+0.1.40
+------
+
+- Trivial style and testing changes
+
 0.1.39
 ------
 
