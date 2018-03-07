@@ -53,9 +53,10 @@ class GitClientTestSetups(unittest.TestCase):
         self.root_directory = tempfile.mkdtemp()
         # helpful when setting tearDown to pass
         self.directories = dict(setUp=self.root_directory)
-        self.remote_path = os.path.join(self.root_directory, "remote")
-        self.submodule_path = os.path.join(self.root_directory, "submodule")
-        self.subsubmodule_path = os.path.join(self.root_directory, "subsubmodule")
+        self.remote_dir = os.path.join(self.root_directory, "remote")
+        self.repo_path = os.path.join(self.remote_dir, "repo")
+        self.submodule_path = os.path.join(self.remote_dir, "submodule")
+        self.subsubmodule_path = os.path.join(self.remote_dir, "subsubmodule")
         self.local_path = os.path.join(self.root_directory, "local")
         self.sublocal_path = os.path.join(self.local_path, "submodule")
         self.sublocal2_path = os.path.join(self.local_path, "submodule2")
@@ -66,19 +67,19 @@ class GitClientTestSetups(unittest.TestCase):
         self.subexport2_path = os.path.join(self.export_path, "submodule2")
         self.subsubexport_path = os.path.join(self.subexport_path, "subsubmodule")
         self.subsubexport2_path = os.path.join(self.subexport2_path, "subsubmodule")
-        os.makedirs(self.remote_path)
+        os.makedirs(self.repo_path)
         os.makedirs(self.submodule_path)
         os.makedirs(self.subsubmodule_path)
 
         # create a "remote" repo
-        subprocess.check_call("git init", shell=True, cwd=self.remote_path)
-        subprocess.check_call("touch fixed.txt", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git add fixed.txt", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git commit -m initial", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git tag test_tag", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git branch initial_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git init", shell=True, cwd=self.repo_path)
+        subprocess.check_call("touch fixed.txt", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git add fixed.txt", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git commit -m initial", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git tag test_tag", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git branch initial_branch", shell=True, cwd=self.repo_path)
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True,
-                              cwd=self.remote_path, stdout=subprocess.PIPE)
+                              cwd=self.repo_path, stdout=subprocess.PIPE)
         self.version_init = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # create a submodule repo
@@ -111,35 +112,52 @@ class GitClientTestSetups(unittest.TestCase):
         self.subversion_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # attach submodule somewhere, only in test_branch first
-        subprocess.check_call("git checkout master -b test_branch", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git checkout master -b test_branch", shell=True, cwd=self.repo_path)
         subprocess.check_call("git submodule add %s %s" % (self.submodule_path,
-                                                           "submodule2"), shell=True, cwd=self.remote_path)
+                                                           "submodule2"), shell=True, cwd=self.repo_path)
 
         # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
-        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.repo_path)
 
-        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.repo_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True,
-                              cwd=self.remote_path, stdout=subprocess.PIPE)
+                              cwd=self.repo_path, stdout=subprocess.PIPE)
         self.version_test = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
-        # attach submodule to remote on master. CAREFUL : submodule2 is still in working tree (git does not clean it)
-        subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
-                              shell=True, cwd=self.remote_path)
+        # attach submodule using relative url, only in test_sub_relative
+        subprocess.check_call("git checkout master -b test_sub_relative", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git submodule add %s %s" % (os.path.join('..', os.path.basename(self.submodule_path)),
+                                                           "submodule"), shell=True, cwd=self.repo_path)
 
         # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
-        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
-        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.repo_path)
 
-        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.repo_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True,
-                              cwd=self.remote_path, stdout=subprocess.PIPE)
+                              cwd=self.repo_path, stdout=subprocess.PIPE)
+        self.version_relative = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
+
+        # attach submodule to remote on master. CAREFUL : submodule2 is still in working tree (git does not clean it)
+        subprocess.check_call("git checkout master", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
+                              shell=True, cwd=self.repo_path)
+
+        # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.repo_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.repo_path)
+
+        subprocess.check_call("git commit -m submodule", shell=True, cwd=self.repo_path)
+
+        po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True,
+                              cwd=self.repo_path, stdout=subprocess.PIPE)
         self.version_final = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
-        subprocess.check_call("git tag last_tag", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git tag last_tag", shell=True, cwd=self.repo_path)
+
+        print("setup done\n\n")
 
     @classmethod
     def tearDownClass(self):
@@ -156,7 +174,7 @@ class GitClientTestSetups(unittest.TestCase):
 class GitClientTest(GitClientTestSetups):
 
     def test_checkout_master_with_subs(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subsubclient = GitClient(self.subsublocal_path)
@@ -174,7 +192,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(self.subsubversion_final, subsubclient.get_version())
 
     def test_export_master(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subsubclient = GitClient(self.subsublocal_path)
@@ -203,8 +221,39 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(dirdiff.right_only, [])
         self.assertEqual(dirdiff.diff_files, [])
 
+    def test_export_relative(self):
+        url = self.repo_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertFalse(os.path.exists(self.export_path))
+        self.assertTrue(client.checkout(url, "test_sub_relative"))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        #subprocess.call(["tree", self.root_directory])
+        tarpath = client.export_repository("test_sub_relative", self.export_path)
+        self.assertEqual(tarpath, self.export_path + '.tar.gz')
+        os.mkdir(self.export_path)
+        with closing(tarfile.open(tarpath, "r:gz")) as tarf:
+            tarf.extractall(self.export_path)
+        subsubdirdiff = filecmp.dircmp(self.subsubexport_path, self.subsublocal_path, ignore=['.git', '.gitmodules'])
+        self.assertEqual(subsubdirdiff.left_only, [])
+        self.assertEqual(subsubdirdiff.right_only, [])
+        self.assertEqual(subsubdirdiff.diff_files, [])
+        subdirdiff = filecmp.dircmp(self.subexport_path, self.sublocal_path, ignore=['.git', '.gitmodules'])
+        self.assertEqual(subdirdiff.left_only, [])
+        self.assertEqual(subdirdiff.right_only, [])
+        self.assertEqual(subdirdiff.diff_files, [])
+        dirdiff = filecmp.dircmp(self.export_path, self.local_path, ignore=['.git', '.gitmodules'])
+        self.assertEqual(dirdiff.left_only, [])
+        self.assertEqual(dirdiff.right_only, [])
+        self.assertEqual(dirdiff.diff_files, [])
+
     def test_export_branch(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subclient2 = GitClient(self.sublocal2_path)
@@ -257,7 +306,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(dirdiff.diff_files, [])
 
     def test_export_hash(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subclient2 = GitClient(self.sublocal2_path)
@@ -310,7 +359,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertEqual(dirdiff.diff_files, [])
 
     def test_checkout_branch_without_subs(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subsubclient = GitClient(self.subsublocal_path)
@@ -324,7 +373,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertFalse(subsubclient.path_exists())
 
     def test_checkout_test_branch_with_subs(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subsubclient = GitClient(self.subsublocal_path)
@@ -342,7 +391,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subsubclient2.path_exists())
 
     def test_checkout_master_with_subs2(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subsubclient = GitClient(self.subsublocal_path)
@@ -360,7 +409,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertFalse(subsubclient2.path_exists())
 
     def test_switch_branches(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subclient2 = GitClient(self.sublocal2_path)
@@ -389,7 +438,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subsubclient.path_exists())
 
     def test_switch_branches_retrieve_local_subcommit(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         subclient = GitClient(self.sublocal_path)
         subclient2 = GitClient(self.sublocal2_path)
@@ -430,7 +479,7 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(os.path.exists(os.path.join(self.sublocal2_path, "submodif.txt")))
 
     def test_status(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url))
         output = client.get_status(porcelain=True)  # porcelain=True ensures stable format
@@ -480,7 +529,7 @@ class GitClientTest(GitClientTestSetups):
 ?? local/subsubnew.txt''', output.rstrip())
 
     def test_diff(self):
-        url = self.remote_path
+        url = self.repo_path
         client = GitClient(self.local_path)
         self.assertTrue(client.checkout(url))
         output = client.get_diff()

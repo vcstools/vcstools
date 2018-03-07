@@ -740,10 +740,27 @@ class GitClient(VcsClientBase):
         if not self.detect_presence():
             return False
 
+        # Export should work regardless of the state of the local dir (might have modified files),
+        # so we clone to a temporary folder and checkout the specified version there.
+        # If the repo has submodules with relative URLs, cloning to a temp dir doesn't work.
+        # To support this case, first check if current version is already checked out and there are no
+        # modifications and try to export from current local dir.
+        # see https://github.com/vcstools/vcstools/pull/130
+        current_sha = self.get_version()
+        export_sha = self.get_version(version)
+        if current_sha == export_sha and self.get_diff() == '':
+            archiver = GitArchiver(main_repo_abspath=self.get_path(), force_sub=True)
+            filepath = '{0}.tar.gz'.format(basepath)
+            archiver.create(filepath)
+            return filepath
+
+        # export a different version than currently checked out or there are local changes
         try:
             # since version may relate to remote branch / tag we do not
             # know about yet, do fetch if not already done
             self._do_fetch()
+            # export should work regardless of the state of the local dir (might have modified files)
+            # so we clone to a temporary folder and checkout the specified version there
             tmpd_path = tempfile.mkdtemp()
             try:
                 tmpgit = GitClient(tmpd_path)
