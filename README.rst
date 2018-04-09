@@ -8,13 +8,7 @@ See http://www.ros.org/doc/independent/api/vcstools/html/
 Installing
 ----------
 
-Install the latest release on Ubuntu using apt-get::
-
-  $ sudo apt-get install vcstools
-
-On other Systems, use the pypi package::
-
-  $ pip install vcstools
+See [documentation](http://docs.ros.org/independent/api/vcstools/html/)
 
 Developer Environment
 ---------------------
