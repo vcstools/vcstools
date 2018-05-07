@@ -26,7 +26,6 @@ setup(name='vcstools',
       author="Tully Foote, Thibault Kruse, Ken Conley",
       author_email="tfoote@osrfoundation.org",
       url="http://wiki.ros.org/vcstools",
-      download_url="http://download.ros.org/downloads/vcstools/",
       keywords=["scm", "vcs", "git", "svn", "hg", "bzr"],
       classifiers=[
           "Programming Language :: Python",
