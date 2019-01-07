@@ -34,19 +34,47 @@
 from __future__ import absolute_import, print_function, unicode_literals
 import os
 import unittest
+import tarfile
 import tempfile
 import shutil
 import subprocess
+import mock
 
 from vcstools.tar import TarClient
+from test.mock_server import start_mock_server
+
+def tarfile_contents():
+    '''
+    :returns: binary string of ROS package-release-like tarfile to serve
+    '''
+    tar_directory = tempfile.mkdtemp()
+    filename = os.path.join(tar_directory, 'sample.tar.gz')
+    pkgname = "sample-1.0"
+    pkg_directory = os.path.join(tar_directory, pkgname)
+    os.mkdir(pkg_directory)
+    packagexml = os.path.join(pkg_directory, "package.xml")
+    with open(packagexml, 'w+') as f:
+        f.write('<?xml version="1.0"?><package>' + ('<name>sample</name>' * 1000) + '</package>')
+
+    with tarfile.open(filename, "w:gz") as tar_handle:
+        tar_handle.addfile(tarfile.TarInfo(os.path.join(pkgname, "package.xml")), packagexml)
+    tar_handle.close()
+
+    with open(filename, mode='rb') as file: # b is important -> binary
+        result = file.read()
+    shutil.rmtree(tar_directory)
+    return result
+
 
 
 class TarClientTest(unittest.TestCase):
+    '''Test against mock http server'''
 
     @classmethod
     def setUpClass(self):
-        self.remote_url = "https://github.com/ros-gbp/ros_comm-release/archive/release/jade/roswtf/1.11.13-0.tar.gz"
-        self.package_version = "ros_comm-release-release-jade-roswtf-1.11.13-0"
+        baseURL = start_mock_server(tarfile_contents())
+        self.remote_url = baseURL + '/downloads/1.0.tar.gz'
+        self.package_version = "sample-1.0"
 
     def setUp(self):
         self.directories = {}
@@ -81,7 +109,17 @@ class TarClientTest(unittest.TestCase):
         client = TarClient(local_path)
         self.assertEqual(client.get_vcs_type_name(), 'tar')
 
-    def test_checkout(self):
+
+    @mock.patch('netrc.netrc') # cannot rely on local ~/.netrc file
+    def test_checkout_parametrized(self, patched_netrc):
+        netrc_mock = mock.Mock()
+        netrc_mock.authenticators.return_value = ('user', '' , 'password')
+        patched_netrc.return_value = netrc_mock
+        for query_params in ['', '?chunked=true', '?auth=true', '?chunked=true&auth=true']:
+            self.check_checkout(query_params)
+
+    # parametrized
+    def check_checkout(self, query_params):
         # checks out all subdirs
         directory = tempfile.mkdtemp()
         self.directories["checkout_test"] = directory
@@ -90,11 +128,11 @@ class TarClientTest(unittest.TestCase):
         self.assertFalse(client.path_exists())
         self.assertFalse(client.detect_presence())
         self.assertFalse(client.detect_presence())
-        self.assertTrue(client.checkout(self.remote_url))
+        self.assertTrue(client.checkout(self.remote_url + query_params))
         self.assertTrue(client.path_exists())
         self.assertTrue(client.detect_presence())
         self.assertEqual(client.get_path(), local_path)
-        self.assertEqual(client.get_url(), self.remote_url)
+        self.assertEqual(client.get_url(), self.remote_url + query_params)
         # make sure the tarball subdirectory was promoted correctly.
         self.assertTrue(os.path.exists(os.path.join(local_path,
                                                     self.package_version,
@@ -138,6 +176,7 @@ class TarClientTest(unittest.TestCase):
 
 
 class TarClientTestLocal(unittest.TestCase):
+    '''Tests with URL being a local filepath'''
 
     def setUp(self):
         self.root_directory = tempfile.mkdtemp()

@@ -120,7 +120,7 @@ def urlretrieve_netrc(url, filename=None):
             fdesc, fname = tempfile.mkstemp()
             fhand = os.fdopen(fdesc, "wb")
             # Copy the http response to the temporary file.
-        shutil.copyfileobj(resp.fp, fhand)
+        shutil.copyfileobj(resp, fhand)
     finally:
         if fhand:
             fhand.close()
