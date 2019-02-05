@@ -845,12 +845,20 @@ class GitClient(VcsClientBase):
                 return True
             print("Cannot fast-forward, local repository and remote '%s' have diverged." % branch_parent)
             return False
+        # 'git reset --keep' doesn't refresh the index. Do it manually to avoid
+        # errors as reported in: https://github.com/vcstools/wstool/issues/77
+        cmd = "git update-index -q --refresh"
+        run_shell_command(cmd,
+                          shell=True,
+                          cwd=self._path,
+                          show_stdout=False,
+                          verbose=verbose)
         if verbose:
             print("Rebasing repository")
         # Rebase, do not pull, because somebody could have
         # commited in the meantime.
         if LooseVersion(self.gitversion) >= LooseVersion('1.7.1'):
-            # --keep allows o rebase even with local changes, as long as
+            # --keep allows to rebase even with local changes, as long as
             # local changes are not in files that change between versions
             cmd = "git reset --keep remotes/%s/%s" % (default_remote, branch_parent)
             value, _, _ = run_shell_command(cmd,
