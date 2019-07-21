@@ -519,9 +519,9 @@ class GitClient(VcsClientBase):
                                                          rel_path,
                                                          line[3:])
             if LooseVersion(self.gitversion) > LooseVersion('1.7'):
-                command = "git submodule foreach --recursive git status {0}".format(status_flag)
                 if not untracked:
-                    command += " -uno"
+                    status_flag += " -uno"
+                command = "git submodule foreach --recursive 'git status {0}'".format(status_flag)
                 _, response2, _ = run_shell_command(command,
                                                     shell=True,
                                                     cwd=self._path)
