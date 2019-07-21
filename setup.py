@@ -45,7 +45,6 @@ setup(name='vcstools',
       extras_require={
         'test': test_required
       },
-      test_suite="nose.collector",
       author="Tully Foote, Thibault Kruse, Ken Conley",
       author_email="tfoote@osrfoundation.org",
       url="http://wiki.ros.org/vcstools",
