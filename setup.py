@@ -2,6 +2,8 @@ from setuptools import setup
 
 import imp
 
+with open('README.rst') as readme_file:
+    README = readme_file.read()
 
 def get_version():
     ver_file = None
@@ -14,6 +16,22 @@ def get_version():
         if ver_file is not None:
             ver_file.close()
 
+test_required = [
+    "nose",
+    "coverage",
+    "mock",
+    "pep8",
+    # run checks in multiple environments
+    "tox",
+    "tox-pyenv",
+    # code metrics
+    "radon~=1.4.0; python_version > '3'",
+    # coala lint checks only in newest python
+    "coala; python_version > '3'",
+    "coala-bears; python_version > '3'",
+    # mypy typing checks only in newest python
+    "mypy; python_version > '3'"
+]
 
 setup(name='vcstools',
       version=get_version(),
@@ -21,7 +39,12 @@ setup(name='vcstools',
       package_dir={'': 'src'},
       scripts=[],
       install_requires=['pyyaml', 'python-dateutil'],
-      tests_require=['nose', 'mock'],
+      # tests_require automatically installed when running python setup.py test
+      tests_require=test_required,
+      # extras_require allow pip install .[test]
+      extras_require={
+        'test': test_required
+      },
       test_suite="nose.collector",
       author="Tully Foote, Thibault Kruse, Ken Conley",
       author_email="tfoote@osrfoundation.org",
@@ -34,8 +57,5 @@ setup(name='vcstools',
           "License :: OSI Approved :: BSD License"
       ],
       description="VCS/SCM source control library for svn, git, hg, and bzr",
-      long_description="""\
-Library for managing source code trees from multiple version control systems.
-Current supports svn, git, hg, and bzr.
-""",
+      long_description=README,
       license="BSD")

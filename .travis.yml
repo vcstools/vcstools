@@ -10,6 +10,7 @@ install:
   - sudo apt-get install -qq python-yaml python-dateutil
   - sudo apt-get install -qq python3-yaml python3-dateutil
   - sudo apt-get install -qq git mercurial bzr subversion
+  - pip install -U tox tox-travis
   - echo $PYTHONPATH
   - python -c 'import sys;print(sys.path)'
   - python setup.py install
@@ -19,6 +20,7 @@ install:
   - svn --version
 # command to run tests
 script:
-  - python -m nose --with-coverage --cover-package vcstools test
+  - tox
+
 notifications:
   email: false
