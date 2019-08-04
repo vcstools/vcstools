@@ -4,6 +4,15 @@ Changelog
 0.1
 ===
 
+0.1.41
+------
+
+- fix git submodule error due to lack of quoting
+- Fix git update failure by refreshing git index before fast-forward
+- Fix python3 incompatibility due to wrong use of urlopen
+- Updating get_affected_files function by removing single quotes covering format (#129)
+- Fix export_upstream for git submodules with relative urls. (#130)
+
 0.1.40
 ------
 
