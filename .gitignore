@@ -7,10 +7,8 @@
 *.log
 *.orig
 *.pyc
-*.pyc
 *.swp
 *.tgz
-*~
 *~
 .tox
 build/*

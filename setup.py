@@ -19,6 +19,7 @@ def get_version():
 test_required = [
     "nose",
     "coverage",
+    "coveralls",
     "mock",
     "pep8",
     # run checks in multiple environments
@@ -53,7 +54,9 @@ setup(name='vcstools',
           "Programming Language :: Python",
           "Programming Language :: Python :: 2",
           "Programming Language :: Python :: 3",
-          "License :: OSI Approved :: BSD License"
+          "License :: OSI Approved :: BSD License",
+          "Development Status :: 7 - Inactive",
+          "Topic :: Software Development :: Version Control"
       ],
       description="VCS/SCM source control library for svn, git, hg, and bzr",
       long_description=README,
