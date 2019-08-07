@@ -4,6 +4,11 @@ Changelog
 0.1
 ===
 
+0.1.42
+------
+
+- remove cosmic and disco until we have hosting for it
+
 0.1.41
 ------
 
