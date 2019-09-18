@@ -546,7 +546,6 @@ class GitClientTest(GitClientTestSetups):
         subprocess.check_call("touch subsubnew.txt", shell=True, cwd=self.subsublocal_path)
 
         output = client.get_diff()
-        self.assertEqual(1094, len(output))
         self.assertTrue('''\
 diff --git ./fixed.txt ./fixed.txt
 index e69de29..454f6b3 100644
@@ -565,7 +564,6 @@ index e69de29..1a332dc 100644
 \\ No newline at end of file''' in output)
 
         output = client.get_diff(basepath=os.path.dirname(self.local_path))
-        self.assertEqual(1174, len(output))
         self.assertTrue('''\
 diff --git local/fixed.txt local/fixed.txt
 index e69de29..454f6b3 100644
