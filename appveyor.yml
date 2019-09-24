@@ -1,0 +1,19 @@
+# Continuous integration procedure for AppVeyor
+# Based on https://github.com/rmcgibbo/python-appveyor-conda-example
+
+environment:
+
+  matrix:
+    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36-x64"
+
+install:
+  - set PATH=C:\Program Files (x86)\GnuWin32\bin\;%PYTHON%\Scripts;%PYTHON%;%PATH%
+  - python --version
+  - python -m site
+  - python -m pip install -U pip setuptools wheel
+  - python setup.py install
+
+build: none
+
